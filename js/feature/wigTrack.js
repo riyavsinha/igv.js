@@ -218,6 +218,9 @@ class WigTrack extends TrackBase {
             const seqArray = Array.from(sequence.toUpperCase())
             let appliedVariants = 0
             
+            // Track positions that should be deleted (marked for no rendering)
+            const deletedPositions = new Set()
+            
             // Process each position in the interval (interval-based approach)
             for (let genomicPos = start; genomicPos < end; genomicPos++) {
                 const key = `${chr}:${genomicPos}`
@@ -226,31 +229,58 @@ class WigTrack extends TrackBase {
                     const variants = this.vcfVariants.get(key)
                     
                     for (const variant of variants) {
-                        // Only handle SNPs for now (single base to single base)
-                        if (variant.ref.length === 1 && variant.alt.length === 1) {
-                            const relativePos = genomicPos - start
+                        const relativePos = genomicPos - start
+                        
+                        // Check bounds
+                        if (relativePos >= 0 && relativePos < seqArray.length) {
                             
-                            // Check bounds
-                            if (relativePos >= 0 && relativePos < seqArray.length) {
+                            if (variant.ref.length === 1 && variant.alt.length === 1) {
+                                // SNP: single base to single base
                                 const refBase = seqArray[relativePos]
                                 
                                 // Strict reference checking - ref base must match exactly
                                 if (refBase === variant.ref.toUpperCase()) {
-                                    console.log(`Applying SNP at ${genomicPos}: ${variant.ref} -> ${variant.alt}`)
                                     seqArray[relativePos] = variant.alt.toUpperCase()
                                     appliedVariants++
                                 } else {
                                     console.warn(`Reference mismatch at ${genomicPos}: expected ${variant.ref}, found ${refBase}`)
                                 }
+                                
+                            } else if (variant.ref.length > 1 && variant.alt.length === 1) {
+                                // Deletion: multiple bases deleted, replaced with single base (or just deleted)
+                                const refLen = variant.ref.length
+                                
+                                // Check if reference matches for the deletion
+                                if (relativePos + refLen <= seqArray.length) {
+                                    const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
+                                    console.log(`Checking deletion at ${genomicPos}: expected ${variant.ref}, found ${refInSeq}`)
+                                    if (refInSeq === variant.ref.toUpperCase()) {
+                                        console.log(`Applying deletion at ${genomicPos}: ${variant.ref} -> ${variant.alt}`)
+                                        // Mark deleted positions - all positions of the original ref except the first
+                                        for (let i = 1; i < refLen; i++) {
+                                            deletedPositions.add(relativePos + i)
+                                        }
+                                        
+                                        // Replace first position with alt allele
+                                        seqArray[relativePos] = variant.alt.toUpperCase()
+                                        appliedVariants++
+                                    } else {
+                                        console.warn(`Reference mismatch for deletion at ${genomicPos}: expected ${variant.ref}, found ${refInSeq}`)
+                                    }
+                                }
                             }
-                        } else {
-                            console.log(`Skipping non-SNP variant at ${genomicPos}: ${variant.ref} -> ${variant.alt} (will handle indels later)`)
+                            // TODO: Handle insertions in future
                         }
                     }
                 }
             }
+            
+            // Apply deletions by marking positions with a special deletion marker
+            for (const deletedPos of deletedPositions) {
+                seqArray[deletedPos] = '\0' // Use null character to mark deleted positions
+            }
             if (appliedVariants > 0) {
-            console.log(`Applied ${appliedVariants} SNP variants to sequence`)
+                console.log(`Applied ${appliedVariants} variants (SNPs and deletions) to sequence`)
             }
             return seqArray.join('')
             
@@ -301,11 +331,36 @@ class WigTrack extends TrackBase {
             }
         }
 
-        // For dynseq rendering, attach sequence data to features
+        // For dynseq rendering, attach sequence data to features and apply VCF modifications
         if (this.graphType === "dynseq" && features && features.length > 0) {
             for (let f of features) {
                 try {
                     f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f.start), Math.floor(f.end))
+                    
+                    // Mark positions deleted by variants in the sequence
+                    if (this.vcfVariants && this.vcfVariants.size > 0 && f.sequence) {
+                        const featurePos = Math.floor((f.start + f.end) / 2) // Use feature midpoint
+                        
+                        // Check all variant positions to see if this feature position is deleted
+                        for (const [variantKey, variants] of this.vcfVariants.entries()) {
+                            const variantPos = parseInt(variantKey.split(':')[1]) // Extract position from "chr:pos"
+                            
+                            for (const variant of variants) {
+                                // For deletions, check if this feature falls in the deleted range
+                                if (variant.ref.length > variant.alt.length) {
+                                    const deletionStart = variantPos + variant.alt.length // Position after the remaining bases
+                                    const deletionEnd = variantPos + variant.ref.length - 1 // Last deleted position
+                                    
+                                    // If this feature position is in the deleted range, mark for no rendering
+                                    if (featurePos >= deletionStart && featurePos <= deletionEnd) {
+                                        f.sequence = '\0' // Mark entire feature as deleted
+                                        console.log(`Marking feature at ${featurePos} as deleted due to deletion ${variant.ref}->${variant.alt} at ${variantPos}`)
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.warn('Failed to get sequence for feature:', error)
                     f.sequence = null
@@ -558,23 +613,35 @@ class WigTrack extends TrackBase {
             return
         }
         
+        // Skip rendering entirely for deleted positions
+        if (sequence === '\0') {
+            return // No glyph rendered at all
+        }
+        
         // Calculate rectangle position and height based on the wig value
         const rectY = Math.min(y, y0)
         const rectHeight = Math.max(1, Math.abs(y - y0)) // Ensure minimum height of 1px
         
-        // Render each base in the sequence
+        // Render each base in the sequence, skipping deleted positions
         const baseWidth = width / sequence.length
         const isNegative = feature.value < 0
         
         for (let i = 0; i < sequence.length; i++) {
+            const base = sequence[i]
+            
+            // Skip deleted positions (marked with null character)
+            if (base === '\0') {
+                continue
+            }
+            
             const baseX = x + (i * baseWidth)
-            const base = sequence[i].toUpperCase()
+            const upperBase = base.toUpperCase()
             
             // Get nucleotide color from browser's color scheme
-            const nucleotideColor = this.browser.nucleotideColors[base] || 'gray'
+            const nucleotideColor = this.browser.nucleotideColors[upperBase] || 'gray'
             
             // Draw the base as a letter-shaped glyph
-            this.drawLetterGlyph(ctx, base, baseX, rectY, baseWidth, rectHeight, nucleotideColor, isNegative)
+            this.drawLetterGlyph(ctx, upperBase, baseX, rectY, baseWidth, rectHeight, nucleotideColor, isNegative)
         }
         
         // Draw overflow indicators if needed
