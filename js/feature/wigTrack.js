@@ -390,6 +390,44 @@ class WigTrack extends TrackBase {
         return seqArray.join('')
     }
 
+    async getReferenceWithInsertionGaps(chr, start, end) {
+        try {
+            // Get reference sequence
+            const refSequence = await this.browser.genome.getSequence(chr, start, end)
+            if (!refSequence) return null
+            
+            // If no insertions registered globally, return reference as-is
+            if (!this.browser || !this.browser.variantCoordinates) {
+                return refSequence
+            }
+            
+            // Get insertions in this region
+            const insertions = this.browser.variantCoordinates.getInsertionsInRegion(chr, start, end)
+            if (insertions.length === 0) {
+                return refSequence
+            }
+            
+            // Add gaps (null characters) where insertions should be
+            let gappedSequence = refSequence
+            let offset = 0
+            
+            for (const insertion of insertions) {
+                const relativePos = insertion.pos - start + offset
+                // Insert null characters to create gaps
+                const gapChars = '\0'.repeat(insertion.insertedBases.length)
+                gappedSequence = gappedSequence.slice(0, relativePos + 1) + 
+                                gapChars + 
+                                gappedSequence.slice(relativePos + 1)
+                offset += insertion.insertedBases.length
+            }
+            
+            return gappedSequence
+        } catch (error) {
+            console.error('Error creating reference with insertion gaps:', error)
+            return await this.browser.genome.getSequence(chr, start, end)
+        }
+    }
+
     get paintAxis() {
         // Supply do-nothing implementation for heatmaps
         return "heatmap" === this.graphType ? () => {
@@ -443,7 +481,14 @@ class WigTrack extends TrackBase {
                         f.end = expandedEnd
                     }
                     
-                    f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
+                    // Get sequence - use variants only if this track has VCF data
+                    if (this.vcfData || this.vcfUrl) {
+                        // This track has VCF data - show variants
+                        f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
+                    } else {
+                        // This track has no VCF data - show reference with gaps for insertions
+                        f.sequence = await this.getReferenceWithInsertionGaps(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
+                    }
                     
                     // Mark positions deleted by variants in the sequence
                     if (this.vcfVariants && this.vcfVariants.size > 0 && f.sequence) {
