@@ -8,7 +8,6 @@ import {IGVColor, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {createCheckbox} from "../igv-icons.js"
 import {ColorScaleFactory} from "../util/colorScale.js"
 import ColorScaleEditor from "../ui/components/colorScaleEditor.js"
-import VcfParser from "../variant/vcfParser.js"
 
 class WigTrack extends TrackBase {
 
@@ -109,14 +108,18 @@ class WigTrack extends TrackBase {
             if (this.vcfData) {
                 // VCF data provided as text
                 vcfText = this.vcfData
+                console.log('Using provided VCF data, length:', vcfText.length)
             } else if (this.vcfUrl) {
                 // Load VCF from URL
+                console.log('Loading VCF from URL:', this.vcfUrl)
                 const response = await fetch(this.vcfUrl)
                 if (!response.ok) {
                     throw new Error(`Failed to load VCF: ${response.statusText}`)
                 }
                 vcfText = await response.text()
+                console.log('Loaded VCF from URL, length:', vcfText.length)
             } else {
+                console.warn('No VCF data or URL provided')
                 return
             }
 
@@ -129,6 +132,15 @@ class WigTrack extends TrackBase {
             // Parse VCF data
             await this.parseVcfText(vcfText)
             console.log(`Loaded ${this.vcfVariants.size} variant positions from VCF`)
+            
+            // Debug: print first few variants
+            let count = 0
+            for (const [key, variants] of this.vcfVariants.entries()) {
+                if (count < 5) {
+                    console.log(`Variant ${key}:`, variants)
+                    count++
+                }
+            }
         } catch (error) {
             console.error('Error loading VCF data:', error)
             // Initialize empty variants map to prevent further errors
@@ -192,8 +204,8 @@ class WigTrack extends TrackBase {
             // Get the reference sequence first
             let sequence = await this.browser.genome.getSequence(chr, start, end)
             
-            // If no sequence or invalid sequence, return empty
             if (!sequence || typeof sequence !== 'string') {
+                console.warn('No valid sequence retrieved for region:', chr, start, end)
                 return null
             }
             
@@ -202,46 +214,46 @@ class WigTrack extends TrackBase {
                 return sequence
             }
             
-            // Apply variants to the sequence
-            // Convert sequence to array for easier manipulation
-            const seqArray = Array.from(sequence)
-            const variants = []
+            // Convert sequence to array for manipulation
+            const seqArray = Array.from(sequence.toUpperCase())
+            let appliedVariants = 0
             
-            // Collect all variants that overlap with this region
-            for (let pos = start; pos < end; pos++) {
-                const key = `${chr}:${pos}`
+            // Process each position in the interval (interval-based approach)
+            for (let genomicPos = start; genomicPos < end; genomicPos++) {
+                const key = `${chr}:${genomicPos}`
+                
                 if (this.vcfVariants.has(key)) {
-                    for (const variant of this.vcfVariants.get(key)) {
-                        if (variant && variant.ref && variant.alt) {
-                            variants.push({
-                                ...variant,
-                                relativePos: pos - start
-                            })
+                    const variants = this.vcfVariants.get(key)
+                    
+                    for (const variant of variants) {
+                        // Only handle SNPs for now (single base to single base)
+                        if (variant.ref.length === 1 && variant.alt.length === 1) {
+                            const relativePos = genomicPos - start
+                            
+                            // Check bounds
+                            if (relativePos >= 0 && relativePos < seqArray.length) {
+                                const refBase = seqArray[relativePos]
+                                
+                                // Strict reference checking - ref base must match exactly
+                                if (refBase === variant.ref.toUpperCase()) {
+                                    console.log(`Applying SNP at ${genomicPos}: ${variant.ref} -> ${variant.alt}`)
+                                    seqArray[relativePos] = variant.alt.toUpperCase()
+                                    appliedVariants++
+                                } else {
+                                    console.warn(`Reference mismatch at ${genomicPos}: expected ${variant.ref}, found ${refBase}`)
+                                }
+                            }
+                        } else {
+                            console.log(`Skipping non-SNP variant at ${genomicPos}: ${variant.ref} -> ${variant.alt} (will handle indels later)`)
                         }
                     }
                 }
             }
-            
-            // Sort variants by position (rightmost first to preserve indices during substitution)
-            variants.sort((a, b) => b.relativePos - a.relativePos)
-            
-            // Apply variants
-            for (const variant of variants) {
-                const refLen = variant.ref.length
-                const relativePos = variant.relativePos
-                
-                // Check if variant is within our sequence bounds
-                if (relativePos >= 0 && relativePos + refLen <= seqArray.length) {
-                    // Check if reference matches
-                    const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
-                    if (refInSeq.toUpperCase() === variant.ref.toUpperCase()) {
-                        // Apply the variant
-                        seqArray.splice(relativePos, refLen, ...Array.from(variant.alt))
-                    }
-                }
+            if (appliedVariants > 0) {
+            console.log(`Applied ${appliedVariants} SNP variants to sequence`)
             }
-            
             return seqArray.join('')
+            
         } catch (error) {
             console.error('Error applying VCF variants to sequence:', error)
             // Fallback to reference sequence
