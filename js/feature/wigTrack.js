@@ -8,6 +8,7 @@ import {IGVColor, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {createCheckbox} from "../igv-icons.js"
 import {ColorScaleFactory} from "../util/colorScale.js"
 import ColorScaleEditor from "../ui/components/colorScaleEditor.js"
+import VcfParser from "../variant/vcfParser.js"
 
 class WigTrack extends TrackBase {
 
@@ -24,7 +25,9 @@ class WigTrack extends TrackBase {
         overflowColor: `rgb(255, 32, 255)`,
         baselineColor: 'lightGray',
         summarize: true,
-        visibilityWindow: undefined
+        visibilityWindow: undefined,
+        vcfUrl: undefined,
+        vcfData: undefined
     }
 
     constructor(config, browser) {
@@ -70,6 +73,15 @@ class WigTrack extends TrackBase {
         if ("heatmap" === config.graphType && !config.height) {
             this.height = 20
         }
+
+        // Initialize VCF support for dynseq
+        this.vcfUrl = config.vcfUrl
+        this.vcfData = config.vcfData
+        this.vcfVariants = new Map() // Cache for parsed VCF variants by position
+        
+        // Remove VCF properties from config to prevent them from interfering with IGV's URL handling
+        delete config.vcfUrl
+        delete config.vcfData
     }
 
     async postInit() {
@@ -80,10 +92,166 @@ class WigTrack extends TrackBase {
         this._initialColor = this.color || this.constructor.defaultColor
         this._initialAltColor = this.altColor || this.constructor.defaultColor
 
+        // Load VCF data if provided
+        if ((this.vcfUrl || this.vcfData) && this.graphType === "dynseq") {
+            console.log('Loading VCF data for dynseq track')
+            await this.loadVcfData()
+        }
     }
 
     get supportsWholeGenome() {
         return !this.config.indexURL && this.config.supportsWholeGenome !== false
+    }
+
+    async loadVcfData() {
+        try {
+            let vcfText
+            if (this.vcfData) {
+                // VCF data provided as text
+                vcfText = this.vcfData
+            } else if (this.vcfUrl) {
+                // Load VCF from URL
+                const response = await fetch(this.vcfUrl)
+                if (!response.ok) {
+                    throw new Error(`Failed to load VCF: ${response.statusText}`)
+                }
+                vcfText = await response.text()
+            } else {
+                return
+            }
+
+            // Validate VCF text before parsing
+            if (!vcfText || typeof vcfText !== 'string') {
+                console.warn('Invalid or empty VCF data')
+                return
+            }
+
+            // Parse VCF data
+            await this.parseVcfText(vcfText)
+            console.log(`Loaded ${this.vcfVariants.size} variant positions from VCF`)
+        } catch (error) {
+            console.error('Error loading VCF data:', error)
+            // Initialize empty variants map to prevent further errors
+            this.vcfVariants = new Map()
+        }
+    }
+
+    async parseVcfText(vcfText) {
+        if (!vcfText || typeof vcfText !== 'string') {
+            console.warn('Invalid VCF data provided')
+            return
+        }
+        
+        const lines = vcfText.split('\n')
+        
+        for (const line of lines) {
+            if (!line || typeof line !== 'string' || line.startsWith('#') || line.trim() === '') {
+                continue // Skip header, empty lines, and invalid lines
+            }
+            
+            const fields = line.split('\t')
+            if (fields.length < 5) {
+                continue // Skip malformed lines
+            }
+            
+            const [chrom, pos, id, ref, alt] = fields
+            
+            // Validate required fields
+            if (!chrom || !pos || !ref || !alt) {
+                continue
+            }
+            
+            const position = parseInt(pos) - 1 // Convert to 0-based coordinates
+            if (isNaN(position) || position < 0) {
+                continue // Skip invalid positions
+            }
+            
+            // Store variant by chromosome and position
+            const key = `${chrom}:${position}`
+            if (!this.vcfVariants.has(key)) {
+                this.vcfVariants.set(key, [])
+            }
+            
+            // Handle multiple alternate alleles
+            const altAlleles = alt.split(',')
+            for (const altAllele of altAlleles) {
+                if (altAllele && altAllele !== '.') { // Skip no-call variants and empty alleles
+                    this.vcfVariants.get(key).push({
+                        position: position,
+                        ref: ref,
+                        alt: altAllele,
+                        id: id || '.'
+                    })
+                }
+            }
+        }
+    }
+
+    async getSequenceWithVariants(chr, start, end) {
+        try {
+            // Get the reference sequence first
+            let sequence = await this.browser.genome.getSequence(chr, start, end)
+            
+            // If no sequence or invalid sequence, return empty
+            if (!sequence || typeof sequence !== 'string') {
+                return null
+            }
+            
+            // If no VCF data loaded, return reference sequence
+            if (!this.vcfVariants || this.vcfVariants.size === 0) {
+                return sequence
+            }
+            
+            // Apply variants to the sequence
+            // Convert sequence to array for easier manipulation
+            const seqArray = Array.from(sequence)
+            const variants = []
+            
+            // Collect all variants that overlap with this region
+            for (let pos = start; pos < end; pos++) {
+                const key = `${chr}:${pos}`
+                if (this.vcfVariants.has(key)) {
+                    for (const variant of this.vcfVariants.get(key)) {
+                        if (variant && variant.ref && variant.alt) {
+                            variants.push({
+                                ...variant,
+                                relativePos: pos - start
+                            })
+                        }
+                    }
+                }
+            }
+            
+            // Sort variants by position (rightmost first to preserve indices during substitution)
+            variants.sort((a, b) => b.relativePos - a.relativePos)
+            
+            // Apply variants
+            for (const variant of variants) {
+                const refLen = variant.ref.length
+                const relativePos = variant.relativePos
+                
+                // Check if variant is within our sequence bounds
+                if (relativePos >= 0 && relativePos + refLen <= seqArray.length) {
+                    // Check if reference matches
+                    const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
+                    if (refInSeq.toUpperCase() === variant.ref.toUpperCase()) {
+                        // Apply the variant
+                        seqArray.splice(relativePos, refLen, ...Array.from(variant.alt))
+                    }
+                }
+            }
+            
+            return seqArray.join('')
+        } catch (error) {
+            console.error('Error applying VCF variants to sequence:', error)
+            // Fallback to reference sequence
+            try {
+                return await this.browser.genome.getSequence(chr, start, end)
+            } catch (fallbackError) {
+                console.error('Error getting reference sequence:', fallbackError)
+                return null
+            }
+        }
     }
 
     get paintAxis() {
@@ -125,7 +293,7 @@ class WigTrack extends TrackBase {
         if (this.graphType === "dynseq" && features && features.length > 0) {
             for (let f of features) {
                 try {
-                    f.sequence = await this.browser.genome.getSequence(f.chr, Math.floor(f.start), Math.floor(f.end))
+                    f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f.start), Math.floor(f.end))
                 } catch (error) {
                     console.warn('Failed to get sequence for feature:', error)
                     f.sequence = null
