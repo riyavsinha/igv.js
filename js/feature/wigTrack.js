@@ -492,7 +492,12 @@ class WigTrack extends TrackBase {
                     
                     // Mark positions deleted by variants in the sequence
                     if (this.vcfVariants && this.vcfVariants.size > 0 && f.sequence) {
-                        const featurePos = Math.floor((f.start + f.end) / 2) // Use feature midpoint
+                        // Use original genomic coordinates for deletion check to match VCF coordinates
+                        const originalStart = f._originalStart || f.start
+                        const originalEnd = f._originalEnd || f.end
+                        const featurePos = Math.floor((originalStart + originalEnd) / 2) // Use feature midpoint in genomic coordinates
+                        
+                        console.log(`Checking deletion for feature at genomic pos ${featurePos} (expanded: ${Math.floor((f.start + f.end) / 2)})`)
                         
                         // Check all variant positions to see if this feature position is deleted
                         for (const [variantKey, variants] of this.vcfVariants.entries()) {
@@ -504,8 +509,11 @@ class WigTrack extends TrackBase {
                                     const deletionStart = variantPos + variant.alt.length // Position after the remaining bases
                                     const deletionEnd = variantPos + variant.ref.length - 1 // Last deleted position
                                     
+                                    console.log(`Checking deletion ${variantPos}: ${variant.ref}->${variant.alt}, deletion range: ${deletionStart}-${deletionEnd}, feature pos: ${featurePos}`)
+                                    
                                     // If this feature position is in the deleted range, mark for no rendering
                                     if (featurePos >= deletionStart && featurePos <= deletionEnd) {
+                                        console.log(`Feature at ${featurePos} marked as deleted`)
                                         f.sequence = '\0' // Mark entire feature as deleted
                                         break
                                     }
