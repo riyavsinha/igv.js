@@ -56,16 +56,24 @@ class VariantAwareCoordinates {
         let expandedPos = genomicPos
         const chrInsertions = this.insertions.get(chr) || []
         
+        if (chrInsertions.length > 0) {
+            console.log(`genomicToExpanded: ${chr}:${genomicPos}, found ${chrInsertions.length} insertions`)
+        }
+        
         // Add insertion lengths for all insertions before this position
         for (const insertion of chrInsertions) {
             if (insertion.pos < genomicPos) {
                 expandedPos += insertion.insertedBases.length
+                console.log(`  Applied insertion at ${insertion.pos}: +${insertion.insertedBases.length}`)
             } else {
                 break // Insertions are sorted, so we can stop here
             }
         }
         
         this.coordinateCache.set(cacheKey, expandedPos)
+        if (expandedPos !== genomicPos) {
+            console.log(`genomicToExpanded: ${chr}:${genomicPos} -> ${expandedPos}`)
+        }
         return expandedPos
     }
 

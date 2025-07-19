@@ -259,8 +259,10 @@ class TrackViewport extends Viewport {
             if (features) {
                 let roiFeatures = []
                 if (track.roiSets && track.roiSets.length > 0) {
+                    console.log(`Loading ROI features for ${track.roiSets.length} ROI sets, region: ${chr}:${bpStart}-${bpEnd}`)
                     for (let roiSet of track.roiSets) {
                         const features = await roiSet.getFeatures(chr, bpStart, bpEnd, referenceFrame.bpPerPixel)
+                        console.log(`ROI set loaded ${features?.length || 0} features`)
                         roiFeatures.push({track: roiSet, features})
                     }
                 }
@@ -330,7 +332,18 @@ class TrackViewport extends Viewport {
 
         // Canvas dimensions.
         // For deep tracks we paint a canvas == 3*viewportHeight centered on the current vertical scroll position
-        const {bpStart, bpEnd, pixelWidth} = this.repaintDimensions()
+        let {bpStart, bpEnd, pixelWidth} = this.repaintDimensions()
+        
+        // Transform viewport coordinates to expanded coordinates if we have variants
+        if (this.browser && this.browser.variantCoordinates) {
+            const chr = this.referenceFrame.chr
+            const originalBpStart = bpStart
+            const originalBpEnd = bpEnd
+            bpStart = this.browser.variantCoordinates.genomicToExpanded(chr, originalBpStart)
+            bpEnd = this.browser.variantCoordinates.genomicToExpanded(chr, originalBpEnd)
+            console.log(`Viewport transform: ${chr}:${originalBpStart}-${originalBpEnd} -> ${bpStart}-${bpEnd}`)
+        }
+        
         const viewportHeight = this.viewportElement.clientHeight
         const contentHeight = this.getContentHeight()
         const maxHeight = roiFeatures ? Math.max(contentHeight, viewportHeight) : contentHeight  // Need to fill viewport for ROIs.
@@ -344,7 +357,11 @@ class TrackViewport extends Viewport {
         const pixelTop = Math.max(0, -this.contentTop - Math.floor(pixelHeight / 3))
 
         const bpPerPixel = this.referenceFrame.bpPerPixel
-        const pixelXOffset = Math.round((bpStart - this.referenceFrame.start) / bpPerPixel)
+        // Calculate pixelXOffset using transformed reference frame start
+        const transformedReferenceStart = this.browser && this.browser.variantCoordinates ? 
+            this.browser.variantCoordinates.genomicToExpanded(this.referenceFrame.chr, this.referenceFrame.start) : 
+            this.referenceFrame.start
+        const pixelXOffset = Math.round((bpStart - transformedReferenceStart) / bpPerPixel)
         const canvasTop = (this.contentTop || 0) + pixelTop
         const newCanvas = document.createElement('canvas')
         newCanvas.style.position = 'relative'
@@ -379,7 +396,8 @@ class TrackViewport extends Viewport {
                 referenceFrame: this.referenceFrame,
                 selection: this.selection,
                 viewport: this,
-                viewportWidth: this.viewportElement.clientWidth
+                viewportWidth: this.viewportElement.clientWidth,
+                browser: this.browser
             }
 
         this.draw(drawConfiguration, features, roiFeatures)
@@ -411,12 +429,16 @@ class TrackViewport extends Viewport {
      */
     draw(drawConfiguration, features, roiFeatures) {
 
+        console.log(`TrackViewport.draw: roiFeatures=${!!roiFeatures}, length=${roiFeatures?.length || 0}`)
+
         if (features) {
             drawConfiguration.features = features
             this.trackView.track.draw(drawConfiguration)
         }
         if (roiFeatures && roiFeatures.length > 0) {
+            console.log(`Drawing ${roiFeatures.length} ROI sets`)
             for (let r of roiFeatures) {
+                console.log(`ROI set has ${r.features?.length || 0} features`)
                 drawConfiguration.features = r.features
                 r.track.draw(drawConfiguration)
             }
@@ -544,7 +566,8 @@ class TrackViewport extends Viewport {
                     bpEnd: start + (width * bpPerPixel),
                     bpPerPixel,
                     viewportWidth: width,
-                    selection: this.selection
+                    selection: this.selection,
+                    browser: this.browser
                 }
 
             const features = this.featureCache ? this.featureCache.features : undefined

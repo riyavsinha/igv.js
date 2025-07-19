@@ -193,10 +193,27 @@ class ROIManager {
                 for (let feature of features) {
                     const regionKey = createRegionKey(chr, feature.start, feature.end)
 
+                    // Transform coordinates to expanded coordinates if we have insertions
+                    let transformedFeatureStart = feature.start
+                    let transformedFeatureEnd = feature.end
+                    let transformedViewStart = viewStart
+                    
+                    if (browser && browser.variantCoordinates) {
+                        transformedFeatureStart = browser.variantCoordinates.genomicToExpanded(chr, feature.start)
+                        transformedFeatureEnd = browser.variantCoordinates.genomicToExpanded(chr, feature.end)
+                        transformedViewStart = browser.variantCoordinates.genomicToExpanded(chr, viewStart)
+                        console.log(`ROI transform: feature ${chr}:${feature.start}-${feature.end} -> ${transformedFeatureStart}-${transformedFeatureEnd}, view ${viewStart} -> ${transformedViewStart}`)
+                    }
+
+                    // Calculate transformed view end
+                    const viewEnd = browser.referenceFrameList[i].calculateEnd(columns[i].clientWidth)
+                    const transformedViewEnd = browser && browser.variantCoordinates ? 
+                        browser.variantCoordinates.genomicToExpanded(chr, viewEnd) : viewEnd
+
                     const {
                         x: pixelX,
                         width: pixelWidth
-                    } = screenCoordinates(Math.max(viewStart, feature.start), Math.min(viewEnd, feature.end), viewStart, bpPerPixel)
+                    } = screenCoordinates(Math.max(transformedViewStart, transformedFeatureStart), Math.min(transformedViewEnd, transformedFeatureEnd), transformedViewStart, bpPerPixel)
 
 
                     const el = columns[i].querySelector(createSelector(regionKey))
