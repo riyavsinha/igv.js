@@ -47,6 +47,7 @@ import CursorGuide from "./ui/cursorGuide.js"
 import SliderDialog from "./ui/components/sliderDialog.js"
 import {createBlatTrack} from "./blat/blatTrack.js"
 import {loadHub} from "./ucsc/hub/hubParser.js"
+import VariantAwareCoordinates from "./variantAwareCoordinates.js"
 
 
 // css - $igv-scrollbar-outer-width: 14px;
@@ -97,6 +98,9 @@ class Browser {
         this.initialize(config)
 
         this.trackViews = []
+        
+        // Initialize variant-aware coordinate system
+        this.variantCoordinates = new VariantAwareCoordinates()
 
         this.constants = {
             dragThreshold: 3,

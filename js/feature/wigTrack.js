@@ -188,12 +188,20 @@ class WigTrack extends TrackBase {
             const altAlleles = alt.split(',')
             for (const altAllele of altAlleles) {
                 if (altAllele && altAllele !== '.') { // Skip no-call variants and empty alleles
-                    this.vcfVariants.get(key).push({
+                    const variant = {
                         position: position,
                         ref: ref,
                         alt: altAllele,
                         id: id || '.'
-                    })
+                    }
+                    this.vcfVariants.get(key).push(variant)
+                    
+                    // Register insertions immediately during VCF parsing
+                    if (ref.length < altAllele.length && this.browser && this.browser.variantCoordinates) {
+                        const insertedBases = altAllele.slice(ref.length)
+                        this.browser.variantCoordinates.addInsertion(chrom, position, insertedBases)
+                        console.log(`Registered insertion during VCF parsing at ${chrom}:${position}: ${ref} -> ${altAllele} (inserted: ${insertedBases})`)
+                    }
                 }
             }
         }
@@ -201,7 +209,19 @@ class WigTrack extends TrackBase {
 
     async getSequenceWithVariants(chr, start, end) {
         try {
-            // Get the reference sequence first
+            // If we have variant-aware coordinates, use the expanded sequence
+            if (this.browser && this.browser.variantCoordinates) {
+                const expandedSequence = await this.browser.variantCoordinates.getExpandedSequence(
+                    chr, start, end, 
+                    (chr, start, end) => this.browser.genome.getSequence(chr, start, end)
+                )
+                if (expandedSequence) {
+                    // Apply SNPs and deletions to the expanded sequence, but insertions are already included
+                    return this.applySnpsAndDeletionsOnly(expandedSequence, chr, start, end)
+                }
+            }
+            
+            // Fallback to original method
             let sequence = await this.browser.genome.getSequence(chr, start, end)
             
             if (!sequence || typeof sequence !== 'string') {
@@ -253,9 +273,7 @@ class WigTrack extends TrackBase {
                                 // Check if reference matches for the deletion
                                 if (relativePos + refLen <= seqArray.length) {
                                     const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
-                                    console.log(`Checking deletion at ${genomicPos}: expected ${variant.ref}, found ${refInSeq}`)
                                     if (refInSeq === variant.ref.toUpperCase()) {
-                                        console.log(`Applying deletion at ${genomicPos}: ${variant.ref} -> ${variant.alt}`)
                                         // Mark deleted positions - all positions of the original ref except the first
                                         for (let i = 1; i < refLen; i++) {
                                             deletedPositions.add(relativePos + i)
@@ -268,8 +286,16 @@ class WigTrack extends TrackBase {
                                         console.warn(`Reference mismatch for deletion at ${genomicPos}: expected ${variant.ref}, found ${refInSeq}`)
                                     }
                                 }
+                            } else if (variant.ref.length < variant.alt.length) {
+                                // Insertion: already registered during VCF parsing, just apply to sequence
+                                const refBase = seqArray[relativePos]
+                                if (refBase === variant.ref.toUpperCase()) {
+                                    seqArray[relativePos] = variant.alt.toUpperCase()
+                                    appliedVariants++
+                                } else {
+                                    console.warn(`Reference mismatch for insertion at ${genomicPos}: expected ${variant.ref}, found ${refBase}`)
+                                }
                             }
-                            // TODO: Handle insertions in future
                         }
                     }
                 }
@@ -294,6 +320,74 @@ class WigTrack extends TrackBase {
                 return null
             }
         }
+    }
+
+    getInsertedBasesCount(chr, start, end) {
+        if (!this.browser || !this.browser.variantCoordinates) return 0
+        const insertions = this.browser.variantCoordinates.getInsertionsInRegion(chr, start, end)
+        return insertions.reduce((total, insertion) => total + insertion.insertedBases.length, 0)
+    }
+
+    applySnpsAndDeletionsOnly(sequence, chr, start, end) {
+        if (!this.vcfVariants || this.vcfVariants.size === 0) {
+            return sequence
+        }
+
+        const seqArray = Array.from(sequence.toUpperCase())
+        const deletedPositions = new Set()
+        let appliedVariants = 0
+
+        // Only process SNPs and deletions, skip insertions since they're already in the expanded sequence
+        for (let genomicPos = start; genomicPos < end; genomicPos++) {
+            const key = `${chr}:${genomicPos}`
+            
+            if (this.vcfVariants.has(key)) {
+                const variants = this.vcfVariants.get(key)
+                
+                for (const variant of variants) {
+                    // Convert genomic position to expanded position
+                    const expandedPos = this.browser.variantCoordinates.genomicToExpanded(chr, genomicPos)
+                    const relativePos = expandedPos - this.browser.variantCoordinates.genomicToExpanded(chr, start)
+                    
+                    if (relativePos >= 0 && relativePos < seqArray.length) {
+                        
+                        if (variant.ref.length === 1 && variant.alt.length === 1) {
+                            // SNP: apply at expanded position
+                            const refBase = seqArray[relativePos]
+                            if (refBase === variant.ref.toUpperCase()) {
+                                seqArray[relativePos] = variant.alt.toUpperCase()
+                                appliedVariants++
+                            }
+                            
+                        } else if (variant.ref.length > variant.alt.length) {
+                            // Deletion: mark positions for deletion at expanded coordinates
+                            const refLen = variant.ref.length
+                            if (relativePos + refLen <= seqArray.length) {
+                                const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
+                                if (refInSeq === variant.ref.toUpperCase()) {
+                                    for (let i = variant.alt.length; i < refLen; i++) {
+                                        deletedPositions.add(relativePos + i)
+                                    }
+                                    if (variant.alt.length > 0) {
+                                        seqArray[relativePos] = variant.alt.toUpperCase()
+                                    }
+                                    appliedVariants++
+                                }
+                            }
+                        }
+                        // Skip insertions - they're already handled in the expanded sequence
+                    }
+                }
+            }
+        }
+
+        // Apply deletions
+        for (const deletedPos of deletedPositions) {
+            seqArray[deletedPos] = '\0'
+        }
+
+        
+        return seqArray.join('')
     }
 
     get paintAxis() {
@@ -335,7 +429,21 @@ class WigTrack extends TrackBase {
         if (this.graphType === "dynseq" && features && features.length > 0) {
             for (let f of features) {
                 try {
-                    f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f.start), Math.floor(f.end))
+                    // Transform feature coordinates to expanded coordinates if we have insertions
+                    if (this.browser && this.browser.variantCoordinates) {
+                        const expandedStart = this.browser.variantCoordinates.genomicToExpanded(f.chr, Math.floor(f.start))
+                        const expandedEnd = this.browser.variantCoordinates.genomicToExpanded(f.chr, Math.floor(f.end))
+                        
+                        // Store original coordinates for reference
+                        f._originalStart = f.start
+                        f._originalEnd = f.end
+                        
+                        // Update to expanded coordinates
+                        f.start = expandedStart
+                        f.end = expandedEnd
+                    }
+                    
+                    f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
                     
                     // Mark positions deleted by variants in the sequence
                     if (this.vcfVariants && this.vcfVariants.size > 0 && f.sequence) {
@@ -354,7 +462,6 @@ class WigTrack extends TrackBase {
                                     // If this feature position is in the deleted range, mark for no rendering
                                     if (featurePos >= deletionStart && featurePos <= deletionEnd) {
                                         f.sequence = '\0' // Mark entire feature as deleted
-                                        console.log(`Marking feature at ${featurePos} as deleted due to deletion ${variant.ref}->${variant.alt} at ${variantPos}`)
                                         break
                                     }
                                 }
