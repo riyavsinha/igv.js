@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>IGV.js - DynSeq with VCF Example</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/igv@2.15.8/dist/igv.min.css"
+    />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      #igv-div {
+        border: 1px solid #ccc;
+        margin: 20px 0;
+      }
+      .description {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+      .code-block {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 0.9em;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>IGV.js - DynSeq with VCF Example</h1>
+
+      <div class="description">
+        <h3>Dynamic Sequence with VCF Variants</h3>
+        <p>
+          This example demonstrates how to use <strong>VCF data</strong> with
+          the dynseq graph type for WIG tracks. When VCF data is provided, the
+          track will display alternate alleles from the VCF instead of the
+          reference sequence at variant positions.
+        </p>
+
+        <h4>Features:</h4>
+        <ul>
+          <li>Uses reference genome sequence for non-variant positions</li>
+          <li>Applies VCF alternate alleles at variant positions</li>
+          <li>Supports SNPs, insertions, and deletions</li>
+          <li>Base heights correspond to WIG values</li>
+        </ul>
+
+        <h4>Configuration:</h4>
+        <div class="code-block">
+          Add <code>vcfData</code> (VCF text) or <code>vcfUrl</code> (VCF file
+          URL) to your WIG track config
+        </div>
+      </div>
+
+      <div id="igv-div"></div>
+
+      <div class="description">
+        <h4>Track Configuration Example:</h4>
+        <pre class="code-block">
+{
+  "name": "DynSeq with VCF",
+  "type": "wig",
+  "url": "path/to/your/data.bigWig",
+  "vcfUrl": "path/to/your/variants.vcf",
+  "graphType": "dynseq",
+  "height": 100,
+  "color": "blue"
+}</pre
+        >
+      </div>
+    </div>
+
+    <script src="../dist/igv.js"></script>
+    <script type="module">
+      document.addEventListener("DOMContentLoaded", function () {
+        // Sample VCF data with some variants
+        const sampleVcfData = `##fileformat=VCFv4.2
+##contig=<ID=chr1,length=249250621>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	119743	rs1	G	A	29	PASS	.
+chr1	119749	rs2	C	CGT	35	PASS	.
+chr1	119760	rs3	GAA	G	40	PASS	.
+chr1	119770	rs4	T	C	45	PASS	.`;
+
+        // Create dummy features data directly instead of using a blob
+        const dummyBarFeatures = [
+          { chr: "chr1", start: 119745, end: 119746, value: 0.8 },
+          { chr: "chr1", start: 119746, end: 119747, value: 1.5 },
+          { chr: "chr1", start: 119747, end: 119748, value: 2.3 },
+          { chr: "chr1", start: 119748, end: 119749, value: 3.1 },
+          { chr: "chr1", start: 119749, end: 119750, value: 2.9 },
+          { chr: "chr1", start: 119750, end: 119751, value: 2.0 },
+          { chr: "chr1", start: 119751, end: 119752, value: 1.4 },
+          { chr: "chr1", start: 119752, end: 119753, value: 0.9 },
+          { chr: "chr1", start: 119753, end: 119754, value: 1.6 },
+          { chr: "chr1", start: 119754, end: 119755, value: 2.4 },
+          { chr: "chr1", start: 119755, end: 119756, value: 3.0 },
+          { chr: "chr1", start: 119756, end: 119757, value: 3.8 },
+          { chr: "chr1", start: 119757, end: 119758, value: 3.5 },
+          { chr: "chr1", start: 119758, end: 119759, value: 2.7 },
+          { chr: "chr1", start: 119759, end: 119760, value: 1.9 },
+          { chr: "chr1", start: 119760, end: 119761, value: 1.3 },
+          { chr: "chr1", start: 119761, end: 119762, value: 1.0 },
+          { chr: "chr1", start: 119762, end: 119763, value: 0.7 },
+          { chr: "chr1", start: 119763, end: 119764, value: 0.4 },
+          { chr: "chr1", start: 119764, end: 119765, value: 0.2 },
+          { chr: "chr1", start: 119765, end: 119766, value: 0.1 },
+          { chr: "chr1", start: 119766, end: 119767, value: 0.5 },
+          { chr: "chr1", start: 119767, end: 119768, value: 1.2 },
+          { chr: "chr1", start: 119768, end: 119769, value: 2.0 },
+          { chr: "chr1", start: 119769, end: 119770, value: 1.8 },
+          { chr: "chr1", start: 119770, end: 119771, value: 1.1 }
+        ];
+
+        var igvDiv = document.getElementById("igv-div");
+
+        var options = {
+          genome: "hg38",
+          locus: "chr1:119,749-119,771",
+          tracks: [
+            {
+              name: "Reference Sequence",
+              type: "sequence",
+              order: 1,
+            },
+            {
+              name: "Bar Chart (with insertion gaps)",
+              type: "wig",
+              features: dummyBarFeatures,
+              height: 100,
+              color: "purple",
+              order: 2,
+            },
+            {
+              name: "DynSeq with VCF Variants",
+              type: "wig",
+              url: "https://www.encodeproject.org/files/ENCFF105JTF/@@download/ENCFF105JTF.bigWig",
+              vcfData: sampleVcfData,
+              graphType: "dynseq",
+              height: 100,
+              color: "green",
+              order: 3,
+            },
+            {
+              name: "DynSeq Reference Only",
+              type: "wig",
+              url: "https://www.encodeproject.org/files/ENCFF105JTF/@@download/ENCFF105JTF.bigWig",
+              graphType: "dynseq",
+              height: 100,
+              color: "blue",
+              order: 4,
+            },
+          ],
+          roi: [
+            {
+              name: `Variants`,
+              color: "rgba(94,255,1,0.5)",
+              indexed: false,
+              features: [
+                {
+                  chr: "chr1",
+                  start: 119742,
+                  end: 119743,
+                },
+                {
+                  chr: "chr1",
+                  start: 119748,
+                  end: 119749,
+                },
+                {
+                  chr: "chr1",
+                  start: 119759,
+                  end: 119762,
+                },
+                {
+                  chr: "chr1",
+                  start: 119769,
+                  end: 119770,
+                },
+              ],
+            },
+          ],
+        };
+
+        igv
+          .createBrowser(igvDiv, options)
+          .then(function (browser) {
+            console.log("IGV browser initialized with DynSeq VCF example");
+            console.log(
+              "Compare the green track (with VCF variants) to the blue track (reference only)"
+            );
+          })
+          .catch(function (error) {
+            console.error("Error initializing IGV:", error);
+          });
+      });
+    </script>
+  </body>
+</html>

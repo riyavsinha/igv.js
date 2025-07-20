@@ -24,7 +24,9 @@ class WigTrack extends TrackBase {
         overflowColor: `rgb(255, 32, 255)`,
         baselineColor: 'lightGray',
         summarize: true,
-        visibilityWindow: undefined
+        visibilityWindow: undefined,
+        vcfUrl: undefined,
+        vcfData: undefined
     }
 
     constructor(config, browser) {
@@ -70,6 +72,15 @@ class WigTrack extends TrackBase {
         if ("heatmap" === config.graphType && !config.height) {
             this.height = 20
         }
+
+        // Initialize VCF support for dynseq
+        this.vcfUrl = config.vcfUrl
+        this.vcfData = config.vcfData
+        this.vcfVariants = new Map() // Cache for parsed VCF variants by position
+        
+        // Remove VCF properties from config to prevent them from interfering with IGV's URL handling
+        delete config.vcfUrl
+        delete config.vcfData
     }
 
     async postInit() {
@@ -80,10 +91,341 @@ class WigTrack extends TrackBase {
         this._initialColor = this.color || this.constructor.defaultColor
         this._initialAltColor = this.altColor || this.constructor.defaultColor
 
+        // Load VCF data if provided
+        if ((this.vcfUrl || this.vcfData) && this.graphType === "dynseq") {
+            console.log('Loading VCF data for dynseq track')
+            await this.loadVcfData()
+        }
     }
 
     get supportsWholeGenome() {
         return !this.config.indexURL && this.config.supportsWholeGenome !== false
+    }
+
+    async loadVcfData() {
+        try {
+            let vcfText
+            if (this.vcfData) {
+                // VCF data provided as text
+                vcfText = this.vcfData
+                console.log('Using provided VCF data, length:', vcfText.length)
+            } else if (this.vcfUrl) {
+                // Load VCF from URL
+                console.log('Loading VCF from URL:', this.vcfUrl)
+                const response = await fetch(this.vcfUrl)
+                if (!response.ok) {
+                    throw new Error(`Failed to load VCF: ${response.statusText}`)
+                }
+                vcfText = await response.text()
+                console.log('Loaded VCF from URL, length:', vcfText.length)
+            } else {
+                console.warn('No VCF data or URL provided')
+                return
+            }
+
+            // Validate VCF text before parsing
+            if (!vcfText || typeof vcfText !== 'string') {
+                console.warn('Invalid or empty VCF data')
+                return
+            }
+
+            // Parse VCF data
+            await this.parseVcfText(vcfText)
+            console.log(`Loaded ${this.vcfVariants.size} variant positions from VCF`)
+            
+            // Debug: print first few variants
+            let count = 0
+            for (const [key, variants] of this.vcfVariants.entries()) {
+                if (count < 5) {
+                    console.log(`Variant ${key}:`, variants)
+                    count++
+                }
+            }
+        } catch (error) {
+            console.error('Error loading VCF data:', error)
+            // Initialize empty variants map to prevent further errors
+            this.vcfVariants = new Map()
+        }
+    }
+
+    async parseVcfText(vcfText) {
+        if (!vcfText || typeof vcfText !== 'string') {
+            console.warn('Invalid VCF data provided')
+            return
+        }
+        
+        const lines = vcfText.split('\n')
+        
+        for (const line of lines) {
+            if (!line || typeof line !== 'string' || line.startsWith('#') || line.trim() === '') {
+                continue // Skip header, empty lines, and invalid lines
+            }
+            
+            const fields = line.split('\t')
+            if (fields.length < 5) {
+                continue // Skip malformed lines
+            }
+            
+            const [chrom, pos, id, ref, alt] = fields
+            
+            // Validate required fields
+            if (!chrom || !pos || !ref || !alt) {
+                continue
+            }
+            
+            const position = parseInt(pos) - 1 // Convert to 0-based coordinates
+            if (isNaN(position) || position < 0) {
+                continue // Skip invalid positions
+            }
+            
+            // Store variant by chromosome and position
+            const key = `${chrom}:${position}`
+            if (!this.vcfVariants.has(key)) {
+                this.vcfVariants.set(key, [])
+            }
+            
+            // Handle multiple alternate alleles
+            const altAlleles = alt.split(',')
+            for (const altAllele of altAlleles) {
+                if (altAllele && altAllele !== '.') { // Skip no-call variants and empty alleles
+                    const variant = {
+                        position: position,
+                        ref: ref,
+                        alt: altAllele,
+                        id: id || '.'
+                    }
+                    this.vcfVariants.get(key).push(variant)
+                    
+                    // Register insertions immediately during VCF parsing
+                    if (ref.length < altAllele.length && this.browser && this.browser.variantCoordinates) {
+                        const insertedBases = altAllele.slice(ref.length)
+                        this.browser.variantCoordinates.addInsertion(chrom, position, insertedBases)
+                        console.log(`Registered insertion during VCF parsing at ${chrom}:${position}: ${ref} -> ${altAllele} (inserted: ${insertedBases})`)
+                    }
+                }
+            }
+        }
+    }
+
+    async getSequenceWithVariants(chr, start, end) {
+        try {
+            // If we have variant-aware coordinates, use the expanded sequence
+            if (this.browser && this.browser.variantCoordinates) {
+                const expandedSequence = await this.browser.variantCoordinates.getExpandedSequence(
+                    chr, start, end, 
+                    (chr, start, end) => this.browser.genome.getSequence(chr, start, end)
+                )
+                if (expandedSequence) {
+                    // Apply SNPs and deletions to the expanded sequence, but insertions are already included
+                    return this.applySnpsAndDeletionsOnly(expandedSequence, chr, start, end)
+                }
+            }
+            
+            // Fallback to original method
+            let sequence = await this.browser.genome.getSequence(chr, start, end)
+            
+            if (!sequence || typeof sequence !== 'string') {
+                console.warn('No valid sequence retrieved for region:', chr, start, end)
+                return null
+            }
+            
+            // If no VCF data loaded, return reference sequence
+            if (!this.vcfVariants || this.vcfVariants.size === 0) {
+                return sequence
+            }
+            
+            // Convert sequence to array for manipulation
+            const seqArray = Array.from(sequence.toUpperCase())
+            let appliedVariants = 0
+            
+            // Track positions that should be deleted (marked for no rendering)
+            const deletedPositions = new Set()
+            
+            // Process each position in the interval (interval-based approach)
+            for (let genomicPos = start; genomicPos < end; genomicPos++) {
+                const key = `${chr}:${genomicPos}`
+                
+                if (this.vcfVariants.has(key)) {
+                    const variants = this.vcfVariants.get(key)
+                    
+                    for (const variant of variants) {
+                        const relativePos = genomicPos - start
+                        
+                        // Check bounds
+                        if (relativePos >= 0 && relativePos < seqArray.length) {
+                            
+                            if (variant.ref.length === 1 && variant.alt.length === 1) {
+                                // SNP: single base to single base
+                                const refBase = seqArray[relativePos]
+                                
+                                // Strict reference checking - ref base must match exactly
+                                if (refBase === variant.ref.toUpperCase()) {
+                                    seqArray[relativePos] = variant.alt.toUpperCase()
+                                    appliedVariants++
+                                } else {
+                                    console.warn(`Reference mismatch at ${genomicPos}: expected ${variant.ref}, found ${refBase}`)
+                                }
+                                
+                            } else if (variant.ref.length > 1 && variant.alt.length === 1) {
+                                // Deletion: multiple bases deleted, replaced with single base (or just deleted)
+                                const refLen = variant.ref.length
+                                
+                                // Check if reference matches for the deletion
+                                if (relativePos + refLen <= seqArray.length) {
+                                    const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
+                                    if (refInSeq === variant.ref.toUpperCase()) {
+                                        // Mark deleted positions - all positions of the original ref except the first
+                                        for (let i = 1; i < refLen; i++) {
+                                            deletedPositions.add(relativePos + i)
+                                        }
+                                        
+                                        // Replace first position with alt allele
+                                        seqArray[relativePos] = variant.alt.toUpperCase()
+                                        appliedVariants++
+                                    } else {
+                                        console.warn(`Reference mismatch for deletion at ${genomicPos}: expected ${variant.ref}, found ${refInSeq}`)
+                                    }
+                                }
+                            } else if (variant.ref.length < variant.alt.length) {
+                                // Insertion: already registered during VCF parsing, just apply to sequence
+                                const refBase = seqArray[relativePos]
+                                if (refBase === variant.ref.toUpperCase()) {
+                                    seqArray[relativePos] = variant.alt.toUpperCase()
+                                    appliedVariants++
+                                } else {
+                                    console.warn(`Reference mismatch for insertion at ${genomicPos}: expected ${variant.ref}, found ${refBase}`)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Apply deletions by marking positions with a special deletion marker
+            for (const deletedPos of deletedPositions) {
+                seqArray[deletedPos] = '\0' // Use null character to mark deleted positions
+            }
+            if (appliedVariants > 0) {
+                console.log(`Applied ${appliedVariants} variants (SNPs and deletions) to sequence`)
+            }
+            return seqArray.join('')
+            
+        } catch (error) {
+            console.error('Error applying VCF variants to sequence:', error)
+            // Fallback to reference sequence
+            try {
+                return await this.browser.genome.getSequence(chr, start, end)
+            } catch (fallbackError) {
+                console.error('Error getting reference sequence:', fallbackError)
+                return null
+            }
+        }
+    }
+
+    getInsertedBasesCount(chr, start, end) {
+        if (!this.browser || !this.browser.variantCoordinates) return 0
+        const insertions = this.browser.variantCoordinates.getInsertionsInRegion(chr, start, end)
+        return insertions.reduce((total, insertion) => total + insertion.insertedBases.length, 0)
+    }
+
+    applySnpsAndDeletionsOnly(sequence, chr, start, end) {
+        if (!this.vcfVariants || this.vcfVariants.size === 0) {
+            return sequence
+        }
+
+        const seqArray = Array.from(sequence.toUpperCase())
+        const deletedPositions = new Set()
+        let appliedVariants = 0
+
+        // Only process SNPs and deletions, skip insertions since they're already in the expanded sequence
+        for (let genomicPos = start; genomicPos < end; genomicPos++) {
+            const key = `${chr}:${genomicPos}`
+            
+            if (this.vcfVariants.has(key)) {
+                const variants = this.vcfVariants.get(key)
+                
+                for (const variant of variants) {
+                    // Convert genomic position to expanded position
+                    const expandedPos = this.browser.variantCoordinates.genomicToExpanded(chr, genomicPos)
+                    const relativePos = expandedPos - this.browser.variantCoordinates.genomicToExpanded(chr, start)
+                    
+                    if (relativePos >= 0 && relativePos < seqArray.length) {
+                        
+                        if (variant.ref.length === 1 && variant.alt.length === 1) {
+                            // SNP: apply at expanded position
+                            const refBase = seqArray[relativePos]
+                            if (refBase === variant.ref.toUpperCase()) {
+                                seqArray[relativePos] = variant.alt.toUpperCase()
+                                appliedVariants++
+                            }
+                            
+                        } else if (variant.ref.length > variant.alt.length) {
+                            // Deletion: mark positions for deletion at expanded coordinates
+                            const refLen = variant.ref.length
+                            if (relativePos + refLen <= seqArray.length) {
+                                const refInSeq = seqArray.slice(relativePos, relativePos + refLen).join('')
+                                if (refInSeq === variant.ref.toUpperCase()) {
+                                    for (let i = variant.alt.length; i < refLen; i++) {
+                                        deletedPositions.add(relativePos + i)
+                                    }
+                                    if (variant.alt.length > 0) {
+                                        seqArray[relativePos] = variant.alt.toUpperCase()
+                                    }
+                                    appliedVariants++
+                                }
+                            }
+                        }
+                        // Skip insertions - they're already handled in the expanded sequence
+                    }
+                }
+            }
+        }
+
+        // Apply deletions
+        for (const deletedPos of deletedPositions) {
+            seqArray[deletedPos] = '\0'
+        }
+
+        
+        return seqArray.join('')
+    }
+
+    async getReferenceWithInsertionGaps(chr, start, end) {
+        try {
+            // Get reference sequence
+            const refSequence = await this.browser.genome.getSequence(chr, start, end)
+            if (!refSequence) return null
+            
+            // If no insertions registered globally, return reference as-is
+            if (!this.browser || !this.browser.variantCoordinates) {
+                return refSequence
+            }
+            
+            // Get insertions in this region
+            const insertions = this.browser.variantCoordinates.getInsertionsInRegion(chr, start, end)
+            if (insertions.length === 0) {
+                return refSequence
+            }
+            
+            // Add gaps (null characters) where insertions should be
+            let gappedSequence = refSequence
+            let offset = 0
+            
+            for (const insertion of insertions) {
+                const relativePos = insertion.pos - start + offset
+                // Insert null characters to create gaps
+                const gapChars = '\0'.repeat(insertion.insertedBases.length)
+                gappedSequence = gappedSequence.slice(0, relativePos + 1) + 
+                                gapChars + 
+                                gappedSequence.slice(relativePos + 1)
+                offset += insertion.insertedBases.length
+            }
+            
+            return gappedSequence
+        } catch (error) {
+            console.error('Error creating reference with insertion gaps:', error)
+            return await this.browser.genome.getSequence(chr, start, end)
+        }
     }
 
     get paintAxis() {
@@ -121,11 +463,65 @@ class WigTrack extends TrackBase {
             }
         }
 
-        // For dynseq rendering, attach sequence data to features
+        // Apply coordinate transformation for insertions if we have a browser with variant coordinates
+        if (features && features.length > 0 && this.browser && this.browser.variantCoordinates) {
+            // Transform feature coordinates to expanded coordinates for all track types
+            for (let f of features) {
+                if (!f._originalStart) {
+                    f._originalStart = f.start
+                    f._originalEnd = f.end
+                }
+                f.start = this.browser.variantCoordinates.genomicToExpanded(chr, f._originalStart)
+                f.end = this.browser.variantCoordinates.genomicToExpanded(chr, f._originalEnd)
+            }
+        }
+
+        // For dynseq rendering, attach sequence data to features and apply VCF modifications
         if (this.graphType === "dynseq" && features && features.length > 0) {
             for (let f of features) {
                 try {
-                    f.sequence = await this.browser.genome.getSequence(f.chr, Math.floor(f.start), Math.floor(f.end))
+                    // Feature coordinates are already transformed to expanded coordinates above
+                    
+                    // Get sequence - use variants only if this track has VCF data
+                    if (this.vcfData || this.vcfUrl) {
+                        // This track has VCF data - show variants
+                        f.sequence = await this.getSequenceWithVariants(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
+                    } else {
+                        // This track has no VCF data - show reference with gaps for insertions
+                        f.sequence = await this.getReferenceWithInsertionGaps(f.chr, Math.floor(f._originalStart || f.start), Math.floor(f._originalEnd || f.end))
+                    }
+                    
+                    // Mark positions deleted by variants in the sequence
+                    if (this.vcfVariants && this.vcfVariants.size > 0 && f.sequence) {
+                        // Use original genomic coordinates for deletion check to match VCF coordinates
+                        const originalStart = f._originalStart || f.start
+                        const originalEnd = f._originalEnd || f.end
+                        const featurePos = Math.floor((originalStart + originalEnd) / 2) // Use feature midpoint in genomic coordinates
+                        
+                        console.log(`Checking deletion for feature at genomic pos ${featurePos} (expanded: ${Math.floor((f.start + f.end) / 2)})`)
+                        
+                        // Check all variant positions to see if this feature position is deleted
+                        for (const [variantKey, variants] of this.vcfVariants.entries()) {
+                            const variantPos = parseInt(variantKey.split(':')[1]) // Extract position from "chr:pos"
+                            
+                            for (const variant of variants) {
+                                // For deletions, check if this feature falls in the deleted range
+                                if (variant.ref.length > variant.alt.length) {
+                                    const deletionStart = variantPos + variant.alt.length // Position after the remaining bases
+                                    const deletionEnd = variantPos + variant.ref.length - 1 // Last deleted position
+                                    
+                                    console.log(`Checking deletion ${variantPos}: ${variant.ref}->${variant.alt}, deletion range: ${deletionStart}-${deletionEnd}, feature pos: ${featurePos}`)
+                                    
+                                    // If this feature position is in the deleted range, mark for no rendering
+                                    if (featurePos >= deletionStart && featurePos <= deletionEnd) {
+                                        console.log(`Feature at ${featurePos} marked as deleted`)
+                                        f.sequence = '\0' // Mark entire feature as deleted
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.warn('Failed to get sequence for feature:', error)
                     f.sequence = null
@@ -378,23 +774,35 @@ class WigTrack extends TrackBase {
             return
         }
         
+        // Skip rendering entirely for deleted positions
+        if (sequence === '\0') {
+            return // No glyph rendered at all
+        }
+        
         // Calculate rectangle position and height based on the wig value
         const rectY = Math.min(y, y0)
         const rectHeight = Math.max(1, Math.abs(y - y0)) // Ensure minimum height of 1px
         
-        // Render each base in the sequence
+        // Render each base in the sequence, skipping deleted positions
         const baseWidth = width / sequence.length
         const isNegative = feature.value < 0
         
         for (let i = 0; i < sequence.length; i++) {
+            const base = sequence[i]
+            
+            // Skip deleted positions (marked with null character)
+            if (base === '\0') {
+                continue
+            }
+            
             const baseX = x + (i * baseWidth)
-            const base = sequence[i].toUpperCase()
+            const upperBase = base.toUpperCase()
             
             // Get nucleotide color from browser's color scheme
-            const nucleotideColor = this.browser.nucleotideColors[base] || 'gray'
+            const nucleotideColor = this.browser.nucleotideColors[upperBase] || 'gray'
             
             // Draw the base as a letter-shaped glyph
-            this.drawLetterGlyph(ctx, base, baseX, rectY, baseWidth, rectHeight, nucleotideColor, isNegative)
+            this.drawLetterGlyph(ctx, upperBase, baseX, rectY, baseWidth, rectHeight, nucleotideColor, isNegative)
         }
         
         // Draw overflow indicators if needed

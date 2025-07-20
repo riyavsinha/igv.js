@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Simple VCF Test</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/igv@2.15.8/dist/igv.min.css" />
+</head>
+<body>
+    <div id="igv-div"></div>
+    
+    <script src="../dist/igv.js"></script>
+    <script>
+        // Create a simple WIG data string that covers our variant positions exactly
+        const wigData = `fixedStep chrom=chr1 start=119749 step=1
+1.0
+2.0
+3.0
+4.0
+5.0
+6.0
+7.0
+8.0
+9.0
+10.0
+11.0
+12.0
+13.0
+14.0
+15.0
+16.0
+17.0
+18.0
+19.0
+20.0
+21.0`;
+
+        const vcfData = `##fileformat=VCFv4.2
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	119750	rs1	A	C	29	PASS	.
+chr1	119755	rs2	G	T	35	PASS	.
+chr1	119760	rs3	G	A	40	PASS	.
+chr1	119770	rs4	T	C	45	PASS	.`;
+
+        var options = {
+            genome: "hg38",
+            locus: "chr1:119,749-119,770",
+            tracks: [
+                {
+                    name: "Reference Sequence",
+                    type: "sequence",
+                    order: 1,
+                },
+                {
+                    name: "DynSeq with VCF",
+                    type: "wig",
+                    url: "https://www.encodeproject.org/files/ENCFF105JTF/@@download/ENCFF105JTF.bigWig",
+                    vcfData: vcfData,
+                    graphType: "dynseq",
+                    height: 100,
+                    color: "red",
+                    order: 2,
+                },
+                {
+                    name: "DynSeq Reference Only", 
+                    type: "wig",
+                    url: "https://www.encodeproject.org/files/ENCFF105JTF/@@download/ENCFF105JTF.bigWig",
+                    graphType: "dynseq",
+                    height: 100,
+                    color: "blue",
+                    order: 3,
+                }
+            ]
+        };
+
+        igv.createBrowser(document.getElementById("igv-div"), options)
+           .then(function(browser) {
+               console.log("Simple test browser created");
+           });
+    </script>
+</body>
+</html>

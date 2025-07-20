@@ -298,12 +298,59 @@ class SequenceTrack {
             return null
         } else {
             const sequenceSource = await this.getSequenceSource()
+            
+            // Check if we need to use expanded coordinates for insertion-aware display
+            if (this.browser && this.browser.variantCoordinates) {
+                // Convert expanded coordinates back to genomic coordinates for sequence retrieval
+                const genomicStart = this.browser.variantCoordinates.expandedToGenomic(chr, start)
+                const genomicEnd = this.browser.variantCoordinates.expandedToGenomic(chr, end)
+                
+                // Get reference sequence and add gaps for insertions (but don't show insertion bases)
+                const refSequence = await sequenceSource.getSequence(chr, genomicStart, genomicEnd)
+                if (refSequence) {
+                    const gappedSequence = await this.addInsertionGapsToReference(chr, genomicStart, genomicEnd, refSequence)
+                    return {
+                        bpStart: start,
+                        sequence: gappedSequence
+                    }
+                }
+            }
+            
             //const extent = expandRegion(start, end, 1e5)
             const sequence = await sequenceSource.getSequence(chr, start, end)
             return {
                 bpStart: start,
                 sequence: sequence
             }
+        }
+    }
+
+    async addInsertionGapsToReference(chr, start, end, refSequence) {
+        try {
+            // Get insertions in this region
+            const insertions = this.browser.variantCoordinates.getInsertionsInRegion(chr, start, end)
+            if (insertions.length === 0) {
+                return refSequence
+            }
+            
+            // Add blank spaces (spaces, not null chars) where insertions should be
+            let gappedSequence = refSequence
+            let offset = 0
+            
+            for (const insertion of insertions) {
+                const relativePos = insertion.pos - start + offset
+                // Insert spaces to create visual gaps (spaces render as blanks)
+                const gapChars = ' '.repeat(insertion.insertedBases.length)
+                gappedSequence = gappedSequence.slice(0, relativePos + 1) + 
+                                gapChars + 
+                                gappedSequence.slice(relativePos + 1)
+                offset += insertion.insertedBases.length
+            }
+            
+            return gappedSequence
+        } catch (error) {
+            console.error('Error adding insertion gaps to reference:', error)
+            return refSequence
         }
     }
 
