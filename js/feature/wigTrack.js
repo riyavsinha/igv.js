@@ -463,23 +463,24 @@ class WigTrack extends TrackBase {
             }
         }
 
+        // Apply coordinate transformation for insertions if we have a browser with variant coordinates
+        if (features && features.length > 0 && this.browser && this.browser.variantCoordinates) {
+            // Transform feature coordinates to expanded coordinates for all track types
+            for (let f of features) {
+                if (!f._originalStart) {
+                    f._originalStart = f.start
+                    f._originalEnd = f.end
+                }
+                f.start = this.browser.variantCoordinates.genomicToExpanded(chr, f._originalStart)
+                f.end = this.browser.variantCoordinates.genomicToExpanded(chr, f._originalEnd)
+            }
+        }
+
         // For dynseq rendering, attach sequence data to features and apply VCF modifications
         if (this.graphType === "dynseq" && features && features.length > 0) {
             for (let f of features) {
                 try {
-                    // Transform feature coordinates to expanded coordinates if we have insertions
-                    if (this.browser && this.browser.variantCoordinates) {
-                        const expandedStart = this.browser.variantCoordinates.genomicToExpanded(f.chr, Math.floor(f.start))
-                        const expandedEnd = this.browser.variantCoordinates.genomicToExpanded(f.chr, Math.floor(f.end))
-                        
-                        // Store original coordinates for reference
-                        f._originalStart = f.start
-                        f._originalEnd = f.end
-                        
-                        // Update to expanded coordinates
-                        f.start = expandedStart
-                        f.end = expandedEnd
-                    }
+                    // Feature coordinates are already transformed to expanded coordinates above
                     
                     // Get sequence - use variants only if this track has VCF data
                     if (this.vcfData || this.vcfUrl) {
