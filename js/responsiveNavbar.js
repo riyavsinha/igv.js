@@ -108,6 +108,54 @@ class ResponsiveNavbar {
         navbarRightContainer.appendChild(toggleButtonContainer);
         this.toggleButtonContainer = toggleButtonContainer;
 
+        // Create dropdown menu button
+        const dropdownButton = document.createElement('div');
+        dropdownButton.className = 'igv-navbar-dropdown-button';
+        dropdownButton.style.display = 'none';
+        
+        const dropdownIcon = createIcon('ellipsis-v');
+        dropdownIcon.style.width = '20px';
+        dropdownIcon.style.height = '20px';
+        dropdownButton.appendChild(dropdownIcon);
+        
+        // Create dropdown menu
+        const dropdownMenu = document.createElement('div');
+        dropdownMenu.className = 'igv-navbar-dropdown-menu';
+        dropdownMenu.style.display = 'none';
+        
+        // Container for dropdown items that will be moved from the main toolbar
+        const dropdownContent = document.createElement('div');
+        dropdownContent.className = 'igv-navbar-dropdown-content';
+        dropdownMenu.appendChild(dropdownContent);
+        
+        // Add dropdown elements to navbar - button goes before toggle container, menu is positioned relative to button
+        navbarRightContainer.insertBefore(dropdownButton, toggleButtonContainer);
+        
+        // Position dropdown menu relative to the button
+        dropdownButton.style.position = 'relative';
+        dropdownButton.appendChild(dropdownMenu);
+        
+        this.dropdownButton = dropdownButton;
+        this.dropdownMenu = dropdownMenu;
+        this.dropdownContent = dropdownContent;
+        this.isDropdownOpen = false;
+        
+        
+        // Dropdown toggle functionality
+        dropdownButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDropdown();
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            this.closeDropdown();
+        });
+        
+        dropdownMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
         this.overlayTrackButton = new OverlayTrackButton(toggleButtonContainer, browser);
         this.overlayTrackButton.setVisibility(false);
 
@@ -160,6 +208,10 @@ class ResponsiveNavbar {
         const {x: rightContainerX} = this.navbarRightContainer.getBoundingClientRect()
 
         const delta = rightContainerX - leftContainerExtent
+
+        // Simple width-based responsive behavior
+        const navbarWidth = this.navigation.offsetWidth;
+        this.applyResponsiveClasses(navbarWidth);
 
         let navbarButtonClass
         const threshold = 8
@@ -255,6 +307,86 @@ class ResponsiveNavbar {
         if (!success) {
             this.browser.alert.present(new Error(`Unrecognized locus: <b> ${locus} </b>`))
         }
+    }
+
+    toggleDropdown() {
+        if (this.isDropdownOpen) {
+            this.closeDropdown();
+        } else {
+            this.openDropdown();
+        }
+    }
+
+    openDropdown() {
+        this.dropdownMenu.style.display = '';
+        this.isDropdownOpen = true;
+    }
+
+    closeDropdown() {
+        this.dropdownMenu.style.display = 'none';
+        this.isDropdownOpen = false;
+    }
+
+    applyResponsiveClasses(navbarWidth) {
+        // Remove existing responsive classes
+        this.navigation.classList.remove('igv-navbar-compact', 'igv-navbar-minimal');
+        
+        // Apply classes based on simple width thresholds
+        if (navbarWidth < 500) {
+            this.navigation.classList.add('igv-navbar-minimal');
+            this.dropdownButton.style.display = '';
+            this.moveButtonsToDropdown();
+        } else if (navbarWidth < 800) {
+            this.navigation.classList.add('igv-navbar-compact');
+            this.dropdownButton.style.display = '';  // Show dropdown at medium widths too
+            this.moveButtonsToDropdown();
+        } else {
+            // Normal size - no special classes needed
+            this.dropdownButton.style.display = 'none';
+            this.closeDropdown();
+            this.moveButtonsToToolbar();
+        }
+    }
+
+    moveButtonsToDropdown() {
+        const buttonsToMove = this.getCollapsibleButtons();
+        
+        buttonsToMove.forEach(button => {
+            if (button && button.parentElement === this.toggleButtonContainer) {
+                this.dropdownContent.appendChild(button);
+            }
+        });
+    }
+
+    moveButtonsToToolbar() {
+        const buttonsInDropdown = Array.from(this.dropdownContent.children);
+        
+        buttonsInDropdown.forEach(button => {
+            this.toggleButtonContainer.appendChild(button);
+        });
+    }
+
+    getCollapsibleButtons() {
+        const buttons = [];
+        
+        // Get button elements in order of priority (least important first)
+        if (this.overlayTrackButton && this.overlayTrackButton.button) buttons.push(this.overlayTrackButton.button);
+        if (this.multiTrackSelectButton && this.multiTrackSelectButton.button) buttons.push(this.multiTrackSelectButton.button);
+        if (this.cursorGuideButton && this.cursorGuideButton.button) buttons.push(this.cursorGuideButton.button);
+        if (this.centerLineButton && this.centerLineButton.button) buttons.push(this.centerLineButton.button);
+        if (this.trackLabelControl && this.trackLabelControl.button) buttons.push(this.trackLabelControl.button);
+        if (this.roiTableControl && this.roiTableControl.button) buttons.push(this.roiTableControl.button);
+        if (this.sampleInfoControl && this.sampleInfoControl.button) buttons.push(this.sampleInfoControl.button);
+        if (this.sampleNameControl && this.sampleNameControl.button) buttons.push(this.sampleNameControl.button);
+        if (this.saveImageControl && this.saveImageControl.button) buttons.push(this.saveImageControl.button);
+        
+        // Add any custom buttons
+        const customButtons = Array.from(this.toggleButtonContainer.querySelectorAll('.igv-navbar-text-button, .igv-navbar-icon-button')).filter(btn => {
+            return !buttons.includes(btn);
+        });
+        buttons.push(...customButtons);
+        
+        return buttons.filter(btn => btn); // Remove any null/undefined elements
     }
 
 }

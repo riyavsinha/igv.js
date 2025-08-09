@@ -88,6 +88,8 @@ $igv-save-png-image-x-origin: math.div(3 * $igv-navbar-icon-button-size, 4);
       align-items: center;
 
       height: 100%;
+      flex: 1; // Allow this to grow and shrink based on available space
+      min-width: 0; // Allow flex items to shrink below their content size
 
       .igv-chromosome-select-widget-container {
 
@@ -99,7 +101,6 @@ $igv-save-png-image-x-origin: math.div(3 * $igv-navbar-icon-button-size, 4);
 
         height: 100%;
         width: 125px;
-
         margin-right: 4px;
 
         select {
@@ -129,6 +130,8 @@ $igv-save-png-image-x-origin: math.div(3 * $igv-navbar-icon-button-size, 4);
 
         margin-left: 8px;
         height: $igv-navbar-locus-search-height;
+        flex: 1; // Allow this to grow and shrink
+        min-width: 0;
 
         // locus goto | search icon
         .igv-search-container {
@@ -198,6 +201,7 @@ $igv-save-png-image-x-origin: math.div(3 * $igv-navbar-icon-button-size, 4);
   }
 
   .igv-navbar-right-container {
+    position: relative;
 
     display: flex;
     flex-flow: row;
@@ -348,6 +352,105 @@ $igv-save-png-image-x-origin: math.div(3 * $igv-navbar-icon-button-size, 4);
 
     .igv-zoom-widget-hidden {
       display: none;
+    }
+
+    .igv-navbar-dropdown-button {
+      cursor: pointer;
+      width: $igv-navbar-icon-button-size;
+      height: $igv-navbar-icon-button-size;
+      margin-left: 4px;
+      margin-right: 4px;
+      background-color: $igv-navbar-toggle-light-color;
+      
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      
+      &:hover {
+        background-color: $igv-navbar-toggle-dark-dark;
+        svg {
+          fill: white;
+        }
+      }
+      
+      svg {
+        fill: $igv-navbar-toggle-dark-dark;
+      }
+    }
+
+    .igv-navbar-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 1000;
+      
+      background-color: white;
+      border: 1px solid $igv-border-color;
+      border-radius: 3px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      
+      // Minimal width - just enough to contain the buttons
+      width: max-content;
+      min-width: fit-content;
+      
+      .igv-navbar-dropdown-content {
+        padding: 4px;
+        
+        // Make buttons in dropdown compact
+        .igv-navbar-text-button,
+        .igv-navbar-icon-button {
+          display: block;
+          margin: 2px 0;
+          white-space: nowrap;
+          
+          // For text buttons in dropdown, make them more compact
+          &.igv-navbar-text-button {
+            padding: 2px 8px;
+            font-size: $igv-navbar-button-font-size;
+            min-width: fit-content;
+          }
+          
+          // For icon buttons in dropdown
+          &.igv-navbar-icon-button {
+            width: $igv-navbar-icon-button-size;
+            height: $igv-navbar-icon-button-size;
+            margin: 2px auto;
+          }
+        }
+      }
+    }
+  }
+
+  // Responsive states for navbar
+  &.igv-navbar-compact {
+    .igv-chromosome-select-widget-container {
+      width: 90px;
+      select {
+        width: 80px;
+      }
+    }
+    
+    .igv-search-container {
+      width: 180px;
+      input.igv-search-input {
+        width: 80%;
+      }
+    }
+  }
+  
+  &.igv-navbar-minimal {
+    .igv-chromosome-select-widget-container {
+      width: 70px;
+      select {
+        width: 60px;
+      }
+    }
+    
+    .igv-search-container {
+      width: 140px;
+      input.igv-search-input {
+        width: 75%;
+      }
     }
   }
 

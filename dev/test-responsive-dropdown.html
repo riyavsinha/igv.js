@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>IGV.js - Responsive Dropdown Test</title>
+    <link rel="stylesheet" type="text/css" href="../css/igv.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            margin-bottom: 30px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .test-container h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .igv-wrapper {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .small { width: 350px; }
+        .medium { width: 600px; }
+        .large { width: 900px; }
+        .xlarge { width: 1200px; }
+    </style>
+</head>
+
+<body>
+<h1>IGV.js Responsive Navbar Dropdown Test</h1>
+<p>This demonstrates how the navbar adapts to different container widths:</p>
+
+<div class="test-container">
+    <h3>Small Width (350px) - Should show dropdown menu</h3>
+    <div class="igv-wrapper small">
+        <div id="igv-small"></div>
+    </div>
+</div>
+
+<div class="test-container">
+    <h3>Medium Width (600px) - May show some buttons collapsed</h3>
+    <div class="igv-wrapper medium">
+        <div id="igv-medium"></div>
+    </div>
+</div>
+
+<div class="test-container">
+    <h3>Large Width (900px) - Most buttons should be visible</h3>
+    <div class="igv-wrapper large">
+        <div id="igv-large"></div>
+    </div>
+</div>
+
+<div class="test-container">
+    <h3>Extra Large Width (1200px) - All buttons should be visible</h3>
+    <div class="igv-wrapper xlarge">
+        <div id="igv-xlarge"></div>
+    </div>
+</div>
+
+<script type="module">
+
+import igv from "../dist/igv.esm.js";
+
+const commonOptions = {
+    genome: "hg38",
+    locus: "chr8:127,736,588-127,739,371",
+    tracks: [
+        {
+            "name": "HG00103",
+            "url": "https://s3.amazonaws.com/1000genomes/phase3/data/HG00103/alignment/HG00103.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam",
+            "indexURL": "https://s3.amazonaws.com/1000genomes/phase3/data/HG00103/alignment/HG00103.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam.bai",
+            "format": "bam"
+        }
+    ],
+    showCursorTrackingGuideButton: true,
+    showCenterLineButton: true
+};
+
+// Create IGV instances at different widths
+const createIGV = async (containerId, width) => {
+    const options = {
+        ...commonOptions,
+        width: width
+    };
+    
+    const container = document.getElementById(containerId);
+    const browser = await igv.createBrowser(container, options);
+    console.log(`Created IGV browser in ${containerId} with width ${width}px`);
+    return browser;
+};
+
+// Create all instances
+Promise.all([
+    createIGV('igv-small', 350),
+    createIGV('igv-medium', 600), 
+    createIGV('igv-large', 900),
+    createIGV('igv-xlarge', 1200)
+]).then(browsers => {
+    console.log('All IGV browsers created successfully');
+    window.browsers = browsers;
+});
+
+</script>
+
+</body>
+</html>
