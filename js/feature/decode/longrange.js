@@ -96,7 +96,7 @@ function decodeLongrange(tokens, header) {
  */
 function fixLongrange(features) {
 
-    if (features.length == 0) return
+    if (features.length === 0) return
 
     // Make copies of inter-chr features, one for each chromosome
     const interChrFeatures = features.filter(f => f.chr1 !== f.chr2)
