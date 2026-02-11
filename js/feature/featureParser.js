@@ -1,5 +1,6 @@
 import {decodeBedpe, decodeBedpeDomain, fixBedPE} from './decode/bedpe.js'
 import {decodeInteract} from "./decode/interact.js"
+import {decodeLongrange, fixLongrange} from "./decode/longrange.js"
 import {
     decodeBed,
     decodeBedGraph,
@@ -185,6 +186,11 @@ class FeatureParser {
         if (decode === decodeBedpe) {
             fixBedPE(allFeatures)
         }
+        
+        // Special hack for longrange
+        if (decode === decodeLongrange) {
+            fixLongrange(allFeatures)
+        }
 
         if (("gtf" === this.config.format || "gff3" === this.config.format || "gff" === this.config.format) &&
             this.config.assembleGFF !== false) {
@@ -286,6 +292,10 @@ class FeatureParser {
                 break
             case "interact":
                 this.decode = decodeInteract
+                this.delimiter = this.config.delimiter || /\s+/
+                break
+            case "longrange":
+                this.decode = decodeLongrange
                 this.delimiter = this.config.delimiter || /\s+/
                 break
             case "snp":

@@ -61,7 +61,8 @@ const knownFileExtensions = new Set([
     "fna",
     "pytor",
     "hic",
-    "qtl"
+    "qtl",
+    "longrange"
 ])
 
 function compareArrays(a, b) {
