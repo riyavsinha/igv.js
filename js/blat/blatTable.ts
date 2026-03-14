@@ -4,8 +4,9 @@ import { StringUtils } from '../../node_modules/igv-utils/src/index.js'
 import RegionTableBase from '../ui/regionTableBase.js'
 
 class BlatTable extends RegionTableBase {
+    [key: string]: any
 
-    constructor(config) {
+    constructor(config: any) {
 
         const cooked = Object.assign({ 'width':'1024px' }, config)
         super(cooked)
@@ -14,7 +15,7 @@ class BlatTable extends RegionTableBase {
 
     }
 
-    set descriptionDOM(config) {
+    set descriptionDOM(config: any) {
 
         if (config.description) {
 
@@ -42,7 +43,7 @@ class BlatTable extends RegionTableBase {
 
     }
 
-    tableRowDOM(record) {
+    tableRowDOM(record: any[]): HTMLElement {
 
         const dom = DOMUtils.div({ class: 'igv-roi-table-row' })
 
@@ -63,7 +64,7 @@ class BlatTable extends RegionTableBase {
         return dom
     }
 
-    renderTable(records) {
+    renderTable(records: any[][]): void {
 
         Array.from(this.tableRowContainer.querySelectorAll('.igv-roi-table-row')).forEach(el => el.remove())
 
@@ -78,7 +79,7 @@ class BlatTable extends RegionTableBase {
 
     }
 
-    static getColumnFormatConfiguration() {
+    static getColumnFormatConfiguration(): Array<{ label: string, width: string }> {
 
         /*
         return [
@@ -115,7 +116,7 @@ class BlatTable extends RegionTableBase {
         ]
     }
 
-    static gotoButtonHandler (event) {
+    static gotoButtonHandler(this: any, event: Event): void {
 
         event.stopPropagation()
 

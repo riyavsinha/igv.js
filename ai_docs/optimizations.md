@@ -189,6 +189,35 @@ The sort object passed to `sortSamplesByGenotype` was missing the required `posi
 
 ---
 
+## Phase 5 Bugs
+
+### `js/cnvpytor/MeanShiftUtil.ts` — Multiple Python→JS port bugs [FIXED]
+This file was clearly ported from Python and retained many Python-isms:
+- `elif` instead of `else if`
+- `return start, end` (Python tuple return) → `return [start, end]`
+- `Math.min[(...)]` bracket syntax → `Math.min(...)`
+- `flags.fill(["d"] * ...)` Python list replication → `flags.fill("d", ...)`
+- `var border_start, border_end = adj` Python tuple unpacking → `[border_start, border_end] = adj`
+- 6x bitwise `&` on booleans → `&&`
+- Wrong variable reference `levels[borders[ix + 1]]` → `chr_levels[borders[ix + 1]]`
+
+### `js/cnvpytor/baseCNVpytorVCF.ts` — Comma operator returns null instead of array [FIXED]
+`return [0, 0, 0], null` uses the comma operator, which evaluates both expressions but returns only the last (`null`). The array `[0, 0, 0]` is created and immediately discarded. Fixed to `return [0, 0, 0]`.
+
+### `js/cnvpytor/HDF5IndexedReader.ts` — `.at(-1)` not in ES2020 [FIXED]
+`Array.prototype.at()` is ES2022, but the project targets ES2020. Fixed to `arr[arr.length - 1]`.
+
+### `js/shoebox/shoeboxTrack.ts` — Missing 2nd argument to `extractPopupData` [FIXED]
+`this.extractPopupData(f)` was missing the required `genomeId` second argument. Fixed to `this.extractPopupData(f, this.browser.genome.id)`.
+
+### `js/qtl/qtlSelections.ts` — `this.qtls` doesn't exist [FIXED]
+`hasQTL()` referenced `this.qtls.has(qtl)` but the class only has a `qtl` property (singular), not `qtls`. Fixed to `this.qtl && this.qtl === qtl`.
+
+### `js/ideogramTrack.ts` — `roundRect`/`polygon` called with numbers for boolean params [FIXED]
+`IGVGraphics.roundRect(..., 0, 1)` and `IGVGraphics.polygon(..., 1, 0)` passed numbers where booleans were expected for fill/stroke parameters. Worked by coercion (0→false, 1→true) but was incorrect. Fixed to explicit `true`/`false`.
+
+---
+
 ## Phase 3 Recommendations (not yet fixed)
 
 ### `js/genome/indexedFasta.ts` — `desPos` variable assigned but never read

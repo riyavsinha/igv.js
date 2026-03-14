@@ -5,6 +5,10 @@ import IGVColor from "../../node_modules/igv-utils/src/igv-color.js"
  */
 class QTLSelections {
 
+    phenotypeColors: Map<string, string>
+    snps: Set<string>
+    qtl: any | null
+
     constructor() {
         this.clear()
     }
@@ -19,12 +23,12 @@ class QTLSelections {
         return this.phenotypeColors.size === 0 &&  this.snps.size === 0 && this.qtl === null
     }
 
-    addSnp(snpName) {
+    addSnp(snpName: string) {
         snpName = snpName.toUpperCase()
         this.snps.add(snpName)
     }
 
-    addPhenotype(geneName) {
+    addPhenotype(geneName: string) {
         geneName = geneName.toUpperCase()
         const genesCount = this.phenotypeColors.size
         if (!this.phenotypeColors.has(geneName.toUpperCase())) {
@@ -33,19 +37,19 @@ class QTLSelections {
         }
     }
 
-    hasSnp(snp) {
+    hasSnp(snp: string): boolean {
         return snp && this.snps.has(snp.toUpperCase())
     }
 
-    hasPhenotype(name) {
+    hasPhenotype(name: string): boolean {
         return name && this.phenotypeColors.has(name.toUpperCase())
     }
 
-    hasQTL(qtl) {
-        return this.qtls.has(qtl)
+    hasQTL(qtl: any): boolean {
+        return this.qtl && this.qtl === qtl
     }
 
-    colorForGene(geneName) {
+    colorForGene(geneName: string): string | undefined {
         return geneName ? this.phenotypeColors.get(geneName.toUpperCase()) : "black"
     }
 
@@ -53,8 +57,8 @@ class QTLSelections {
      * Returns a plain "json like" object, that is an object that is easily converted to json
      * @returns {{}}
      */
-    toJSON() {
-        const obj = {}
+    toJSON(): any {
+        const obj: any = {}
         if (this.phenotypeColors.size > 0) {
             obj.phenotypes = Array.from(this.phenotypeColors.keys())
         }
@@ -67,7 +71,7 @@ class QTLSelections {
         return obj
     }
 
-    static fromJSON(json) {
+    static fromJSON(json: any): QTLSelections {
         const qtlSelections = new QTLSelections()
         if(json.phenotypes) {
             for(let g of json.phenotypes) {
@@ -86,11 +90,11 @@ class QTLSelections {
     }
 }
 
-function compareQTLs(a, b) {
+function compareQTLs(a: any, b: any): boolean {
     return a.chr === b.chr && a.start === b.start && a.pValue === b.pValue
 }
 
-const brewer = []
+const brewer: string[] = []
 // Set +!
 brewer.push("rgb(228,26,28)")
 brewer.push("rgb(55,126,184)")

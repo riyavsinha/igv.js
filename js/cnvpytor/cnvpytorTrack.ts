@@ -7,14 +7,15 @@ import IGVGraphics from "../igv-canvas.js"
 import trackClasses from "../util/trackClassRegistry.js"
 
 class CNVPytorTrack extends TrackBase {
+    [key: string]: any
 
     static DEFAULT_TRACK_HEIGHT = 250
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any): void {
 
         // NOTE -- don't use the "defaults" convention for this track, it will not work with VariantTrack.convertToPytor()
         this.featureType = 'numeric'
@@ -71,7 +72,7 @@ class CNVPytorTrack extends TrackBase {
         return signal_colors
     }
 
-    async postInit() {
+    async postInit(): Promise<any> {
 
         if (this.config.format == 'vcf') {
 
@@ -153,7 +154,7 @@ class CNVPytorTrack extends TrackBase {
             for (const [signal_name, wig] of Object.entries(this.wigFeatures_obj[bin_size])) {
 
                 if (this.signals.includes(signal_name)) {
-                    let tconf = {}
+                    let tconf: any = {}
                     tconf.type = "wig"
                     tconf.isMergedTrack = true
                     tconf.features = wig
@@ -360,7 +361,7 @@ class CNVPytorTrack extends TrackBase {
 
         for (const [signal_name, wig] of Object.entries(this.wigFeatures_obj[bin_size])) {
             if (this.signals.includes(signal_name)) {
-                let tconf = {}
+                let tconf: any = {}
                 tconf.type = "wig"
                 tconf.isMergedTrack = true
                 tconf.features = wig
@@ -436,7 +437,7 @@ class CNVPytorTrack extends TrackBase {
                     
                     for (let bin_size in tmp_wig){
                         for (const [signal_name, wig] of Object.entries(tmp_wig[bin_size])) {
-                            await this.wigFeatures_obj[bin_size][signal_name].push(...wig)
+                            await this.wigFeatures_obj[bin_size][signal_name].push(...(wig as any[]))
                         }
                     }
 
@@ -662,7 +663,7 @@ class CNVPytorTrack extends TrackBase {
     async convertToVariant() {
 
         if (this.variantState) {
-            Object.setPrototypeOf(this, trackClasses.VariantTrack.prototype)
+            Object.setPrototypeOf(this, (trackClasses as any).VariantTrack.prototype)
             this.init(this.variantState)
             await this.postInit()
             this.trackView.clearCachedFeatures()

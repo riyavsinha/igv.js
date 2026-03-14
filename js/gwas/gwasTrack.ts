@@ -12,13 +12,16 @@ const DEFAULT_POPOVER_WINDOW = 100000000
 //const type = "gwas";
 
 class GWASTrack extends TrackBase {
+    [key: string]: any
 
-    constructor(config, browser) {
+    static defaultColor = 'rgb(0,0,150)'
+
+    constructor(config: any, browser: any) {
 
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any) {
 
         super.init(config)
 
@@ -78,8 +81,8 @@ class GWASTrack extends TrackBase {
             }
         }
 
-        this._initialColor = this.color || this.constructor.defaultColor
-        this._initialAltColor = this.altColor || this.constructor.defaultColor
+        this._initialColor = this.color || (this.constructor as any).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
 
         return this
 
@@ -90,12 +93,12 @@ class GWASTrack extends TrackBase {
         return true
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number) {
         const visibilityWindow = this.visibilityWindow
         return this.featureSource.getFeatures({chr, start, end, visibilityWindow})
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const featureList = options.features
         const ctx = options.context
@@ -144,7 +147,7 @@ class GWASTrack extends TrackBase {
         }
     }
 
-    paintAxis(ctx, pixelWidth, pixelHeight) {
+    paintAxis(ctx: any, pixelWidth: number, pixelHeight: number) {
 
         IGVGraphics.fillRect(ctx, 0, 0, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
         var font = {
@@ -166,7 +169,7 @@ class GWASTrack extends TrackBase {
             for (let p = this.dataRange.min; p < this.dataRange.max; p += n) {
                 const yp = pixelHeight - Math.round((p - this.dataRange.min) / yScale)
                 IGVGraphics.strokeLine(ctx, 45, yp, 50, yp, font) // Offset dashes up by 2 pixel
-                IGVGraphics.fillText(ctx, Math.floor(p), 44, yp + 4, font) // Offset numbers down by 2 pixels;
+                IGVGraphics.fillText(ctx, String(Math.floor(p)), 44, yp + 4, font) // Offset numbers down by 2 pixels;
             }
         }
 
@@ -178,7 +181,7 @@ class GWASTrack extends TrackBase {
         }
     }
 
-    popupData(clickState, features) {
+    popupData(clickState: any, features?: any[]) {
 
         if (features === undefined) features = clickState.viewport.cachedFeatures
 
@@ -226,7 +229,7 @@ class GWASTrack extends TrackBase {
         return this.numericDataMenuItems()
     }
 
-    doAutoscale(featureList) {
+    doAutoscale(featureList: any[]) {
 
         if (featureList.length > 0) {
             // posterior probabilities are treated without modification, but we need to take a negative logarithm of P values

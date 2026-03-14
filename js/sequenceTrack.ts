@@ -9,7 +9,7 @@ import {translationDict} from "./util/translationDict.js"
 const defaultSequenceTrackOrder = Number.MIN_SAFE_INTEGER
 
 
-const complement = {}
+const complement: { [key: string]: string } = {}
 const t1 = ['A', 'G', 'C', 'T', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B', 'N', 'X']
 const t2 = ['T', 'C', 'G', 'A', 'R', 'Y', 'W', 'S', 'M', 'K', 'H', 'B', 'D', 'V', 'N', 'X']
 for (let i = 0; i < t1.length; i++) {
@@ -28,8 +28,24 @@ const bppSequenceThreshold = 10
 
 class SequenceTrack {
 
+    config: any
+    browser: any
+    type: string
+    removable: boolean
+    name: string
+    id: string
+    sequenceType: string
+    disableButtons: boolean
+    order: number
+    ignoreTrackMenu: boolean
+    reversed: boolean
+    frameTranslate: boolean
+    height: number
+    trackView: any
+    color?: string
+    fasta?: WrappedFasta
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
 
         this.config = config
         this.browser = browser
@@ -89,7 +105,7 @@ class SequenceTrack {
         ]
     }
 
-    contextMenuItemList(clickState) {
+    contextMenuItemList(clickState: any) {
         const viewport = clickState.viewport
         if (viewport.referenceFrame.bpPerPixel <= 1) {
             const pixelWidth = viewport.getWidth()
@@ -148,7 +164,7 @@ class SequenceTrack {
             })
 
 
-            items.push('<hr/>')
+            items.push('<hr/>' as any)
 
             return items
         } else {
@@ -156,7 +172,7 @@ class SequenceTrack {
         }
     }
 
-    translateSequence(seq) {
+    translateSequence(seq: string): Array<Array<{codons: string; aminoA: string}>> {
 
         const threeFrame = [[], [], []]
 
@@ -199,7 +215,7 @@ class SequenceTrack {
         }
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel?: number) {
 
         start = Math.floor(start)
         end = Math.floor(end)
@@ -217,7 +233,7 @@ class SequenceTrack {
         }
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const ctx = options.context
 
@@ -319,12 +335,12 @@ class SequenceTrack {
         return false
     }
 
-    computePixelHeight(ignore) {
+    computePixelHeight(ignore: any) {
         this.height = this.frameTranslate ? TRANSLATED_HEIGHT : DEFAULT_HEIGHT
         return this.height
     }
 
-    fillColor(index) {
+    fillColor(index: string): string {
 
         if (this.color) {
             return this.color
@@ -340,8 +356,8 @@ class SequenceTrack {
      *
      * @returns {*|{}}
      */
-    getState() {
-        const config = {
+    getState(): any {
+        const config: any = {
             type: "sequence"
         }
         if (this.order !== defaultSequenceTrackOrder) {
@@ -362,7 +378,12 @@ class SequenceTrack {
  */
 class WrappedFasta {
 
-    constructor(config, genome) {
+    config: any
+    genome: any
+    fasta: any
+    chrNameMap: Map<string, string>
+
+    constructor(config: any, genome: any) {
         this.config = config
         this.genome = genome
     }
@@ -375,7 +396,7 @@ class WrappedFasta {
         }
     }
 
-    async getSequence(chr, start, end) {
+    async getSequence(chr: string, start: number, end: number) {
         const chrName = this.chrNameMap.has(chr) ? this.chrNameMap.get(chr) : chr
         return this.fasta.getSequence(chrName, start, end)
     }

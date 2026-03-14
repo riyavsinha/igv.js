@@ -4,15 +4,17 @@ import lm from '../vendor/lm-esm.js'
 
 
 class FitingMethod {
+    binScores: number[]
+
     /**
-     * 
+     *
      * @param {*} binScores ; array containing list of rd values
      */
-    constructor(binScores) {
+    constructor(binScores: number[]) {
         this.binScores = binScores
     }
 
-    get_histogram(){
+    get_histogram(): { counts: number[], bins: number[] } {
         /**
          * Get the 2D histogram of the array.
         */
@@ -24,15 +26,15 @@ class FitingMethod {
         return { counts, bins };
     }
 
-    range(start, end, step) {
-        const result = [];
+    range(start: number, end: number, step: number): number[] {
+        const result: number[] = [];
         for (let i = start; i < end; i += step) {
             result.push(i);
         }
         return result;
     }
-    
-    histogram(data, bins) {
+
+    histogram(data: number[], bins: number[]): { counts: number[], bins: number[] } {
         const counts = Array(bins.length).fill(0);
       
         data.forEach(value => {
@@ -47,7 +49,7 @@ class FitingMethod {
         return { counts, bins };
     }
 
-    normal_distribution([a, x0, sigma]) {
+    normal_distribution([a, x0, sigma]: [number, number, number]) {
         /**
          * Normal distribution.
          *
@@ -60,7 +62,7 @@ class FitingMethod {
         return (x) => a * Math.exp(-Math.pow(x - x0, 2) / (2 * Math.pow(sigma, 2))) / (Math.sqrt(2 * Math.PI) * sigma);
     }
 
-    get_initial_model_values(x, y){
+    get_initial_model_values(x: number[], y: number[]): number[] {
         /**
          * calculate the initial values for the normal distribution
          * x: The x values of the data.
@@ -71,7 +73,7 @@ class FitingMethod {
         const sumY = y.slice(1, -1).reduce((acc, val) => acc + val, 0);
         if (sumY === 0) {
             console.debug("Problem with fit: all data points have zero value. Return zeros instead fit parameters!");
-            return [0, 0, 0], null;
+            return [0, 0, 0];
         }
         // calculate area
         const bin_width = x[1] - x[0];
@@ -88,7 +90,7 @@ class FitingMethod {
         return [area, mean, sigma];
     }
 
-    normal_fit(x, y) {
+    normal_fit(x: number[], y: number[]): any {
         /**
          * Fit a normal distribution to the histogram using levenberg-marquardt algorithm.
          * x: The x values of the data.
@@ -114,12 +116,16 @@ class FitingMethod {
 }
 
 class FetchGCInfo {
+    binSize: number
+    refGenome: string
+    gcBin: number | false
+
     /**
      * Creates an instance of gcCorrection.
      * @param {number} binSize - binSize
      * @param {string} refGenome - Reference genome name.
      */
-    constructor(binSize, refGenome){
+    constructor(binSize: number, refGenome: string) {
         this.binSize = binSize
         this.refGenome = refGenome
 
@@ -131,7 +137,7 @@ class FetchGCInfo {
      * Determines the appropriate GC bin size.
      * @returns {number|boolean} The GC bin size or false if not found.
      */
-    getGCbinSize(){
+    getGCbinSize(): number | false {
         for (let gcBin of [100000, 10000]){
             // Check if the binSize is a multiple of the current gcBin
             if (this.binSize % gcBin == 0) return gcBin;
@@ -209,21 +215,28 @@ class FetchGCInfo {
 
 
 class baseCNVpytorVCF extends FetchGCInfo {
+    wigFeatures: any
+    globalMean: number = 0
+    globalStd: number = 0
+    gcData: any = {}
+    gcFlag: boolean = false
+    binScoreField: string = 'binScore'
+
     /**
-     * Class for gcCorrection 
-     * 
-     * @param {*} wigFeatures 
-     * @param {*} binSize 
-     * @param {*} refGenome 
+     * Class for gcCorrection
+     *
+     * @param {*} wigFeatures
+     * @param {*} binSize
+     * @param {*} refGenome
      */
-    constructor(wigFeatures, binSize, refGenome){
+    constructor(wigFeatures: any, binSize: number, refGenome: string) {
         super(binSize, refGenome)
         this.wigFeatures = wigFeatures
         this.binSize = binSize
         this.refGenome = refGenome
-        
+
     }
-    async apply_gcCorrection(){
+    async apply_gcCorrection(): Promise<null | void> {
         // applying fitting method and defineing the variables
         if (!this.wigFeatures) {
             console.error("BinScore data is not available.");
@@ -232,8 +245,8 @@ class baseCNVpytorVCF extends FetchGCInfo {
         
         // Extract all binScore values into a single array
         const binScores = Object.values(this.wigFeatures).reduce(
-            (binResult, bin) => { return binResult.concat(bin.filter(a => a.binScore > 0).map(a => a.binScore)) }, []
-        )
+            (binResult: any, bin: any) => { return binResult.concat(bin.filter((a: any) => a.binScore > 0).map((a: any) => a.binScore)) }, []
+        ) as number[]
 
         let data_fitter = new FitingMethod(binScores)
 
@@ -257,7 +270,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * Applies GC correction to the bin scores.
      * @param {number} rdGlobalMean - The global mean read depth.
      */
-    getGcCorrectionSignal(rdGlobalMean){
+    getGcCorrectionSignal(rdGlobalMean: number): void {
         let gcRDMean = this.getGcCorrection(rdGlobalMean)
         Object.keys(this.wigFeatures).forEach(chr => {
             this.wigFeatures[chr].forEach(bin => {
@@ -276,14 +289,14 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {number} rdGlobalMean - The global mean for read depth.
      * @returns {Object} An object containing the GC correction values indexed by GC percentage.
      */
-    getGcCorrection(rdGlobalMean){
-        
-        const gcRDMean = {}
+    getGcCorrection(rdGlobalMean: number): any {
+
+        const gcRDMean: any = {}
         if(this.gcFlag){
-            let gcBin = this.getGCbinSize()
-            const gcRD = {};
-            
-            let gcBinFactor = parseInt(this.binSize/gcBin)
+            let gcBin = this.getGCbinSize() as number
+            const gcRD: any = {};
+
+            let gcBinFactor = parseInt((this.binSize/gcBin).toString())
             for (let chr in this.wigFeatures){
                 for (let k=0; k< this.wigFeatures[chr].length; k++){
                     
@@ -337,12 +350,12 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {number} [scaling_factor=1] - The factor by which to scale the feature values.
      * @returns {Array} The formatted data structure.
      */
-    formatDataStructure(feature_column, scaling_factor = 1) {
-        const results = []
+    formatDataStructure(feature_column: string, scaling_factor: number = 1): any[] {
+        const results: any[] = []
         for (const [chr, wig] of Object.entries(this.wigFeatures)) {
 
-            for(let sample of wig){
-                var new_sample = { ...sample }
+            for(let sample of wig as any[]){
+                var new_sample: any = { ...sample }
                 if (scaling_factor != 1) {
                     new_sample.value = sample[feature_column] / scaling_factor * 2
                 }
@@ -353,16 +366,16 @@ class baseCNVpytorVCF extends FetchGCInfo {
         return results
     }
 
-    formatDataStructure_BAF(feature_column, scaling_factor = -1) {
-        const baf1 = []
-        const baf2 = []
+    formatDataStructure_BAF(feature_column: string, scaling_factor: number = -1): any[][] {
+        const baf1: any[] = []
+        const baf2: any[] = []
         for (const [chr, wig] of Object.entries(this.wigFeatures)) {
 
-            wig.forEach(sample => {
-                
+            (wig as any[]).forEach((sample: any) => {
+
                 var baf1_value = { ...sample }
                 var baf2_value = { ...sample }
-                
+
                 let value = sample[feature_column]
                 if (value != 0.5){
                     baf2_value.value = scaling_factor * (1 - value)
@@ -370,10 +383,10 @@ class baseCNVpytorVCF extends FetchGCInfo {
                 }
                 baf1_value.value = scaling_factor * value
                 baf1.push(baf1_value)
-                    
+
             })
         }
-        
+
         return [baf1, baf2]
     }
     

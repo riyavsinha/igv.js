@@ -942,47 +942,70 @@ All 10 track classes extend `TrackBase` (still JS). Key patterns used:
 
 ---
 
-## 9. Phase 5: Remaining Track Classes & Specialized Modules
+## 9. Phase 5: Remaining Track Classes & Specialized Modules — STATUS: DONE
 
-**~30 files remaining**
+**27 files converted**
 
-Track classes from the original Phase 5 plan (featureTrack, wigTrack, segTrack, bamTrack, alignmentTrack, coverageTrack, spliceJunctionTrack, interactionTrack, mergedTrack, variantTrack, and their renderers) were completed as Phase 4 Layer 4.
+Track classes from the original Phase 5 plan (featureTrack, wigTrack, segTrack, bamTrack, etc.) were completed as Phase 4 Layer 4. This phase covers all remaining specialized tracks and modules.
 
-Remaining work for this phase:
+Note: `js/trackBase.js` is deferred to Phase 6 (core orchestration) since it's the foundation for all tracks and converting it requires careful coordination.
 
-### Subphase 5a: TrackBase
-
-`js/trackBase.js` is the single most critical file. All 15+ track types extend it. Converting this will eliminate the need for `[key: string]: any` index signatures and `@ts-expect-error` comments on track subclasses.
-
-### Subphase 5b: Specialized tracks (not yet converted)
+### Subphase 5a: GWAS + QTL (~7 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/gwas/gwasTrack.js` | GWAS Manhattan plot |
-| `js/gwas/gwasParser.js` | GWAS data parser |
-| `js/gwas/gwasColors.js` | GWAS color scheme |
-| `js/qtl/qtlTrack.js` | QTL track |
-| `js/qtl/qtlParser.js` | QTL data parser |
-| `js/qtl/qtlSelections.js` | QTL selection handling |
-| `js/qtl/gtexReader.js` | GTEx web service reader |
+| `js/gwas/gwasColors.ts` | Typed color map; added null guard for `romanize()` return |
+| `js/gwas/gwasParser.ts` | Added class field declarations, typed `GWASFeature` class |
+| `js/gwas/gwasTrack.ts` | Index signature; `(this.constructor as any).defaultColor`; fixed `fillText` number→string |
+| `js/qtl/qtlSelections.ts` | Typed `QTLSelections` class; fixed `this.qtls` → `this.qtl` |
+| `js/qtl/qtlParser.ts` | Added class field declarations, typed `QTL` class |
+| `js/qtl/gtexReader.ts` | Typed `EQTL` class with field declarations |
+| `js/qtl/qtlTrack.ts` | Index signature; fixed `fillText` number→string |
 
-### Subphase 5c: Remaining specialized tracks
-
-| Module | Notes |
-|--------|-------|
-| `js/cnvpytor/*.js` (8 files) | CNVpytor track + utilities |
-| `js/gcnv/*.js` (2 files) | gCNV track |
-| `js/rna/*.js` (1 file) | RNA-specific track |
-| `js/shoebox/*.js` (3 files) | Shoebox format |
-| `js/blat/*.js` (3 files) | BLAT interface |
-
-### Subphase 5d: Built-in browser tracks
+### Subphase 5b: CNVpytor (~8 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/sequenceTrack.js` | DNA sequence display |
-| `js/ideogramTrack.js` | Chromosome ideogram |
-| `js/rulerTrack.js` | Genome coordinate ruler |
+| `js/cnvpytor/t_dist.ts` | Typed t-distribution utilities |
+| `js/cnvpytor/GeneralUtil.ts` | Typed general utilities |
+| `js/cnvpytor/MeanShiftUtil.ts` | **Many bug fixes**: `elif`→`else if`, Python tuple unpacking, `Math.min[...]`→`Math.min(...)`, `return start, end`→`return [start, end]`, bitwise `&`→`&&` (6x), wrong variable `levels`→`chr_levels` |
+| `js/cnvpytor/CombinedCaller.ts` | ASI fix; renamed method to avoid base class conflict |
+| `js/cnvpytor/HDF5IndexedReader.ts` | Replaced `.at(-1)` (ES2022) with `[arr.length - 1]` |
+| `js/cnvpytor/baseCNVpytorVCF.ts` | **Bug fix**: comma operator `return [0, 0, 0], null` → `return [0, 0, 0]` |
+| `js/cnvpytor/cnvpytorVCF.ts` | Typed VCF class |
+| `js/cnvpytor/cnvpytorTrack.ts` | Index signature + `@ts-expect-error` |
+
+### Subphase 5c: gCNV + Shoebox + RNA + BLAT (~9 files) — STATUS: DONE
+
+| File | Notes |
+|------|-------|
+| `js/gcnv/gcnvDecoder.ts` | Typed decoder |
+| `js/gcnv/gcnvTrack.ts` | Index signature + `@ts-expect-error` |
+| `js/shoebox/decodeShoebox.ts` | Typed decoder |
+| `js/shoebox/shoeboxColorScale.ts` | Typed color scale |
+| `js/shoebox/shoeboxTrack.ts` | Index signature; **fix**: missing 2nd arg to `extractPopupData` |
+| `js/rna/rnaStruct.ts` | Index signature + `@ts-expect-error`; fixed `ChromAliasManager` type |
+| `js/blat/blatClient.ts` | Typed client |
+| `js/blat/blatTable.ts` | Typed table |
+| `js/blat/blatTrack.ts` | Index signature + `@ts-expect-error` |
+
+### Subphase 5d: Built-in browser tracks (~3 files) — STATUS: DONE
+
+| File | Notes |
+|------|-------|
+| `js/sequenceTrack.ts` | Full class field declarations; typed `WrappedFasta`; fixed `<hr/>` cast |
+| `js/ideogramTrack.ts` | Fixed `roundRect`/`polygon` args: numbers→booleans |
+| `js/rulerTrack.ts` | Full class field declarations; typed `Tick` class |
+
+### Bugs found & fixed during Phase 5
+
+1. **CNVpytor `MeanShiftUtil`** — Multiple Python-style bugs carried over from a Python→JS port: `elif`, tuple unpacking `return start, end`, `Math.min[(...)]` bracket syntax, `flags.fill(["d"] * ...)`, wrong variable reference (`levels` → `chr_levels`), 6x bitwise `&` → `&&`
+2. **CNVpytor `baseCNVpytorVCF`** — Comma operator `return [0, 0, 0], null` always returns `null` (the last expression), discarding the array
+3. **CNVpytor `HDF5IndexedReader`** — `.at(-1)` is ES2022, not in ES2020 target
+4. **Shoebox `shoeboxTrack`** — Missing 2nd argument to `extractPopupData`
+5. **GWAS/QTL tracks** — `fillText` called with number instead of string
+6. **Ideogram track** — `roundRect`/`polygon` called with numbers (0/1) for boolean fill/stroke params
+7. **QTL `qtlSelections`** — `this.qtls` doesn't exist, should be `this.qtl`
 
 ---
 

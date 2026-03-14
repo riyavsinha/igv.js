@@ -13,7 +13,7 @@ const defaultBlatServer = "https://igv.org/services/blatUCSC.php"
 //const blatServer = "http://localhost:8000/blatUCSC.php"
 
 
-async function blat({url, userSeq, db}) {
+async function blat({url, userSeq, db}: { url?: string, userSeq: string, db: string }): Promise<any[]> {
 
     url = url || defaultBlatServer
 
@@ -30,7 +30,7 @@ async function blat({url, userSeq, db}) {
     return features
 }
 
-async function postData(url = "", userSeq, db) {
+async function postData(url: string = "", userSeq: string, db: string): Promise<any> {
 
     const data = new URLSearchParams();
     data.append("userSeq", userSeq);

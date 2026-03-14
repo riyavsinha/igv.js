@@ -7,7 +7,7 @@
 * @params {PositiveNumber} v - degree of freedom
 * @returns {Probability} evaluated CDF
 */
-function TdistributionCDF(t, v){
+function TdistributionCDF(t: number, v: number): number {
     if (isNaN( t ) || isNaN( v ) || v <= 0.0) {
 		return NaN;
 	}
@@ -28,7 +28,7 @@ function TdistributionCDF(t, v){
 * @params
 * @returns 
 */
-function incompbeta(a, b, x){
+function incompbeta(a: number, b: number, x: number): number {
      
     if(x == 0){
         return 0;
@@ -57,7 +57,7 @@ function incompbeta(a, b, x){
  * @param {*} ITMAX 
  * @returns 
  */
-function contfractbeta(a,b,x, ITMAX = 1000){
+function contfractbeta(a: number, b: number, x: number, ITMAX: number = 1000): number | undefined {
      
     let EPS = 3.0e-7;
     let az = 1.0;
@@ -70,7 +70,7 @@ function contfractbeta(a,b,x, ITMAX = 1000){
      
     //for i in range(ITMAX):
     for(let i =0; i<= ITMAX; i++){
-        let em = parseFloat(i+1)
+        let em = parseFloat((i+1).toString())
         let tem = em + em
         let d = em*(b-em)*x/((qam+tem)*(a+tem))
         let ap = az + d*am
@@ -95,7 +95,7 @@ function contfractbeta(a,b,x, ITMAX = 1000){
  * @param {Number} xf - Integer number 
  * @returns factorial of the number
  */
-function factorial(xf) {
+function factorial(xf: number): number {
     if ((xf == 0) || (xf == 1)) return 1;
     else {
         let result = (xf * factorial(xf - 1))
@@ -109,8 +109,8 @@ function factorial(xf) {
  * @param {Number} a - integar or fraction number
  * @returns value of a gamma function
  */
-export function gamma(a){
-    let gamma
+export function gamma(a: number): number {
+    let gamma: number
     
     var qc = [75122.6331530, 80916.6278952, 36308.2951477, 8687.24529705, 1168.92649479, 83.8676043424, 2.50662827511];
     
@@ -140,25 +140,25 @@ export function gamma(a){
  * @returns natural log of gamma function
  */
 
-function lgamma(xg){
+function lgamma(xg: number): number {
     return Math.log(gamma(xg))
 }
 
-function t_test_1_sample(mean, m, s, n) {
+function t_test_1_sample(mean: number, m: number, s: number, n: number): number {
     if (s == 0) s = 1;
     var t = ((mean - m) / s) * Math.sqrt(n)
     var p = 1.0 - TdistributionCDF(Math.abs(t), (n - 1))
     return p
 }
 
-function t_test_2_samples(m1, s1, n1, m2, s2, n2) {
+function t_test_2_samples(m1: number, s1: number, n1: number, m2: number, s2: number, n2: number): number {
     if (s1 == 0) s1 = 1;
     if (s2 == 0) s2 = 1;
     var t = (m1 - m2) / Math.sqrt(s1 ** 2 / n1 + s2 ** 2 / n2);
     var df = ((s1 ** 2 / n1 + s2 ** 2 / n2) ** 2 * (n1 - 1) * (n2 - 1)) /
         ((s1 ** 4 * (n2 - 1)) / n1 ** 2 + (s2 ** 4 * (n1 - 1)) / n2 ** 2);
 
-    var p = 1.0 - TdistributionCDF(Math.abs(t), parseInt(df + 0.5))
+    var p = 1.0 - TdistributionCDF(Math.abs(t), parseInt((df + 0.5).toString()))
 
     return p
 }

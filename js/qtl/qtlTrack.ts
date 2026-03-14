@@ -5,13 +5,14 @@ import {IGVMath} from "../../node_modules/igv-utils/src/index.js"
 import {searchFeatures} from "../search"
 
 class QTLTrack extends TrackBase {
+    [key: string]: any
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
 
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any) {
         super.init(config)
 
         this.type = "qtl"
@@ -40,7 +41,7 @@ class QTLTrack extends TrackBase {
         this.featureSource = FeatureSource(config, this.browser.genome)
     }
 
-    paintAxis(ctx, pixelWidth, pixelHeight) {
+    paintAxis(ctx: any, pixelWidth: number, pixelHeight: number) {
 
         const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
 
@@ -68,7 +69,7 @@ class QTLTrack extends TrackBase {
             IGVGraphics.strokeLine(ctx, x1, y, x2, y, font) // Offset dashes up by 2 pixel
 
             if (y > 8) {
-                IGVGraphics.fillText(ctx, p, x1 - 1, y + 2, font)
+                IGVGraphics.fillText(ctx, String(p), x1 - 1, y + 2, font)
             } // Offset numbers down by 2 pixels;
         }
 
@@ -78,13 +79,13 @@ class QTLTrack extends TrackBase {
 
     };
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number) {
         const visibilityWindow = this.visibilityWindow
         const features = await this.featureSource.getFeatures({chr, start, end, visibilityWindow})
         return features
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const {context, referenceFrame, pixelWidth, pixelHeight} = options
 
@@ -162,7 +163,7 @@ class QTLTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState, features) {
+    popupData(clickState: any, features?: any[]) {
 
         if (features === undefined) features = clickState.viewport.cachedFeatures
         if (!features || features.length === 0) return []
@@ -189,8 +190,8 @@ class QTLTrack extends TrackBase {
         return popupData
     }
 
-    _clickedFeatures(clickState, features) {
-        const dist = (f, cs) => {
+    _clickedFeatures(clickState: any, features: any[]) {
+        const dist = (f: any, cs: any): number => {
             return Math.sqrt((f.px - cs.canvasX) * (f.px - cs.canvasX) + (f.py - cs.canvasY) * (f.py - cs.canvasY))
         }
 
@@ -207,7 +208,7 @@ class QTLTrack extends TrackBase {
 
     }
 
-    contextMenuItemList(clickState) {
+    contextMenuItemList(clickState: any) {
 
         const menuData = []
 
@@ -292,7 +293,7 @@ class QTLTrack extends TrackBase {
                             // possibly Expand region to bring phenotype in view
                             const canonicalChrName = this.browser.genome.getChromosomeName(chr)
                             for (let term of genes) {
-                                const feature = await searchFeatures(this.browser, term)
+                                const feature = await searchFeatures(this.browser, term as string)
                                 if (feature) {
                                     if (canonicalChrName === this.browser.genome.getChromosomeName(feature.chr)) {
                                         start = Math.min(start, feature.start)
@@ -319,7 +320,7 @@ class QTLTrack extends TrackBase {
         return menuItems
     }
 
-    doAutoscale(featureList) {
+    doAutoscale(featureList: any[]) {
 
         let max = this.config.max || 25 // default
         if(featureList.length > 0) {
@@ -335,7 +336,7 @@ class QTLTrack extends TrackBase {
 }
 
 
-function compareQTLs(a, b) {
+function compareQTLs(a: any, b: any): boolean {
     return a.chr === b.chr && a.start === b.start && a.pValue === b.pValue
 }
 

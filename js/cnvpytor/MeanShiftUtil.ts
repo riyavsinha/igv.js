@@ -7,15 +7,17 @@ import baseCNVpytorVCF from './baseCNVpytorVCF.js'
 const genome_size = 2871000000;
 
 
-class MeanShiftCaller extends baseCNVpytorVCF{
+class MeanShiftCaller extends baseCNVpytorVCF {
+    [key: string]: any
+
     /**
      * Creates an instance of CombinedCaller.
-     * 
+     *
      * @param {Array} wigFeatures - An array of arrays containing wig formatted data for each chromosome and bin.
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - reference genome name
      */
-    constructor(wigFeatures, binSize, refGenome) {
+    constructor(wigFeatures: any, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
         this.binBands = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128]
     }
@@ -32,9 +34,9 @@ class MeanShiftCaller extends baseCNVpytorVCF{
         // let cnvs = this.cnvCalling(partitionLevels)
         // console.log("cnvs: ", cnvs)
         
-        Object.entries(this.wigFeatures).forEach(([chr, chrRD]) => {
-            chrRD.forEach((bin, index) => {
-                if (partitionLevels[chr]){ 
+        (Object.entries(this.wigFeatures) as [string, any[]][]).forEach(([chr, chrRD]) => {
+            chrRD.forEach((bin: any, index: number) => {
+                if (partitionLevels[chr]){
                     bin.partitionLevel = parseInt(partitionLevels[chr][index])
                 }
                 // bin.cnvCall = parseInt(caller_array[0][chr][index])
@@ -63,7 +65,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
         });
     }
 
-    partition(repeats = 3){
+    partition(repeats: number = 3): any {
         
         // sort the dictionary based on chromosome names;
         let sortedDictionary = {};
@@ -75,7 +77,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
         
         var chrLevels = {}
         // Object.entries(this.wigFeatures).forEach(([chr, chr_rd]) => {
-        for (const [chr, chrWig] of Object.entries(sortedDictionary)) {
+        for (const [chr, chrWig] of Object.entries(sortedDictionary) as [string, any[]][]) {
 
             // console.log("chr: ", chr, chrWig.length, chrWig)
 
@@ -152,9 +154,9 @@ class MeanShiftCaller extends baseCNVpytorVCF{
                     }
                     // console.log("grad: ", grad)
                     // get the border; if there is a change of gradient, it is a border
-                    var border = new Array();
+                    var border = [];
                     for (var i = 0; i < grad.length - 1; i++) {
-                        if ((grad[i] < 0) & (grad[i + 1] >= 0)) border.push(i);
+                        if ((grad[i] < 0) && (grad[i + 1] >= 0)) border.push(i);
                     }
 
                     border.push(grad.length - 1)
@@ -179,7 +181,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
                 }
 
                 //get the border
-                var border = new Array();
+                var border = [];
                 for (var i = 0; i < levels.length - 1; i++) {
                     //if(i == levels.length -1) continue;
                     var diff = Math.abs(levels[i + 1] - levels[i]);
@@ -260,10 +262,10 @@ class MeanShiftCaller extends baseCNVpytorVCF{
         // var levels = this.MeanShiftCallerV2(bin_size)
 
         var merged_level = {}
-        var cnv_levels = []
-        
-        Object.entries(levels).forEach(([chr, chr_levels]) => {
-            
+        var cnv_levels = [];
+
+        (Object.entries(levels) as [string, any[]][]).forEach(([chr, chr_levels]) => {
+
             var done = false
             while (!done) {
                 done = true
@@ -285,7 +287,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
                         var v2 = v1 + 1, v3 = v1 + 1;
 
                         if (ix > 0) { v2 = Math.abs(chr_levels[borders[ix]] - chr_levels[borders[ix - 1]]) }
-                        if (ix < borders.length - 3) { v3 = Math.abs(levels[borders[ix + 1]] - chr_levels[borders[ix + 2]]) }
+                        if (ix < borders.length - 3) { v3 = Math.abs(chr_levels[borders[ix + 1]] - chr_levels[borders[ix + 2]]) }
 
                         if (v1 < v2 && v1 < v3) {
                             done = false
@@ -301,14 +303,13 @@ class MeanShiftCaller extends baseCNVpytorVCF{
 
             // var chr_rd = this.rd[chr]
             var chr_rd = []
-            Object.entries(this.wigFeatures[chr]).forEach(([bin, binDict]) => { chr_rd.push(binDict.binScore) });
+            Object.entries(this.wigFeatures[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
             // console.log('cnv_calling', chr_rd)
 
             //
             // Calling Segments
             //
 
-            //var flags = [""] * levels.length;
             var flags = new Array(chr_levels.length).fill("")
             var segments = []
 
@@ -316,8 +317,9 @@ class MeanShiftCaller extends baseCNVpytorVCF{
             var b = 0
             var pval = (0.05 * this.binSize) / normal_genome_size
             while (b < chr_levels.length) {
-                var b0 = b, border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] < min)) {
+                var b0 = b;
+                var border_start = b;
+                while ((b < chr_levels.length) && (chr_levels[b] < min)) {
                     b += 1
                 }
                 var border_end = b
@@ -327,22 +329,21 @@ class MeanShiftCaller extends baseCNVpytorVCF{
                     var adj = adjustToEvalue(this.globalMean, this.std, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
-                        var border_start, border_end = adj;
+                        [border_start, border_end] = adj as [number, number];
                         segments.push([border_start, border_end + 1])
                         flags.fill("D", border_start, border_end)
                     }
                 }
                 border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] > max)) { b += 1 }
+                while ((b < chr_levels.length) && (chr_levels[b] > max)) { b += 1 }
                 border_end = b
 
                 if (border_end > border_start + 1) {
                     adj = adjustToEvalue(this.globalMean, this.std, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
-                        border_start, (border_end = adj);
+                        [border_start, border_end] = adj as [number, number];
                         segments.push([border_start, border_end, +1]);
-                        // flags[bs:be] = ["A"] * (be - bs)
                         flags.fill("A", border_start, border_end);
                     }
                 }
@@ -355,14 +356,14 @@ class MeanShiftCaller extends baseCNVpytorVCF{
             //
             b = 0;
             while (b < chr_levels.length) {
-                while ((b < chr_levels.length) & (flags[b] != "")) b += 1;
+                while ((b < chr_levels.length) && (flags[b] != "")) b += 1;
                 border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] < min)) b += 1;
+                while ((b < chr_levels.length) && (chr_levels[b] < min)) b += 1;
                 border_end = b;
                 if (border_end > border_start + 1) {
                     if (gaussianEValue(this.globalMean, this.std, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
                         segments.push([border_start, border_end, -1])
-                        flags.fill(["d"] * (border_end - border_start), border_start, border_end)
+                        flags.fill("d", border_start, border_end)
                     }
                     b -= 1;
                 }
@@ -375,7 +376,6 @@ class MeanShiftCaller extends baseCNVpytorVCF{
 
             border_start = 0;
 
-            //var merge = [...this.rd]
             var merge = [...chr_rd]
             // console.log('initial merge', merge)
             while (b < chr_levels.length) {
@@ -396,7 +396,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
 
             //
             // calculate calls
-            // 
+            //
             b = 0
             while (b < chr_levels.length) {
                 cf = flags[b]
@@ -405,7 +405,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
                     continue
                 }
                 border_start = b
-                while (b < chr_levels.length & cf == flags[b]) { b += 1 }
+                while (b < chr_levels.length && cf == flags[b]) { b += 1 }
                 var border_arr = new DataStat(merge.slice(border_start, b))
                 let cnv = border_arr.mean / this.globalMean
                 let event_type;
@@ -433,7 +433,7 @@ class MeanShiftCaller extends baseCNVpytorVCF{
 
 }
 
-function erf(x) {
+function erf(x: number): number {
     var m = 1.0, s = 1.0, sum = x * 1.0;
     for (var i = 1; i < 50; i++) {
         m *= i;
@@ -443,7 +443,7 @@ function erf(x) {
     return (2 * sum) / Math.sqrt(3.14159265358979)
 }
 
-function getEValue(mean, sigma, rd, start, end) {
+function getEValue(mean: number, sigma: number, rd: any[], start: number, end: number): number {
     var arr = new DataStat(rd.slice(start, end));
     if (arr.std == 0) {
         if (sigma > 0) { arr.std = (sigma * arr.mean) / mean }
@@ -453,7 +453,7 @@ function getEValue(mean, sigma, rd, start, end) {
     return p_val
 }
 
-function gaussianEValue(mean, sigma, rd, start, end) {
+function gaussianEValue(mean: number, sigma: number, rd: any[], start: number, end: number): number {
     var arr = new DataStat(rd.slice(start, end))
 
     if (arr.mean < mean) {
@@ -464,80 +464,85 @@ function gaussianEValue(mean, sigma, rd, start, end) {
     return Math.pow(0.5 * (1 - erf(x)), end - start)
 }
 
-function adjustToEvalue(mean, sigma, rd, start, end, pval, max_steps = 1000) {
+function adjustToEvalue(mean: number, sigma: number, rd: any[], start: number, end: number, pval: number, max_steps: number = 1000): [number, number] | 0 {
     var val = getEValue(mean, sigma, rd, start, end)
     var step = 0, done = false
-    while ((val > pval) & !done & (step < max_steps)) {
+    while ((val > pval) && !done && (step < max_steps)) {
         done = true
         step += 1
         var [v1, v2, v3, v4] = [1e10, 1e10, 1e10, 1e10];
         if (start > 0) v1 = getEValue(mean, sigma, rd, start - 1, end);
         if (end - start > 2) {
-            var v2 = getEValue(mean, sigma, rd, start + 1, end)
-            var v3 = getEValue(mean, sigma, rd, start, end - 1)
+            v2 = getEValue(mean, sigma, rd, start + 1, end)
+            v3 = getEValue(mean, sigma, rd, start, end - 1)
         }
-        if (end < rd.length) { var v4 = getEValue(mean, sigma, rd, start, end + 1) }
-        if (Math.min[(v1, v2, v3, v4)] < val) {
+        if (end < rd.length) { v4 = getEValue(mean, sigma, rd, start, end + 1) }
+        const minVal = Math.min(v1, v2, v3, v4);
+        if (minVal < val) {
             done = false
-            if (v1 == Math.min[(v1, v2, v3, v4)]) {
+            if (v1 == minVal) {
                 start -= 1;
                 val = v1;
-            }
-            elif(v2 == Math.min[(v1, v2, v3, v4)]); {
+            } else if (v2 == minVal) {
                 start += 1;
                 val = v2;
-            }
-            elif(v3 == Math.min[(v1, v2, v3, v4)]); {
+            } else if (v3 == minVal) {
                 end -= 1;
                 val = v3;
-            }
-            elif(v4 == Math.min[(v1, v2, v3, v4)]); {
+            } else if (v4 == minVal) {
                 end += 1;
                 val = v4;
             }
         }
     }
-    if (val <= pval) { return start, end }
+    if (val <= pval) { return [start, end]; }
     return 0;
 }
 
 class DataStat {
-    constructor(data_array) {
+    data: number[]
+    mean: number
+    std: number
+    min?: number
+    max?: number
+
+    constructor(data_array: number[]) {
         this.data = data_array
         this.mean = data_array.reduce((acc, n) => acc + n) / data_array.length
         this.std = Math.sqrt(data_array.reduce((acc, n) => (n - this.mean) ** 2) / data_array.length)
     }
 }
 
-function t_test_1_sample(mean, m, s, n) {
+function t_test_1_sample(mean: number, m: number, s: number, n: number): number {
     if (s == 0) s = 1;
     var t = ((mean - m) / s) * Math.sqrt(n)
     var p = 1.0 - t_dist.TdistributionCDF(Math.abs(t), (n - 1))
     return p
 }
 
-function t_test_2_samples(m1, s1, n1, m2, s2, n2) {
+function t_test_2_samples(m1: number, s1: number, n1: number, m2: number, s2: number, n2: number): number {
     if (s1 == 0) s1 = 1;
     if (s2 == 0) s2 = 1;
     var t = (m1 - m2) / Math.sqrt(s1 ** 2 / n1 + s2 ** 2 / n2);
     var df = ((s1 ** 2 / n1 + s2 ** 2 / n2) ** 2 * (n1 - 1) * (n2 - 1)) /
         ((s1 ** 4 * (n2 - 1)) / n1 ** 2 + (s2 ** 4 * (n1 - 1)) / n2 ** 2);
 
-    var p = 1.0 - t_dist.TdistributionCDF(Math.abs(t), parseInt(df + 0.5))
+    var p = 1.0 - t_dist.TdistributionCDF(Math.abs(t), parseInt((df + 0.5).toString()))
 
     return p
 }
 
 export class Partition {
+    [key: string]: any
 
-    constructor(rd, mean, std) {
+    constructor(rd: any, mean: number, std: number) {
         this.rd = rd
         this.mean = mean
         this.std = std
         this.bin_bands = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128]
     }
 
-    get_rd_signal_bandwidth(data_array) {
+    get_rd_signal_bandwidth(data_array: number[]): number[] {
         var new_array = []
 
         data_array.forEach((value, index) => {
@@ -552,11 +557,11 @@ export class Partition {
         return new_array
     }
 
-    meanShiftCaller(bins_size, repeats = 3) {
+    meanShiftCaller(bin_size: number, repeats: number = 3): any {
 
-        var ChrLevels = {}
-        
-        Object.entries(this.rd).forEach(([chr, chr_rd]) => {
+        var ChrLevels = {};
+
+        (Object.entries(this.rd) as [string, any[]][]).forEach(([chr, chr_rd]) => {
             var masked = new Array(chr_rd.length).fill(false)
 
             // set the level
@@ -574,7 +579,7 @@ export class Partition {
                 // not masked level at current bin
                 var nm_levels = []
 
-                Object.entries(chr_rd).forEach(([k, v]) => { nm_levels.push(v.binScore) })
+                Object.entries(chr_rd).forEach(([k, v]) => { nm_levels.push((v as any).binScore) })
                 
                 // set the mask border
                 var mask_borders = [0]
@@ -609,9 +614,9 @@ export class Partition {
                     }
                     
                     // get the border
-                    var border = new Array();
+                    var border = [];
                     for (var i = 0; i < grad.length - 1; i++) {
-                        if ((grad[i] < 0) & (grad[i + 1] >= 0)) border.push(i);
+                        if ((grad[i] < 0) && (grad[i + 1] >= 0)) border.push(i);
                     }
 
                     border.push(grad.length - 1)
@@ -636,7 +641,7 @@ export class Partition {
                 }
 
                 //get the border
-                var border = new Array();
+                var border = [];
                 for (var i = 0; i < levels.length - 1; i++) {
                     //if(i == levels.length -1) continue;
                     var diff = Math.abs(levels[i + 1] - levels[i]);
@@ -770,9 +775,9 @@ export class Partition {
                 // console.log(grad);
 
                 // get the border
-                var border = new Array();
+                var border = [];
                 for (var i = 0; i < grad.length - 1; i++) {
-                    if ((grad[i] < 0) & (grad[i + 1] >= 0)) border.push(i);
+                    if ((grad[i] < 0) && (grad[i + 1] >= 0)) border.push(i);
                 }
 
                 border.push(grad.length - 1);
@@ -798,7 +803,7 @@ export class Partition {
             }
 
             //get the border
-            var border = new Array();
+            var border = [];
             for (var i = 0; i < levels.length - 1; i++) {
                 //if(i == levels.length -1) continue;
                 var diff = Math.abs(levels[i + 1] - levels[i]);
@@ -911,12 +916,12 @@ export class Partition {
 
         
         var merged_level = {}
-        var cnv_levels = []
-        // var t_value = cdf(Math.abs(10), (5)) 
+        var cnv_levels = [];
+        // var t_value = cdf(Math.abs(10), (5))
         // console.log('Testing student t test:', t_value)
 
-        Object.entries(levels).forEach(([chr, chr_levels]) => {
-            
+        (Object.entries(levels) as [string, any[]][]).forEach(([chr, chr_levels]) => {
+
             var done = false
             while (!done) {
                 done = true
@@ -938,7 +943,7 @@ export class Partition {
                         var v2 = v1 + 1, v3 = v1 + 1;
 
                         if (ix > 0) { v2 = Math.abs(chr_levels[borders[ix]] - chr_levels[borders[ix - 1]]) }
-                        if (ix < borders.length - 3) { v3 = Math.abs(levels[borders[ix + 1]] - chr_levels[borders[ix + 2]]) }
+                        if (ix < borders.length - 3) { v3 = Math.abs(chr_levels[borders[ix + 1]] - chr_levels[borders[ix + 2]]) }
 
                         if (v1 < v2 && v1 < v3) {
                             done = false
@@ -954,14 +959,13 @@ export class Partition {
 
             // var chr_rd = this.rd[chr]
             var chr_rd = []
-            Object.entries(this.rd[chr]).forEach(([bin, binDict]) => { chr_rd.push(binDict.binScore) });
+            Object.entries(this.rd[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
             // console.log('cnv_calling', chr_rd)
 
             //
             // Calling Segments
             //
 
-            //var flags = [""] * levels.length;
             var flags = new Array(chr_levels.length).fill("")
             var segments = []
 
@@ -969,8 +973,9 @@ export class Partition {
             var b = 0
             var pval = (0.05 * bin_size) / normal_genome_size
             while (b < chr_levels.length) {
-                var b0 = b, border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] < min)) {
+                var b0 = b;
+                var border_start = b;
+                while ((b < chr_levels.length) && (chr_levels[b] < min)) {
                     b += 1
                 }
                 var border_end = b
@@ -980,22 +985,21 @@ export class Partition {
                     var adj = adjustToEvalue(this.mean, this.std, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
-                        var border_start, border_end = adj;
+                        [border_start, border_end] = adj as [number, number];
                         segments.push([border_start, border_end + 1])
                         flags.fill("D", border_start, border_end)
                     }
                 }
                 border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] > max)) { b += 1 }
+                while ((b < chr_levels.length) && (chr_levels[b] > max)) { b += 1 }
                 border_end = b
 
                 if (border_end > border_start + 1) {
                     adj = adjustToEvalue(this.mean, this.std, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
-                        border_start, (border_end = adj);
+                        [border_start, border_end] = adj as [number, number];
                         segments.push([border_start, border_end, +1]);
-                        // flags[bs:be] = ["A"] * (be - bs)
                         flags.fill("A", border_start, border_end);
                     }
                 }
@@ -1008,14 +1012,14 @@ export class Partition {
             //
             b = 0;
             while (b < chr_levels.length) {
-                while ((b < chr_levels.length) & (flags[b] != "")) b += 1;
+                while ((b < chr_levels.length) && (flags[b] != "")) b += 1;
                 border_start = b;
-                while ((b < chr_levels.length) & (chr_levels[b] < min)) b += 1;
+                while ((b < chr_levels.length) && (chr_levels[b] < min)) b += 1;
                 border_end = b;
                 if (border_end > border_start + 1) {
                     if (gaussianEValue(this.mean, this.std, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
                         segments.push([border_start, border_end, -1])
-                        flags.fill(["d"] * (border_end - border_start), border_start, border_end)
+                        flags.fill("d", border_start, border_end)
                     }
                     b -= 1;
                 }
@@ -1028,7 +1032,6 @@ export class Partition {
 
             border_start = 0;
 
-            //var merge = [...this.rd]
             var merge = [...chr_rd]
             // console.log('initial merge', merge)
             while (b < chr_levels.length) {
@@ -1049,7 +1052,7 @@ export class Partition {
 
             //
             // calculate calls
-            // 
+            //
             b = 0
             while (b < chr_levels.length) {
                 cf = flags[b]
@@ -1058,7 +1061,7 @@ export class Partition {
                     continue
                 }
                 border_start = b
-                while (b < chr_levels.length & cf == flags[b]) { b += 1 }
+                while (b < chr_levels.length && cf == flags[b]) { b += 1 }
                 var border_arr = new DataStat(merge.slice(border_start, b))
                 let cnv = border_arr.mean / this.mean
                 let event_type;

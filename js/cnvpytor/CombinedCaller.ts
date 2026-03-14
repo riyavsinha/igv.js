@@ -4,18 +4,20 @@ import baseCNVpytorVCF from './baseCNVpytorVCF.js'
  
 
 class CombinedCaller extends baseCNVpytorVCF {
+    [key: string]: any
+
     /**
      * Creates an instance of CombinedCaller.
-     * 
+     *
      * @param {Array} wigFeatures - An array of arrays containing wig formatted data for each chromosome and bin.
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - GC content data indexed by chromosome and bin.
      */
-    constructor(wigFeatures, binSize, refGenome) {
+    constructor(wigFeatures: any, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
     }
 
-    async call_2d(omin=null, mcount=null, event_type="both", max_distance=0.1, baf_threshold=0, max_copy_number=10, min_cell_fraction=0.0){
+    async call_2d(omin: any = null, mcount: any = null, event_type: string = "both", max_distance: number = 0.1, baf_threshold: number = 0, max_copy_number: number = 10, min_cell_fraction: number = 0.0){
         
         // let fit_obj = this.get_fit_v2()
         // this.globalMean = fit_obj.globalMean
@@ -29,7 +31,7 @@ class CombinedCaller extends baseCNVpytorVCF {
         let binScoreField = this.gcFlag ? "gcCorrectedBinScore": "binScore" ;
 
         let overlap_min = omin==null ?  0.05 * this.binSize / 3e9: omin ;
-        let min_count = mcount == null ? parseInt(this.binSize / 10000) : mcount ;
+        let min_count = mcount == null ? parseInt((this.binSize / 10000).toString()) : mcount ;
 
         let gstat_rd0 = []
         let gstat_rd_all = []
@@ -40,12 +42,12 @@ class CombinedCaller extends baseCNVpytorVCF {
         let gstat_n = []
         let gstat_event = []
         
-        for (const [chr, wig] of Object.entries(this.wigFeatures)) {
-            let segments = []
-            let levels = []
-            let likelihoods = []
-            
-            wig.forEach((bin, bin_idx) => {
+        for (const [chr, wig] of Object.entries(this.wigFeatures) as [string, any[]][]) {
+            let segments: any[] = []
+            let levels: number[] = []
+            let likelihoods: any[] = [];
+
+            (wig as any[]).forEach((bin: any, bin_idx: number) => {
                 if (bin.hets_count > 4 ){
                     
                     if( bin.dp_count > min_count ){
@@ -241,7 +243,7 @@ class CombinedCaller extends baseCNVpytorVCF {
         
         // let data = gstat_rd0.lengthn == 0 ?  gstat_rd_all: gstat_rd0 ;
         
-        let points = parseInt(1000 * (1 - min_cell_fraction))
+        let points = parseInt((1000 * (1 - min_cell_fraction)).toString())
         if(points == 0){
             points = 1
         }
@@ -340,23 +342,23 @@ class CombinedCaller extends baseCNVpytorVCF {
             
         }
         
-        var rawbinScore = this.formatDataStructure(this.wigFeatures, 'binScore', this.globalMean)
+        var rawbinScore = this.formatDataStructureWig(this.wigFeatures, 'binScore', this.globalMean)
 
         let gcCorrectedBinScore = [];
         if (this.gcFlag) {
-            gcCorrectedBinScore = this.formatDataStructure(this.wigFeatures, 'gcCorrectedBinScore', this.globalMean);
+            gcCorrectedBinScore = this.formatDataStructureWig(this.wigFeatures, 'gcCorrectedBinScore', this.globalMean);
         }
-        var callScore = this.formatDataStructure(this.wigFeatures, 'segment_score', this.globalMean)
+        var callScore = this.formatDataStructureWig(this.wigFeatures, 'segment_score', this.globalMean)
         
         return {binScore: rawbinScore, gcCorrectedBinScore: gcCorrectedBinScore, segmentScore: callScore}
         
     }
     
-    formatDataStructure(wigFeatures, feature_column, scaling_factor = 1) {
-        const results = []
-        for (const [chr, wig] of Object.entries(wigFeatures)) {
+    formatDataStructureWig(wigFeatures: any, feature_column: string, scaling_factor: number = 1): any[] {
+        const results: any[] = []
+        for (const [chr, wig] of Object.entries(wigFeatures) as [string, any[]][]) {
 
-            wig.forEach(sample => {
+            (wig as any[]).forEach((sample: any) => {
                 var new_sample = { ...sample }
                 if (scaling_factor != 1) {
                     new_sample.value = sample[feature_column] / scaling_factor * 2
@@ -394,7 +396,7 @@ class CombinedCaller extends baseCNVpytorVCF {
     }*/
 }
 
-function arrayMax(arr) {
+function arrayMax(arr: number[]): number {
     return arr.reduce(function (p, v) {
       return ( p > v ? p : v );
     });
@@ -409,7 +411,7 @@ function arrayMax(arr) {
  * @param {float} sigma - Sigma
  * @returns {float} - Value of distribution in x.
  */
-function normal(x, a, x0, sigma){
+function normal(x: number, a: number, x0: number, sigma: number): number {
   
   return a * Math.exp(-1* (x - x0) ** 2 / (2 * sigma ** 2)) / Math.sqrt(2 * Math.PI) / sigma
 
@@ -425,7 +427,7 @@ function normal(x, a, x0, sigma){
  * 
  * @returns {float} area - Area of overlap
  */
-function normal_overlap_approx(m1, s1, m2, s2){
+function normal_overlap_approx(m1: number, s1: number, m2: number, s2: number): number {
    
     return Math.exp(-1* (m1-m2)**2/ (s1**2+s2**2))
 }
@@ -439,7 +441,7 @@ function normal_overlap_approx(m1, s1, m2, s2){
  * 
  * @returns {float}  - Overlap area.
  */
-function likelihood_overlap(likelihood_1, likelihood_2){
+function likelihood_overlap(likelihood_1: number[], likelihood_2: number[]): number {
     // console.log(likelihood_1, likelihood_2)
     let sum;
     try{
@@ -463,7 +465,7 @@ function likelihood_overlap(likelihood_1, likelihood_2){
  * @property {float} nl - Mean value of the first distribution
  * @property {float} ne - Sigma of the first distribution
  */
-function normal_merge(m1, s1, m2, s2){
+function normal_merge(m1: number, s1: number, m2: number, s2: number): { nl: number, ne: number } {
    
     if((s1 == 0) && (s2 == 0)){
         return {nl: 0.5 * (m1 + m2), ne: 0}
@@ -479,9 +481,9 @@ function normal_merge(m1, s1, m2, s2){
  * @param {*} baf 
  * @returns {float}  likelihood value
  */
-function likelihood_of_baf(likelihood, baf){
-   
-    let bin = parseInt(baf * (likelihood.length - 1))
+function likelihood_of_baf(likelihood: number[], baf: number): number {
+
+    let bin = parseInt((baf * (likelihood.length - 1)).toString())
     let fr = baf * (likelihood.length - 1) - bin
     if(bin < likelihood.length - 1){
         return likelihood[bin] * (1 - fr) + likelihood[bin + 1] * fr
@@ -500,7 +502,7 @@ function likelihood_of_baf(likelihood, baf){
  * @property {float} mean  BAF level (difference from 1/2)
  * @property {float} p  p-value for event different than 1/2
  */
-function likelihood_baf_pval(likelihood) {
+function likelihood_baf_pval(likelihood: number[]): { mean: number, p: number } {
     const res = likelihood.length;
     const max_lh = Math.max(...likelihood);
     let ix = likelihood.indexOf(max_lh);

@@ -11,6 +11,7 @@ import ShoeboxColorScale from "./shoeboxColorScale.js"
  */
 
 class ShoeboxTrack extends TrackBase {
+    [key: string]: any
 
     static defaults = {
         height: 300,
@@ -24,11 +25,11 @@ class ShoeboxTrack extends TrackBase {
         stepSize: 2        // Stepsize for each row in bp for footprint radius
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any): void {
 
         super.init(config)
 
@@ -49,6 +50,7 @@ class ShoeboxTrack extends TrackBase {
     }
 
 
+    // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
 
         if (typeof this.featureSource.getHeader === "function") {
@@ -75,8 +77,8 @@ class ShoeboxTrack extends TrackBase {
         // This shouldn't be neccessary
         if (!this.scale) this.scale = 1.0
 
-        this._initialColor = this.color || this.constructor.defaultColor
-        this._initialAltColor = this.altColor || this.constructor.defaultColor
+        this._initialColor = this.color || (this.constructor as any).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
 
     }
 
@@ -303,7 +305,7 @@ class ShoeboxTrack extends TrackBase {
 
             const data = (typeof f.popupData === 'function') ?
                 f.popupData(this.type, this.browser.genome.id) :
-                this.extractPopupData(f)
+                this.extractPopupData(f, this.browser.genome.id)
             Array.prototype.push.apply(items, data)
 
         }

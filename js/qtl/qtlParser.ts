@@ -59,14 +59,20 @@ const MIN_EXPONENT = Math.log10(Number.MIN_VALUE)
  */
 class QTLParser {
 
-    chrCol = -1
-    snpCol = -1
-    posCol = -1
-    pValueCol = -1
-    phenotypeColumn = -1
-    delimiter = '\t'
+    chrCol: number = -1
+    snpCol: number = -1
+    posCol: number = -1
+    pValueCol: number = -1
+    phenotypeColumn: number = -1
+    delimiter: string = '\t'
+    config: any
+    columns: string[]
+    chrColumn: number
+    snpColumn: number
+    posColumn: number
+    pValueColumn: number
 
-    constructor(config) {
+    constructor(config: any) {
         this.config = config
 
         //TODO -- allow specifying column
@@ -75,7 +81,7 @@ class QTLParser {
         // this.snpField = config.snpField || "snp"
     }
 
-    async parseHeader(dataWrapper) {
+    async parseHeader(dataWrapper: any) {
 
         const config = this.config
         if (config.delimiter) this.delimiter = config.delimiter
@@ -94,7 +100,7 @@ class QTLParser {
         return columns
     }
 
-    parseHeaderLine(headerLine) {
+    parseHeaderLine(headerLine: string) {
         this.columns = headerLine.split(this.delimiter)
         for (let i = 0; i < this.columns.length; i++) {
             const c = this.columns[i].toLowerCase()
@@ -137,7 +143,7 @@ class QTLParser {
         return this.columns
     }
 
-    async parseFeatures(dataWrapper) {
+    async parseFeatures(dataWrapper: any) {
 
         const allFeatures = []
         const headerLine = dataWrapper.nextLine()
@@ -147,7 +153,7 @@ class QTLParser {
 
         let line
 
-        const parseValue = (valueString) => {
+        const parseValue = (valueString: string): number => {
             // Don't try to parse extremely small values
             const idx = valueString.indexOf("E")
             if (idx > 0) {
@@ -186,7 +192,7 @@ class QTLParser {
      * extensions such as "tsv"
      * @param firstLine
      */
-    static isQTL(firstLine) {
+    static isQTL(firstLine: string): boolean {
         const tokens = firstLine.split('\t')
         if (tokens.length < 5) {
             return false
@@ -209,7 +215,19 @@ class QTLParser {
 
 class QTL {
 
-    constructor({chr, start, end, pValue, snp, phenotype}, headers, tokens) {
+    chr: string
+    start: number
+    end: number
+    pValue: number
+    snp: string
+    phenotype: string
+    headers: string[]
+    tokens: string[]
+    px?: number
+    py?: number
+    radius?: number
+
+    constructor({chr, start, end, pValue, snp, phenotype}: { chr: string; start: number; end: number; pValue: number; snp: string; phenotype: string }, headers: string[], tokens: string[]) {
         this.chr = chr
         this.start = start
         this.end = end

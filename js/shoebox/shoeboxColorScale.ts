@@ -3,8 +3,19 @@ import {IGVMath} from "../../node_modules/igv-utils/src/index.js"
 const defaultColorScaleConfig = {min: 0, max: 3000, color: "rgb(0,0,255)"}
 
 class ShoeboxColorScale {
+    max: number
+    min: number
+    cache: string[]
+    nbins: number
+    binsize: number
+    r: number = 0
+    g: number = 0
+    b: number = 0
+    br: number
+    bg: number
+    bb: number
 
-    constructor(scale) {
+    constructor(scale?: any) {
 
         scale = scale || defaultColorScaleConfig
         this.max = scale.max
@@ -19,7 +30,7 @@ class ShoeboxColorScale {
 
     }
 
-    updateColor(color) {
+    updateColor(color: string): void {
         const comps = color.substring(4).replace(")", "").split(",")
         if (comps.length === 3) {
             this.r = Number.parseInt(comps[0].trim())
@@ -29,14 +40,14 @@ class ShoeboxColorScale {
         this.cache = []
     }
 
-    setMinMax(min, max) {
+    setMinMax(min: number, max: number): void {
         this.min = min
         this.max = max
         this.cache = []
         this.binsize = (this.max - this.min) / this.nbins
     }
 
-    getColor(value) {
+    getColor(value: number): string {
          if (value <= this.min) return "white"
         else if (value >= this.max) return `rgb(${this.r},${this.g},${this.b})`
 
@@ -64,7 +75,7 @@ class ShoeboxColorScale {
     }
 
     // For short-term backward compatibility
-    static parse(str) {
+    static parse(str: string): ShoeboxColorScale {
 
         const tokens = str.split(",")
 

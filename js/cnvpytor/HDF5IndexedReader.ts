@@ -2,13 +2,17 @@ import {openH5File} from "../../node_modules/hdf5-indexed-reader/dist/hdf5-index
 import {buildOptions} from "../util/igvUtils.js"
 
 
-class SignalNames{
+class SignalNames {
+    chrom: string
+    signal_bin_size: number
+    signals: Record<string, string>
+
     /**
-     * 
+     *
      * @param {string} chrom - chromosome name
      * @param {integer} bin_size - bin size
      */
-    constructor(chrom, bin_size){
+    constructor(chrom: string, bin_size: number) {
         this.chrom = chrom
         this.signal_bin_size = bin_size
 
@@ -27,18 +31,26 @@ class SignalNames{
 
 
 class HDF5Reader {
+    config: any
+    bin_size: number
+    h5_obj: any
+    pytorKeys: string[]
+    availableBins: number[]
+    callers: string[]
+
     /**
-     * 
+     *
      * @param {string} h5_file - path for the pytor file
      * @param {integer} bin_size - bin size
      */
-    constructor(config, bin_size=100000){
+    constructor(config: any, bin_size: number = 100000) {
 
         this.config = config;
         this.bin_size = bin_size;
         this.h5_obj = undefined
         this.pytorKeys = [];
         this.availableBins = [];
+        this.callers = [];
     }
     
     async fetch(){
@@ -59,7 +71,7 @@ class HDF5Reader {
         return h5_obj.keys
     }
 
-    async get_rd_signal(bin_size = this.bin_size, chrom=undefined){
+    async get_rd_signal(bin_size: number = this.bin_size, chrom?: any): Promise<any> {
         // Fetch the pytor file and get keys
         const h5Obj = await this.fetch();
         this.pytorKeys = h5Obj.keys;
@@ -70,7 +82,7 @@ class HDF5Reader {
         
         // check if the user provided bin is available, else set the last bin_size
         if(! this.availableBins.includes(bin_size)){
-            bin_size = this.availableBins.at(-1);    
+            bin_size = this.availableBins[this.availableBins.length - 1];    
         }
         
         // get rd chromosomes and rd stat
@@ -85,7 +97,7 @@ class HDF5Reader {
         return { [bin_size]: wigFeatures };
     }
 
-    async getWigFeatures(rdChromosomes, binSize, rdStat) {
+    async getWigFeatures(rdChromosomes: string[], binSize: number, rdStat: any): Promise<any> {
         const wigFeatures = {
             RD_Raw: [],
             RD_Raw_gc_coor: [],
@@ -112,7 +124,7 @@ class HDF5Reader {
         return wigFeatures;
     }
 
-    async getChromosomes(refChroms) {
+    async getChromosomes(refChroms?: any): Promise<string[]> {
         // return chromosome names if they exists in the rd_chromosomes
         const rdChroms_obj = await this.h5_obj.get("rd_chromosomes");
         const rdChroms = await rdChroms_obj.value
@@ -125,13 +137,13 @@ class HDF5Reader {
         }
     }
 
-    setCallers(wigFeatures) {
+    setCallers(wigFeatures: any): void {
         this.callers = [];
         if (wigFeatures.ReadDepth.length) this.callers.push('ReadDepth');
         if (wigFeatures["2D"].length) this.callers.push('2D');
     }
 
-    decode_segments(segments_arr){
+    decode_segments(segments_arr: number[]): number[][] {
         let max = 2 ** 32 - 1
         let segments = []
         let l = []
@@ -146,7 +158,7 @@ class HDF5Reader {
         return segments
     }
 
-    async  rd_call_combined(chrom, bin_size, rd_stat, signal_name_obj){
+    async rd_call_combined(chrom: string, bin_size: number, rd_stat: any, signal_name_obj: SignalNames): Promise<any[]> {
         let chr_wig = [];
         
         let segments
@@ -179,7 +191,7 @@ class HDF5Reader {
      * @param {integer} bin_size - bin_size 
      * @returns - array - read depth statistics array
      */
-    async rd_stat(bin_size){
+    async rd_stat(bin_size: number): Promise<any> {
     
         let rd_stat_signal =  `rd_stat_${bin_size}_auto`
         let rd_stat;
@@ -191,7 +203,7 @@ class HDF5Reader {
     }
 
     
-    async get_chr_signal(chrom, bin_size, signal_name, rd_stat){
+    async get_chr_signal(chrom: string, bin_size: number, signal_name: string, rd_stat: any): Promise<any[]> {
         /* return a list of dictionary for a chromosome */
         let chr_wig = [];
         
@@ -207,7 +219,7 @@ class HDF5Reader {
     }
 
 
-    async getBafSignals(chrom, binSize, signalName, scalingFactor = -1) {
+    async getBafSignals(chrom: string, binSize: number, signalName: string, scalingFactor: number = -1): Promise<any[][]> {
         const chrWig1 = [];
         const chrWig2 = [];
         
@@ -240,28 +252,30 @@ class HDF5Reader {
 }
 
 class ParseSignals {
+    signals: string[]
+
     /**
      * @param {string[]} signals - List of keys in pytor files.
      */
-    constructor(signals) {
+    constructor(signals: string[]) {
         this.signals = signals;
     }
 
-    getAllBins() {
+    getAllBins(): number[] {
         const rdBins = this.getRdBins();
         const snpBins = this.getSnpBins();
         return [...new Set([...rdBins, ...snpBins])].sort((a, b) => a - b);;
     }
 
-    getRdBins() {
+    getRdBins(): number[] {
         return this.extractBins(/^his_rd_p_(.*)_(\d+)$/);
     }
 
-    getSnpBins() {
+    getSnpBins(): number[] {
         return this.extractBins(/^snp_likelihood_(.*)_(\d+)_mask$/);
     }
 
-    extractBins(regex) {
+    extractBins(regex: RegExp): number[] {
         return [...new Set(
             this.signals
                 .map(val => val.match(regex))
@@ -271,7 +285,7 @@ class ParseSignals {
     }
 }
 
-function fixString(strings) {
+function fixString(strings: string[]): string[] {
 
     return strings.map(s => s.substr(0,s.indexOf('\0')))
 
@@ -287,7 +301,7 @@ function fixString(strings) {
 //     return nested;
 // }
 
-function create_nested_array(value, shape) {
+function create_nested_array(value: any[], shape: number[]): any {
     // check that shapes match:
     const total_length = value.length;
     const dims_product = shape.reduce((previous, current) => (previous * current), 1);

@@ -13,6 +13,7 @@
       "Read(//Users/riyavsinha/**)",
       "Bash(pip show langgraph-checkpoint-postgres)",
       "Bash(mkdir:*)",
+      "Bash(awk:*)",
       "Bash(go:*)",
       "Write(*)",
       "Bash(ls:*)",

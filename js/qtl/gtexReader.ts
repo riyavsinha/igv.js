@@ -5,13 +5,17 @@ import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
  */
 class GtexReader {
 
-    featureCaches = []
+    featureCaches: any[] = []
+    config: any
+    url: string
+    tissueId: string
+    datasetId: string
 
     gtexChrs = new Set(["chr1", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18",
         "chr19", "chr2", "chr20", "chr21", "chr22", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chrM",
         "chrX", "chrY"])
 
-    constructor(config) {
+    constructor(config: any) {
 
         this.config = config
         this.url = config.url
@@ -19,7 +23,7 @@ class GtexReader {
         this.datasetId = config.datasetId || "gtex_v8"
     }
 
-    async readFeatures(chr, bpStart, bpEnd) {
+    async readFeatures(chr: string, bpStart: number, bpEnd: number) {
 
         // GTEX uses UCSC chromosome naming conventions.
         const queryChr = chr.startsWith("chr") ? chr : chr === "MT" ? "chrM" : "chr" + chr
@@ -64,7 +68,18 @@ class GtexReader {
 
 class EQTL {
 
-    constructor(eqtl) {
+    chr: string
+    start: number
+    end: number
+    snp: string
+    phenotype: string
+    pValue: number
+    json: any
+    px?: number
+    py?: number
+    radius?: number
+
+    constructor(eqtl: any) {
         this.chr = eqtl.chromosome
         this.start = eqtl.pos - 1
         this.end = this.start + 1

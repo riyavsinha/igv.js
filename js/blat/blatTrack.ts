@@ -9,8 +9,9 @@ const defaultBlatServer = "https://igv.org/services/blatUCSC.php"
 //const blatServer = "http://localhost:8000/blatUCSC.php"
 
 class BlatTrack extends FeatureTrack {
+    [key: string]: any
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
         if (!this.name) {
             this.name = 'Blat Results'
@@ -26,6 +27,7 @@ class BlatTrack extends FeatureTrack {
         }
     }
 
+    // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
         if(!this.featureSource) {
             // This will be the case when restoring from a session
@@ -36,8 +38,8 @@ class BlatTrack extends FeatureTrack {
             this.featureSource = new StaticFeatureSource({features}, this.browser.genome)
         }
 
-        this._initialColor = this.color || this.constructor.defaultColor
-        this._initialAltColor = this.altColor || this.constructor.defaultColor
+        this._initialColor = this.color || (this.constructor as any).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
 
     }
 
@@ -112,7 +114,7 @@ class BlatTrack extends FeatureTrack {
 }
 
 
-async function createBlatTrack({sequence, browser, name, title}) {
+async function createBlatTrack({sequence, browser, name, title}: { sequence: string, browser: any, name?: string, title?: string }): Promise<void> {
 
     if (sequence.length > maxSequenceSize) {
         browser.alert.present(`Sequence size exceeds maximum allowed length (${sequence.length} > ${maxSequenceSize})`)

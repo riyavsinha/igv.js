@@ -3,31 +3,39 @@ import combined_caller from './CombinedCaller.js';
 import read_depth_caller from './MeanShiftUtil.js'
 
 
-function getMean(data) {
+function getMean(data: number[]): number {
     return (data.reduce(function (a, b) { return a + b; }) / data.length);
 }
 
 
 class CNVpytorVCF {
+    allVariants: any[]
+    rowBinSize: number
+    binSize: number
+    binFactor: number
+    refGenome: string
+    chromosomes: string[]
+
     /**
      * Create a class instance.
-     * 
+     *
      * @param {Array} allVariants - An array containing all variants
      * @param {number} binSize - The bin size for processing variants.
      * @param {string} refGenome - Reference genome name
      */
-    constructor(allVariants, binSize, refGenome) {
+    constructor(allVariants: any[], binSize: number, refGenome: string) {
         this.allVariants = allVariants
         this.rowBinSize = 10000
         this.binSize = binSize
-        this.binFactor = parseInt(binSize / this.rowBinSize)
+        this.binFactor = parseInt((binSize / this.rowBinSize).toString())
         this.refGenome = refGenome
+        this.chromosomes = []
     }
 
     /**
      * Read rd and BAF information from the vcf file and call accoring to the caller
      */
-    async read_rd_baf(caller='ReadDepth'){
+    async read_rd_baf(caller: string = 'ReadDepth'): Promise<any[]> {
         
         // Step1: Parse data from the vcf file; for a fixed rowBinSize
         var wigFeatures = {}
@@ -59,7 +67,7 @@ class CNVpytorVCF {
             if(calls.length !== 1) {
                 throw Error(`Unexpected number of genotypes: ${calls.length}.  CNVPytor expects 1 and only 1 genotype`)
             }
-            const call = calls[0]
+            const call = calls[0] as any
 
             const dpValue = call.info["DP"]
             if (dpValue) {
@@ -119,11 +127,11 @@ class CNVpytorVCF {
         return [finalFeatureSet, baf]
     }
 
-    format_BAF_likelihood(wigFeatures) {
-        const results = []
+    format_BAF_likelihood(wigFeatures: any): any[] {
+        const results: any[] = []
 
         for (const [chr, wig] of Object.entries(wigFeatures)) {
-            for(let sample of wig) {
+            for(let sample of wig as any[]) {
                 var new_sample = { ...sample }
                 if (sample.value != 0.5) {
                     new_sample.value = 1 - sample.value
@@ -134,7 +142,7 @@ class CNVpytorVCF {
         return results
     }
 
-    get_max_min_score(sample) {
+    get_max_min_score(sample: any): any {
 
         if (sample.likelihood_score.length > 0) {
             const max = Math.max(...sample.likelihood_score);
@@ -162,7 +170,7 @@ class CNVpytorVCF {
      * @param {*} wigFeatures - wig features after processing the varaints
      * @returns 
      */
-    adjust_bin_size(wigFeatures, delete_likelihood_scores=false){
+    adjust_bin_size(wigFeatures: any, delete_likelihood_scores: boolean = false): any {
         
         var avgbin = {}
         const scale = this.binSize/150
@@ -237,7 +245,7 @@ class CNVpytorVCF {
 
 }
 
-function beta(a, b, p, phased = true) { 
+function beta(a: number, b: number, p: number, phased: boolean = true): number {
     return Math.pow(p, a) * Math.pow(1-p, b) + Math.pow(p, b) * Math.pow(1-p, a)
 }
 

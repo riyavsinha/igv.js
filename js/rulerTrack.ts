@@ -7,7 +7,18 @@ const numberFormatter = StringUtils.numberFormatter
 const defaultRulerHeight = 40
 
 class RulerTrack {
-    constructor(browser) {
+
+    browser: any
+    height: number
+    name: string
+    disableButtons: boolean
+    ignoreTrackMenu: boolean
+    order: number
+    removable: boolean
+    type: string
+    id: string
+
+    constructor(browser: any) {
 
         this.browser = browser
         this.height = defaultRulerHeight
@@ -20,15 +31,15 @@ class RulerTrack {
         this.id = "ruler"
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number) {
         return []
     };
 
-    computePixelHeight(ignore) {
+    computePixelHeight(ignore: any) {
         return this.height
     };
 
-    draw({context, referenceFrame, pixelWidth, pixelHeight, bpPerPixel, bpStart}) {
+    draw({context, referenceFrame, pixelWidth, pixelHeight, bpPerPixel, bpStart}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; bpPerPixel: number; bpStart: number }) {
 
         if (GenomeUtils.isWholeGenomeView(referenceFrame.chr)) {
             this.drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel})
@@ -37,7 +48,7 @@ class RulerTrack {
         }
     }
 
-    drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel}) {
+    drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel}: { context: any; pixelWidth: number; pixelHeight: number; bpPerPixel: number }) {
 
         context.save()
 
@@ -58,7 +69,7 @@ class RulerTrack {
 
     }
 
-    doDraw({context, referenceFrame, pixelWidth, pixelHeight, bpStart}) {
+    doDraw({context, referenceFrame, pixelWidth, pixelHeight, bpStart}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; bpStart: number }) {
 
         context.clearRect(0, 0, pixelWidth, pixelHeight)
 
@@ -113,7 +124,7 @@ class RulerTrack {
 
     }
 
-    renderChromosomeRect(ctx, x, y, w, h, name) {
+    renderChromosomeRect(ctx: any, x: number, y: number, w: number, h: number, name: string) {
 
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -142,7 +153,7 @@ class RulerTrack {
  * Potentially shorten the chromosome name for whole genome view
  * @param name
  */
-function shortenChromsomeName(name) {
+function shortenChromsomeName(name: string): string {
 
     if(name.startsWith("chr")) {
         const tmp = name.substring(3)
@@ -154,7 +165,7 @@ function shortenChromsomeName(name) {
 
 }
 
-function findSpacing(bpLength, isSVG) {
+function findSpacing(bpLength: number, isSVG: boolean): Tick {
 
     if (bpLength < 10) {
         return new Tick(1, 'bp', 1)
@@ -192,7 +203,7 @@ function findSpacing(bpLength, isSVG) {
     return new Tick(majorTick, majorUnit, unitMultiplier)
 }
 
-function calculateDeltas(context, referenceFrame, bpStart, nTick, tick) {
+function calculateDeltas(context: any, referenceFrame: any, bpStart: number, nTick: number, tick: Tick): { tickDelta: number; labelLength: number } {
 
     const tickDelta = getX(referenceFrame, getBP(1 + nTick, tick), bpStart) - getX(referenceFrame, getBP(nTick, tick), bpStart)
 
@@ -201,25 +212,31 @@ function calculateDeltas(context, referenceFrame, bpStart, nTick, tick) {
 
     return {tickDelta, labelLength}
 
-    function getBP(nTick, tick) {
+    function getBP(nTick: number, tick: Tick): number {
         return Math.floor(nTick * tick.majorTick)
     }
 
-    function getX(referenceFrame, bp, bpStart) {
+    function getX(referenceFrame: any, bp: number, bpStart: number): number {
         return Math.round(referenceFrame.toPixels((bp - 1) - bpStart + 0.5))
     }
 }
 
 class Tick {
 
-    constructor(majorTick, majorUnit, unitMultiplier) {
+    majorTick: number
+    minorTick: number
+    majorUnit: string
+    unitMultiplier: number
+    labelWidthBP?: number
+
+    constructor(majorTick: number, majorUnit: string, unitMultiplier: number) {
         this.majorTick = majorTick
         this.minorTick = majorTick / 10.0
         this.majorUnit = majorUnit
         this.unitMultiplier = unitMultiplier
     }
 
-    description(blurb) {
+    description(blurb?: string) {
         console.log((blurb || '') + ' tick ' + numberFormatter(this.majorTick) + ' label width ' + numberFormatter(this.labelWidthBP) + ' multiplier ' + this.unitMultiplier)
     }
 }

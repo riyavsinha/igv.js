@@ -1,8 +1,8 @@
 /**
- * Colors used for coding omosomes
+ * Colors used for coding chromosomes
  */
 
-const GWASColors = {
+const GWASColors: { [key: string]: string } = {
     "X": "rgb(204, 153, 0)",
     "Y": "rgb(153, 204, 0)",
     "Un": "darkGray)",
@@ -68,18 +68,18 @@ for (let key of Object.keys(GWASColors)) {
 for(let a = 1; a <= 48; a++) {
     if(a === 10) continue   // Don't overide "X"
     const roman = romanize(a)
-    GWASColors[roman] = GWASColors[a.toString()]
+    if (roman) GWASColors[roman] = GWASColors[a.toString()]
 }
 
 
-function romanize (num) {
+function romanize(num: number): string | false {
     if (!+num) return false;
     var digits = String(+num).split('');
     var key = ['','C','CC','CCC','CD','D','DC','DCC','DCCC','CM',
         '','X','XX','XXX','XL','L','LX','LXX','LXXX','XC',
         '','I','II','III','IV','V','VI','VII','VIII','IX'];
     var roman = '', i = 3;
-    while (i--) roman = (key[+digits.pop() + (i * 10)] || '') + roman;
+    while (i--) roman = (key[+digits.pop()! + (i * 10)] || '') + roman;
     return Array(+digits.join('') + 1).join('M') + roman;
 }
 

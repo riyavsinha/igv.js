@@ -5,7 +5,13 @@ const MIN_EXPONENT = Math.log10(Number.MIN_VALUE)
  */
 class GWASParser {
 
-    constructor(config) {
+    config: any
+    posCol: number
+    chrCol: number
+    valueCol: number
+    columns: string[]
+
+    constructor(config: any) {
         // Defaults - can be overriden by header
         this.config = config
         if (config.columns) {
@@ -25,12 +31,12 @@ class GWASParser {
         }
     }
 
-    async parseHeader(dataWrapper) {
+    async parseHeader(dataWrapper: any) {
         const headerLine = await dataWrapper.nextLine()
         return this.parseHeaderLine(headerLine)
     }
 
-    parseHeaderLine(headerLine) {
+    parseHeaderLine(headerLine: string) {
         this.columns = headerLine.split(/\t/)
         if (!this.config.columns) {
             for (let i = 0; i < this.columns.length; i++) {
@@ -60,7 +66,7 @@ class GWASParser {
         return this.columns
     }
 
-    async parseFeatures(dataWrapper) {
+    async parseFeatures(dataWrapper: any) {
 
         const allFeatures = []
         const headerLine = dataWrapper.nextLine()
@@ -70,7 +76,7 @@ class GWASParser {
 
         let line
 
-        const parseValue = (valueString) => {
+        const parseValue = (valueString: string): number => {
             // Don't try to parse extremely small values
             const idx = valueString.indexOf("E");
             if(idx > 0) {
@@ -105,7 +111,7 @@ class GWASParser {
      * extensions such as "tsv"
      * @param firstLine
      */
-    static isGWAS(firstLine) {
+    static isGWAS(firstLine: string): boolean {
         const tokens = firstLine.split('\t')
         if (tokens.length < 5) {
             return false
@@ -126,7 +132,16 @@ class GWASParser {
 
 class GWASFeature {
 
-    constructor({chr, start, end, value, line, columns}) {
+    chr: string
+    start: number
+    end: number
+    value: number
+    line: string
+    columns: string[]
+    px?: number
+    py?: number
+
+    constructor({chr, start, end, value, line, columns}: { chr: string; start: number; end: number; value: number; line: string; columns: string[] }) {
         this.chr = chr
         this.start = start
         this.end = end
@@ -142,7 +157,7 @@ class GWASFeature {
         })
     }
 
-    getAttributeValue(attrName) {
+    getAttributeValue(attrName: string): string | undefined {
         const tokens = this.line.split(/\t/)
         for (let i = 0; i < this.columns.length; i++) {
             if (this.columns[i] === attrName) {

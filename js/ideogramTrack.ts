@@ -6,7 +6,18 @@ import {IGVColor} from "../node_modules/igv-utils/src/index.js"
  *
  */
 class IdeogramTrack {
-    constructor(browser) {
+
+    browser: any
+    type: string
+    id: string
+    height: number
+    order: number
+    disableButtons: boolean
+    ignoreTrackMenu: boolean
+    showCytobandNames: boolean
+    trackView: any
+
+    constructor(browser: any) {
         this.browser = browser
         this.type = 'ideogram'
         this.id = 'ideogram'
@@ -19,11 +30,11 @@ class IdeogramTrack {
         this.showCytobandNames = browser.config.showCytobandNames
     }
 
-    computePixelHeight(ignore) {
+    computePixelHeight(ignore: any) {
         return this.height
     }
 
-    draw({context, referenceFrame, pixelWidth, pixelHeight, features}) {
+    draw({context, referenceFrame, pixelWidth, pixelHeight, features}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; features: any }) {
 
         const chr = referenceFrame.chr
         const chromosome = referenceFrame.genome.getChromosome(chr)
@@ -32,7 +43,7 @@ class IdeogramTrack {
             return
         }
 
-        const stainColors = []
+        const stainColors: { [key: number]: string } = []
 
         drawIdeogram({
             ctx: context,
@@ -93,7 +104,7 @@ class IdeogramTrack {
     }
 }
 
-function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames}) {
+function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames}: { ctx: any; chr: string; referenceFrame: any; genome: any; width: number; height: number; stainColors: any; features: any; showCytobandNames: boolean }) {
     const shim = 1
     const shim2 = 0.5 * shim
     const ideogramTop = 0
@@ -109,8 +120,8 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
         const center = (ideogramTop + height / 2)
 
-        const xC = []
-        const yC = []
+        const xC: number[] = []
+        const yC: number[] = []
 
         if (0 === cytobands.length) {
             return
@@ -125,7 +136,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
         // round rect clipping path
         ctx.beginPath()
-        IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, 0, 1)
+        IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, false, true)
         ctx.clip()
 
         for (let i = 0; i < cytobands.length; i++) {
@@ -154,7 +165,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
                 ctx.fillStyle = "rgb(150, 0, 0)"
                 ctx.strokeStyle = "rgb(150, 0, 0)"
-                IGVGraphics.polygon(ctx, xC, yC, 1, 0)
+                IGVGraphics.polygon(ctx, xC, yC, true, false)
             } 
             else {
                 const backgroundColor = getCytobandColor(stainColors, cytoband);
@@ -170,10 +181,10 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
 
     // round rect border
     ctx.strokeStyle = IGVColor.greyScale(41)
-    IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, 0, 1)
+    IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, false, true)
 }
 
-function drawIdeogramCytobandName(ctx, name, start, end, ideogramTop, height, shade) {
+function drawIdeogramCytobandName(ctx: any, name: string, start: number, end: number, ideogramTop: number, height: number, shade: number | null) {
     const padding = 2; // Padding between the rect and the sides of the ideogram
 
     // Calculate font size to fit the rectangle height and width
@@ -220,7 +231,7 @@ function drawIdeogramCytobandName(ctx, name, start, end, ideogramTop, height, sh
     ctx.restore(); // Restore the context to remove clipping
 }
 
-function getCytobandColor(colors, data) {
+function getCytobandColor(colors: any, data: any): { color: string; shade: number | null } {
     if (data.type === 'c') { // centromere: "acen"
         return { color: "rgb(150, 10, 10)", shade: null }; // Shade is not relevant here
     } 

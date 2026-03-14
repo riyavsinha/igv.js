@@ -7,7 +7,9 @@ import TextFeatureSource from "../feature/textFeatureSource.js"
 import ChromAliasManager from "../feature/chromAliasManager"
 import FeatureCache from "../feature/featureCache"
 
+// @ts-expect-error TS2417 - static defaults shape differs from base class
 class RnaStructTrack extends TrackBase {
+    [key: string]: any
 
     static defaults = {
         height: 300,
@@ -16,7 +18,7 @@ class RnaStructTrack extends TrackBase {
 
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
 
         super(config, browser)
 
@@ -38,7 +40,7 @@ class RnaStructTrack extends TrackBase {
         }
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number): Promise<any> {
         const visibilityWindow = this.visibilityWindow
         return this.featureSource.getFeatures({chr, start, end, visibilityWindow})
     }
@@ -209,7 +211,7 @@ class RnaStructTrack extends TrackBase {
     }
 }
 
-function sortByScore(featureList, direction) {
+function sortByScore(featureList: any[], direction: number): void {
 
     featureList.sort(function (a, b) {
         const s1 = a.score === undefined ? -Number.MAX_VALUE : a.score
@@ -223,13 +225,17 @@ function sortByScore(featureList, direction) {
 
 
 class RNAFeatureSource {
+    config: any
+    genome: any
+    chromAliasManager?: any
+    featureCache?: any
 
-    constructor(config, genome) {
+    constructor(config: any, genome: any) {
         this.config = config
         this.genome = genome
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}) {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: { chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number }): Promise<any> {
 
 
         const genome = this.genome
@@ -309,7 +315,7 @@ class RNAFeatureSource {
                 }
             }
 
-            this.chromAliasManager = new ChromAliasManager(chrNames, genome)
+            this.chromAliasManager = new ChromAliasManager(Array.from(chrNames) as string[], genome)
 
             this.featureCache = new FeatureCache(features)
 

@@ -8,12 +8,13 @@ import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
 const X_PIXEL_DIFF_THRESHOLD = 1
 
 class GCNVTrack extends TrackBase {
+    [key: string]: any
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any): void {
         super.init(config)
 
         this.autoscale = config.autoscale || config.max === undefined
@@ -41,6 +42,7 @@ class GCNVTrack extends TrackBase {
         this.featureSource.visibilityWindow = this.visibilityWindow
     }
 
+    // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
 
         if (typeof this.featureSource.getHeader === "function") {
@@ -78,8 +80,8 @@ class GCNVTrack extends TrackBase {
             }
         }
 
-        this._initialColor = this.color || this.constructor.defaultColor
-        this._initialAltColor = this.altColor || this.constructor.defaultColor
+        this._initialColor = this.color || (this.constructor as any).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
 
     }
 
@@ -87,7 +89,7 @@ class GCNVTrack extends TrackBase {
         return this.numericDataMenuItems()
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
         const chrFeatures = await this.featureSource.getFeatures({
             chr,
             start: 0,
@@ -352,7 +354,7 @@ class GCNVTrack extends TrackBase {
 }
 
 
-function distanceToLine(x, y, ax, ay, bx, by) {
+function distanceToLine(x: number, y: number, ax: number, ay: number, bx: number, by: number): number {
     /*
         Finds distance between point (x, y) and line defined by points (ax, ay) (bx, by)
         based on http://mathworld.wolfram.com/Point-LineDistance2-Dimensional.html

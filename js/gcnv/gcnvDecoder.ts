@@ -5,7 +5,7 @@
  * @param header
  */
 
-function decodeGcnv(tokens, header) {
+function decodeGcnv(tokens: string[], header: any): any {
 
     const columnNames = header.columnNames
     if (!columnNames) {
