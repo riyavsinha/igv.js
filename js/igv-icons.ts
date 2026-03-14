@@ -1,7 +1,7 @@
 import * as DOMUtils from "./ui/utils/dom-utils.js"
 import {createIcon} from "./ui/utils/icons.js"
 
-function createCheckbox(name, initialState) {
+function createCheckbox(name: string, initialState?: boolean): HTMLDivElement {
 
     const container = DOMUtils.div({class: 'igv-menu-popup-check-container'})
 
@@ -19,5 +19,3 @@ function createCheckbox(name, initialState) {
 }
 
 export {createCheckbox}
-
-

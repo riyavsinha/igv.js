@@ -3,14 +3,46 @@ import {attachDialogCloseHandlerWithParent} from "./utils/ui-utils.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 import {createCheckbox} from "../igv-icons.js"
 
+interface MenuItem {
+    name?: string
+    element?: HTMLElement
+    label?: string
+    click?: (e: Event) => void
+    dialog?: (e: Event) => void
+    init?: () => void
+    type?: string
+    value?: any
+    doAllMultiSelectedTracks?: boolean
+    menuItemType?: string
+}
+
+interface MenuElement {
+    el: HTMLElement
+    init?: () => void
+}
+
+interface ParsedMenuItem {
+    element: HTMLElement
+    init?: () => void
+}
+
+interface PresentConfig {
+    gearColumnPosition: string
+}
+
 class MenuPopup {
-    constructor(parent) {
+
+    popover: HTMLElement
+    parent: HTMLElement
+    popoverContent: HTMLElement
+
+    constructor(parent: HTMLElement) {
         this.popover = DOMUtils.div({class: 'igv-menu-popup'})
 
         parent.appendChild(this.popover)
         this.parent = parent
 
-        const header = DOMUtils.div({class: 'igv-menu-popup-header'})
+        const header: HTMLElement = DOMUtils.div({class: 'igv-menu-popup-header'})
         this.popover.appendChild(header)
 
         attachDialogCloseHandlerWithParent(header, () => this.popover.style.display = 'none')
@@ -21,7 +53,7 @@ class MenuPopup {
         makeDraggable(this.popover, header)
 
         // absorb click to prevent it leaking through to parent DOM element
-        header.addEventListener('click', e => {
+        header.addEventListener('click', (e: Event) => {
             e.stopPropagation()
             e.preventDefault()
         })
@@ -30,7 +62,7 @@ class MenuPopup {
 
     }
 
-    presentMenuList(trackView, menuList, config) {
+    presentMenuList(trackView: any, menuList: (string | MenuItem)[], config: PresentConfig): void {
 
         hideAllMenuPopups(this.parent);
 
@@ -38,7 +70,7 @@ class MenuPopup {
 
             this.popoverContent.innerHTML = '';
 
-            const parsedList = this.parseMenuList(trackView, menuList);
+            const parsedList: ParsedMenuItem[] = this.parseMenuList(trackView, menuList);
 
             for (let item of parsedList) {
 
@@ -76,19 +108,19 @@ class MenuPopup {
         }
     }
 
-    parseMenuList(trackView, menuList) {
+    parseMenuList(trackView: any, menuList: (string | MenuItem)[]): ParsedMenuItem[] {
 
-        return menuList.map((item, i) => {
+        return menuList.map((item: string | MenuItem, i: number): ParsedMenuItem => {
 
-            let element;
+            let element: HTMLElement;
 
             // name and element fields checked for backward compatibility
-            if (item.name) {
+            if (typeof item !== 'string' && item.name) {
                 element = document.createElement('div');
                 element.textContent = item.name;
-            } else if (item.element) {
+            } else if (typeof item !== 'string' && item.element) {
                 element = item.element;
-            } else if (typeof item.label === 'string') {
+            } else if (typeof item !== 'string' && typeof item.label === 'string') {
                 element = document.createElement('div');
                 element.innerHTML = item.label;
             } else if (typeof item === 'string') {
@@ -96,7 +128,7 @@ class MenuPopup {
                 if (item.startsWith("<")) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = item;
-                    element = tempDiv.firstChild;
+                    element = tempDiv.firstChild as HTMLElement;
                 } else {
                     element = document.createElement('div');
                     element.textContent = item;
@@ -107,30 +139,30 @@ class MenuPopup {
                 element.classList.add('igv-track-menu-border-top');
             }
 
-            if (item.click || item.dialog) {
+            if (typeof item !== 'string' && (item.click || item.dialog)) {
 
-                const handleClick = e => {
+                const handleClick = (e: Event) => {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    if (item.click) {
+                    if ((item as MenuItem).click) {
 
                         if (trackView.track.selected) {
 
                             const multiSelectedTrackViews = trackView.browser.getSelectedTrackViews();
 
-                            if (true === item.doAllMultiSelectedTracks) {
-                                item.click.call(trackView.track, e);
+                            if (true === (item as MenuItem).doAllMultiSelectedTracks) {
+                                (item as MenuItem).click.call(trackView.track, e);
                             } else {
 
-                                if ('removeTrack' === item.menuItemType) {
+                                if ('removeTrack' === (item as MenuItem).menuItemType) {
 
                                     const callback = () => {
 
                                         trackView.browser.overlayTrackButton.setVisibility(false);
 
                                         for (const { track } of multiSelectedTrackViews) {
-                                            item.click.call(track, e);
+                                            (item as MenuItem).click.call(track, e);
                                         }
                                     };
 
@@ -147,18 +179,18 @@ class MenuPopup {
                                 } else {
 
                                     for (const { track } of multiSelectedTrackViews) {
-                                        item.click.call(track, e);
+                                        (item as MenuItem).click.call(track, e);
                                     }
 
                                 }
                             }
 
                         } else {
-                            item.click.call(trackView.track, e);
+                            (item as MenuItem).click.call(trackView.track, e);
                         }
 
-                    } else if (item.dialog) {
-                        item.dialog.call(trackView.track, e);
+                    } else if ((item as MenuItem).dialog) {
+                        (item as MenuItem).dialog.call(trackView.track, e);
                     }
 
                     this.popover.style.display = 'none';
@@ -169,24 +201,24 @@ class MenuPopup {
                 }
 
                 element.addEventListener('click', handleClick);
-                element.addEventListener('touchend', e => handleClick(e));
-                element.addEventListener('mouseup', function (e) {
+                element.addEventListener('touchend', (e: Event) => handleClick(e));
+                element.addEventListener('mouseup', function (e: Event) {
                     e.preventDefault();
                     e.stopPropagation();
                 });
 
             }
 
-            return {element, init: (item.init || undefined)};
+            return {element, init: (typeof item !== 'string' ? item.init : undefined) || undefined};
         });
 
     }
 
-    presentTrackContextMenu(e, menuItems) {
+    presentTrackContextMenu(e: MouseEvent, menuItems: (string | Node | MenuItem)[]): void {
 
         this.popoverContent.innerHTML = ''
 
-        const menuElements = createMenuElements(menuItems, this.popover)
+        const menuElements: MenuElement[] = createMenuElements(menuItems, this.popover)
         for (let {el} of menuElements) {
             this.popoverContent.appendChild(el)
         }
@@ -195,34 +227,34 @@ class MenuPopup {
 
     }
 
-    hide() {
+    hide(): void {
         this.popover.style.display = 'none'
     }
 
-    dispose() {
+    dispose(): void {
 
         this.popoverContent.innerHTML = ''
         this.popover.innerHTML = ''
 
-        Object.keys(this).forEach(function (key) {
-            this[key] = undefined
+        Object.keys(this).forEach((key: string) => {
+            (this as any)[key] = undefined
         })
     }
 }
 
-function createMenuElements(itemList, popover) {
+function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTMLElement): MenuElement[] {
 
-    return itemList.map(item => {
+    return itemList.map((item: string | Node | MenuItem): MenuElement => {
 
-        let el
+        let el: HTMLElement
 
         if (typeof item === 'string' && '<hr/>' === item) {
             el = document.createElement('hr')
         } else if (typeof item === 'string') {
             el = DOMUtils.div({class: 'context-menu'})
             el.innerHTML = item
-        } else if (typeof item === 'Node') {
-            el = item
+        } else if (item instanceof Node) {
+            el = item as HTMLElement
         } else {
             if (typeof item.init === 'function') {
                 item.init()
@@ -266,14 +298,14 @@ function createMenuElements(itemList, popover) {
             if (item.click && "color" !== item.type) {
                 el.addEventListener('click', handleClick)
                 el.addEventListener('touchend', handleClick)
-                el.addEventListener('mouseup', function (e) {
+                el.addEventListener('mouseup', function (e: Event) {
                     e.preventDefault()
                     e.stopPropagation()
                 })
 
                 // eslint-disable-next-line no-inner-declarations
-                function handleClick(e) {
-                    item.click()
+                function handleClick(e: Event): void {
+                    (item as MenuItem).click(e)
                     DOMUtils.hide(popover)
                     e.preventDefault()
                     e.stopPropagation()
@@ -281,36 +313,35 @@ function createMenuElements(itemList, popover) {
             }
         }
 
-        return {el, init: item.init}
+        return {el, init: (item as MenuItem).init}
     })
 
 }
 
-function present(e, popover) {
+function present(e: MouseEvent, popover: HTMLElement): void {
 
     // NOTE: style.display most NOT be 'none' when calculating width. a display = 'none' will always
     //       yield a width of zero (0).
     popover.style.display = 'flex'
 
-    const {x, y} = DOMUtils.translateMouseCoordinates(e, popover.parentNode)
+    const {x, y} = DOMUtils.translateMouseCoordinates(e, popover.parentNode as HTMLElement)
     const {width} = popover.getBoundingClientRect()
     const xmax = x + width
 
-    const {width: parentWidth} = popover.parentNode.getBoundingClientRect()
+    const {width: parentWidth} = (popover.parentNode as HTMLElement).getBoundingClientRect()
 
     popover.style.left = `${xmax > parentWidth ? (x - (xmax - parentWidth)) : x}px`
     popover.style.top = `${y}px`
 
 }
 
-const hideAllMenuPopups = parent => {
+const hideAllMenuPopups = (parent: HTMLElement): void => {
 
     const menus = parent.querySelectorAll('.igv-menu-popup')
     for (const menu of menus) {
-        menu.style.display = 'none'
+        (menu as HTMLElement).style.display = 'none'
     }
 
 }
 
 export default MenuPopup
-

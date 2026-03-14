@@ -1,13 +1,15 @@
 import * as DOMUtils from './dom-utils.js'
 
-function createWrappedIcon(name, color) {
+type IconDef = [number, number, string[], string, string]
+
+function createWrappedIcon(name: string, color?: string): HTMLElement {
     let svg = createIcon(name, color);
     let wrapper = DOMUtils.create('i')
     wrapper.appendChild(svg);
     return wrapper;
 }
 
-function createCheckbox(name, initialState) {
+function createCheckbox(name: string, initialState?: boolean): HTMLDivElement {
     const container = DOMUtils.div({class: 'igv-ui-trackgear-popover-check-container'});
     const svg = iconMarkup('check', (true === initialState ? '#444' : 'transparent'));
     svg.style.borderColor = 'gray';
@@ -15,20 +17,20 @@ function createCheckbox(name, initialState) {
     svg.style.borderStyle = 'solid';
 
     container.appendChild(svg);
-    let label = DOMUtils.div(); //{ class: 'igv-some-label-class' });
+    let label = DOMUtils.div();
     label.textContent = name;
     container.appendChild(label);
 
     return container;
 }
 
-function createIcon(name, color) {
+function createIcon(name: string, color?: string): SVGSVGElement {
     return iconMarkup(name, color);
 }
 
-function iconMarkup(name, color) {
+function iconMarkup(name: string, color?: string): SVGSVGElement {
     color = color || "currentColor";
-    let icon = icons[name];
+    let icon: IconDef = icons[name];
     if (!icon) {
         console.error(`No icon named: ${name}`)
         icon = icons["question"]
@@ -43,7 +45,7 @@ function iconMarkup(name, color) {
     return svg;
 }
 
-const icons = {
+const icons: Record<string, IconDef> = {
     "check": [512, 512, [], "f00c", "M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"],
     "cog": [512, 512, [], "f013", "M444.788 291.1l42.616 24.599c4.867 2.809 7.126 8.618 5.459 13.985-11.07 35.642-29.97 67.842-54.689 94.586a12.016 12.016 0 0 1-14.832 2.254l-42.584-24.595a191.577 191.577 0 0 1-60.759 35.13v49.182a12.01 12.01 0 0 1-9.377 11.718c-34.956 7.85-72.499 8.256-109.219.007-5.49-1.233-9.403-6.096-9.403-11.723v-49.184a191.555 191.555 0 0 1-60.759-35.13l-42.584 24.595a12.016 12.016 0 0 1-14.832-2.254c-24.718-26.744-43.619-58.944-54.689-94.586-1.667-5.366.592-11.175 5.459-13.985L67.212 291.1a193.48 193.48 0 0 1 0-70.199l-42.616-24.599c-4.867-2.809-7.126-8.618-5.459-13.985 11.07-35.642 29.97-67.842 54.689-94.586a12.016 12.016 0 0 1 14.832-2.254l42.584 24.595a191.577 191.577 0 0 1 60.759-35.13V25.759a12.01 12.01 0 0 1 9.377-11.718c34.956-7.85 72.499-8.256 109.219-.007 5.49 1.233 9.403 6.096 9.403 11.723v49.184a191.555 191.555 0 0 1 60.759 35.13l42.584-24.595a12.016 12.016 0 0 1 14.832 2.254c24.718 26.744 43.619 58.944 54.689 94.586 1.667 5.366-.592 11.175-5.459 13.985L444.788 220.9a193.485 193.485 0 0 1 0 70.2zM336 256c0-44.112-35.888-80-80-80s-80 35.888-80 80 35.888 80 80 80 80-35.888 80-80z"],
     "exclamation": [192, 512, [], "f12a", "M176 432c0 44.112-35.888 80-80 80s-80-35.888-80-80 35.888-80 80-80 80 35.888 80 80zM25.26 25.199l13.6 272C39.499 309.972 50.041 320 62.83 320h66.34c12.789 0 23.331-10.028 23.97-22.801l13.6-272C167.425 11.49 156.496 0 142.77 0H49.23C35.504 0 24.575 11.49 25.26 25.199z"],
@@ -68,5 +70,3 @@ const icons = {
 };
 
 export {createIcon, createCheckbox};
-
-

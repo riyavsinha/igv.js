@@ -4,7 +4,7 @@ const pj = require.resolve('../package.json');
 const jsonText = fs.readFileSync(pj, 'utf-8');
 const version = JSON.parse(jsonText).version;
 
-const versionJS = require.resolve('../js/version.js')
+const versionJS = require.resolve('../js/version.ts')
 let ping = fs.readFileSync(versionJS, 'utf-8');
 const lines = ping.split(/\r?\n/);
 let foundVersionLine = false;

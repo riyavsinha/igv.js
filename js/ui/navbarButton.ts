@@ -2,7 +2,17 @@ import * as DOMUtils from "../ui/utils/dom-utils.js"
 
 class NavbarButton {
 
-    constructor(parent, browser, title, buttonLabel, imageSVG, imageHoverSVG, initialButtonState) {
+    browser: any
+    button: HTMLDivElement
+    textContent: string
+    title: string
+    buttonLabel: string
+    imageDictionary: { image: string; imageHover: string }
+    responsiveKey: string
+    groupElement: Element | undefined
+    doHover: boolean | undefined
+
+    constructor(parent: HTMLElement, browser: any, title: string | string[], buttonLabel: string, imageSVG: string, imageHoverSVG: string, initialButtonState: boolean | undefined) {
 
         this.browser = browser
 
@@ -30,13 +40,13 @@ class NavbarButton {
 
         this.setState(initialButtonState)
 
-        browser.on('navbar-resize', navbarButtonCSSClass => {
+        browser.on('navbar-resize', (navbarButtonCSSClass: string) => {
             this.navbarResizeHandler(navbarButtonCSSClass)
         })
 
     }
 
-    navbarResizeHandler(navbarButtonCSSClass) {
+    navbarResizeHandler(navbarButtonCSSClass: string): void {
         const key = 'igv-navbar-icon-button' === navbarButtonCSSClass ? 'image' : 'text'
         if (key !== this.responsiveKey) {
             this.responsiveKey = key
@@ -45,7 +55,7 @@ class NavbarButton {
         }
     }
 
-    configureButton(textContent, title) {
+    configureButton(textContent: string, title: string): void {
 
         this.groupElement = undefined
         this.button.title = title
@@ -58,27 +68,26 @@ class NavbarButton {
 
     }
 
-    configureTextButton(textContent) {
+    configureTextButton(textContent: string): void {
 
         this.button.classList.add('igv-navbar-text-button')
 
         const tempDiv = document.createElement('div')
         tempDiv.innerHTML = this.buttonLabel
-        const svgRoot = tempDiv.firstChild
+        const svgRoot = tempDiv.firstChild as Element
         this.button.appendChild(svgRoot)
 
-        this.groupElement = svgRoot.querySelector('#igv-navbar-button-group')
+        this.groupElement = svgRoot.querySelector('#igv-navbar-button-group')!
 
-        const tspanElement = svgRoot.querySelector('#igv-navbar-button-label')
+        const tspanElement = svgRoot.querySelector('#igv-navbar-button-label') as Element
         tspanElement.textContent = textContent
     }
 
-    configureIconButton() {
-        // console.log(`icon ${this.title}`)
+    configureIconButton(): void {
         this.button.classList.add('igv-navbar-icon-button')
     }
 
-    setState(doHover) {
+    setState(doHover: boolean | undefined): void {
 
         if (undefined !== doHover) {
             this.doHover = doHover
@@ -88,25 +97,25 @@ class NavbarButton {
 
     }
 
-    setTextButtonState(doHover) {
-        this.groupElement.classList.remove(...this.groupElement.classList)
+    setTextButtonState(doHover: boolean | undefined): void {
+        this.groupElement!.classList.remove(...this.groupElement!.classList)
         const className = true === doHover ? 'igv-navbar-text-button-svg-hover' : 'igv-navbar-text-button-svg-inactive'
-        this.groupElement.classList.add(className)
+        this.groupElement!.classList.add(className)
     }
 
-    setIconButtonState(doHover) {
+    setIconButtonState(doHover: boolean | undefined): void {
         this.button.style.backgroundImage = true === doHover ? this.imageDictionary.imageHover : this.imageDictionary.image
     }
 
-    show() {
+    show(): void {
         this.button.style.display = ''
     }
 
-    hide() {
+    hide(): void {
         this.button.style.display = 'none'
     }
 
-    setVisibility(isVisible) {
+    setVisibility(isVisible: boolean): void {
         if (true === isVisible) {
             this.show()
         } else {

@@ -6,7 +6,16 @@ import InputDialog from "./inputDialog.js"
 
 class SEGFilterDialog {
 
-    constructor(parent) {
+    parent: HTMLElement
+    container: HTMLElement
+    radio_container: HTMLElement
+    input_container: HTMLElement
+    _input: HTMLInputElement
+    ok: HTMLElement
+    cancel: HTMLElement
+    callback: ((threshold: string, op: string) => void) | undefined
+
+    constructor(parent: HTMLElement) {
 
         this.parent = parent
 
@@ -92,7 +101,7 @@ class SEGFilterDialog {
         this.cancel.textContent = 'Cancel'
 
         // Input validation and OK button state management
-        const updateOkButtonState = () => {
+        const updateOkButtonState = (): void => {
             const hasValue = this._input.value.trim() !== ''
             if (hasValue) {
                 this.ok.classList.remove('disabled')
@@ -102,7 +111,7 @@ class SEGFilterDialog {
         }
 
         this._input.addEventListener('input', updateOkButtonState)
-        this._input.addEventListener('keyup', e => {
+        this._input.addEventListener('keyup', (e: KeyboardEvent) => {
             if ('Enter' === e.code) {
                 if (this._input.value.trim() !== '' && typeof this.callback === 'function') {
                     const {threshold, op} = this.value
@@ -125,7 +134,7 @@ class SEGFilterDialog {
             DOMUtils.hide(this.container)
         })
 
-        const cancel = () => {
+        const cancel = (): void => {
             this._input.value = ''
             DOMUtils.hide(this.container)
         }
@@ -139,32 +148,32 @@ class SEGFilterDialog {
 
     }
 
-    get value() {
+    get value(): { threshold: string; op: string } {
         return {
             threshold: DOMPurify.sanitize(this._input.value),
             op: this.#getSelectedOp()
         }
     }
 
-    #getSelectedOp() {
-        const selectedRadio = this.radio_container.querySelector('input[name="op"]:checked')
+    #getSelectedOp(): string {
+        const selectedRadio = this.radio_container.querySelector('input[name="op"]:checked') as HTMLInputElement | null
         return selectedRadio ? selectedRadio.value : "<"  // Default to < if somehow no radio is selected
     }
 
-    present(event, config) {
+    present(event: MouseEvent, config: any): void {
         if (config.value) this._input.value = config.value
         this.callback = config.callback || config.click
 
         this.container.style.display = ''
 
         // Explicitly set the radio button state
-        const ltRadio = this.radio_container.querySelector('#lt-radio')
-        const gtRadio = this.radio_container.querySelector('#gt-radio')
+        const ltRadio = this.radio_container.querySelector('#lt-radio') as HTMLInputElement
+        const gtRadio = this.radio_container.querySelector('#gt-radio') as HTMLInputElement
         ltRadio.checked = true
         gtRadio.checked = false
 
         this._input.value = ''
-        
+
         // Reset OK button to disabled state
         this.ok.classList.add('disabled')
 

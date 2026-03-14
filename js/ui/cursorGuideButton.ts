@@ -5,7 +5,9 @@ import { buttonLabel } from "./navbarIcons/buttonLabel.js"
 
 class CursorGuideButton extends NavbarButton {
 
-    constructor(parent, browser) {
+    boundMouseClickHandler: () => void
+
+    constructor(parent: HTMLElement, browser: any) {
 
         super(parent, browser, 'Crosshairs', buttonLabel, cursorImage, cursorImageHover, browser.doShowCursorGuide)
 

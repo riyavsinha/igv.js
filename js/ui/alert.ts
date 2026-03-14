@@ -1,12 +1,14 @@
 import AlertDialog from "./components/alertDialog.js"
 
 class Alert {
-    constructor(parent) {
+    dialog: AlertDialog
+
+    constructor(parent: HTMLElement) {
         this.dialog = new AlertDialog(parent)
 
     }
 
-    present(alert, callback) {
+    present(alert: any, callback?: () => void): void {
         this.dialog.present(alert, callback)
     }
 }

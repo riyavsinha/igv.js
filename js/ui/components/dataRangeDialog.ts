@@ -4,7 +4,16 @@ import InputDialog from "./inputDialog.js"
 
 class DataRangeDialog {
 
-    constructor(browser, parent) {
+    browser: any
+    container: HTMLDivElement
+    minimum: HTMLDivElement
+    minimumInput: HTMLInputElement
+    maximum: HTMLDivElement
+    maximumInput: HTMLInputElement
+    okButton: HTMLDivElement
+    cancelButton: HTMLDivElement
+
+    constructor(browser: any, parent: HTMLElement) {
         this.browser = browser
 
         // Create dialog container
@@ -82,8 +91,8 @@ class DataRangeDialog {
         this.container.style.display = 'none'
     }
 
-    configure(trackViewOrTrackViewList) {
-        let dataRange
+    configure(trackViewOrTrackViewList: any): void {
+        let dataRange: any
 
         // Determine the data range
         if (Array.isArray(trackViewOrTrackViewList)) {
@@ -105,7 +114,7 @@ class DataRangeDialog {
         }
 
         this.minimumInput.onkeyup = null
-        this.minimumInput.onkeyup = e => {
+        this.minimumInput.onkeyup = (e: KeyboardEvent) => {
             if (e.keyCode === 13) { // Enter key
                 this.processResults(trackViewOrTrackViewList)
             }
@@ -113,7 +122,7 @@ class DataRangeDialog {
         }
 
         this.maximumInput.onkeyup = null
-        this.maximumInput.onkeyup = e => {
+        this.maximumInput.onkeyup = (e: KeyboardEvent) => {
             if (e.keyCode === 13) { // Enter key
                 e.stopImmediatePropagation()
                 this.processResults(trackViewOrTrackViewList)
@@ -126,7 +135,7 @@ class DataRangeDialog {
         }
     }
 
-    processResults(trackViewOrTrackViewList) {
+    processResults(trackViewOrTrackViewList: any): void {
         const minValue = this.minimumInput.value.trim()
         const maxValue = this.maximumInput.value.trim()
 
@@ -154,13 +163,13 @@ class DataRangeDialog {
         this.hide()
     }
 
-    hide() {
+    hide(): void {
         this.container.style.top = '20%'
         this.container.style.left = '75%'
         this.container.style.display = 'none'
     }
 
-    present(e) {
+    present(e: MouseEvent): void {
 
         // Make the dialog visible to measure its dimensions
         this.container.style.display = 'flex'

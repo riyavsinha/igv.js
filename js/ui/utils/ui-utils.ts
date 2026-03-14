@@ -1,6 +1,6 @@
 import {createIcon} from "./icons.js";
 
-function attachDialogCloseHandlerWithParent(parent, closeHandler) {
+function attachDialogCloseHandlerWithParent(parent: HTMLElement, closeHandler: () => void): void {
 
     var container = document.createElement("div");
     parent.appendChild(container);
@@ -12,9 +12,9 @@ function attachDialogCloseHandlerWithParent(parent, closeHandler) {
     });
 }
 
-function throttle(fn, delay) {
+function throttle<T extends (...args: any[]) => any>(fn: T, delay: number): (...args: Parameters<T>) => ReturnType<T> | undefined {
     let last = 0;
-    return (...args) => {
+    return (...args: Parameters<T>) => {
         const now = new Date().getTime();
         if (now - last < delay) {
             return;

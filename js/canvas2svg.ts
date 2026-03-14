@@ -1,3 +1,4 @@
+// @ts-nocheck — vendored third-party library (Canvas2SVG v1.0.19), minimal typing applied
 /*!!
  *  Canvas 2 Svg v1.0.19
  *  A low level canvas to SVG converter. Uses a mock canvas context to build an SVG document.

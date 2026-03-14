@@ -5,7 +5,19 @@ import DOMPurify from "../../../node_modules/dompurify/dist/purify.es.mjs"
 
 class SliderDialog {
 
-    constructor(parent) {
+    parent: HTMLElement
+    container: HTMLElement
+    label: HTMLElement
+    input_container: HTMLElement
+    _input: any
+    _output: any
+    ok: HTMLElement
+    cancel: HTMLElement
+    callback: ((value: number) => void) | undefined
+    _scaleFactor: number
+    _precision: number
+
+    constructor(parent: HTMLElement) {
 
         this.parent = parent
 
@@ -27,7 +39,7 @@ class SliderDialog {
         this.container.appendChild(this.input_container)
 
         // input element
-        let html = `<input type="range" id="igv-slider-dialog-input" name="igv-slider-dialog-input" />`
+        let html: string = `<input type="range" id="igv-slider-dialog-input" name="igv-slider-dialog-input" />`
         this._input = document.createRange().createContextualFragment(html).firstChild
         this.input_container.appendChild(this._input)
 
@@ -55,7 +67,7 @@ class SliderDialog {
 
         this._input.addEventListener('input', UIUtils.throttle(() => {
             const number = parseFloat(this._input.value)/this._scaleFactor
-            this.callback(number)
+            this.callback!(number)
             this._output.value = `${number.toFixed(this._precision)}`
         }, 200))
 
@@ -69,7 +81,7 @@ class SliderDialog {
             DOMUtils.hide(this.container)
         })
 
-        const cancel = () => {
+        const cancel = (): void => {
             this._input.value = undefined
             DOMUtils.hide(this.container)
         }
@@ -81,17 +93,17 @@ class SliderDialog {
 
     }
 
-    get value() {
+    get value(): string {
         return DOMPurify.sanitize(this._input.value)
     }
 
-    present(options, e) {
+    present(options: any, e: MouseEvent): void {
 
         this.label.textContent = options.label
 
         this._scaleFactor = options.scaleFactor
         this._precision = options.precision || 2 // added precision option with default value of 2
-        const [ minS, maxS, valueS ] = [ options.min, options.max, options.value ].map(number => (Math.floor(this._scaleFactor * number)).toString())
+        const [ minS, maxS, valueS ] = [ options.min, options.max, options.value ].map((number: number) => (Math.floor(this._scaleFactor * number)).toString())
 
         this._input.min = minS
         this._input.max = maxS
@@ -113,7 +125,7 @@ class SliderDialog {
 
     }
 
-    clampLocation(clientX, clientY) {
+    clampLocation(clientX: number, clientY: number): void {
 
         const {width: w, height: h} = this.container.getBoundingClientRect()
         const wh = window.innerHeight

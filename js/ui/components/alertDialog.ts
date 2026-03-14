@@ -1,24 +1,30 @@
 import DOMPurify from "../../../node_modules/dompurify/dist/purify.es.mjs"
 import makeDraggable from "../utils/draggable.js"
 
-const httpMessages =
+const httpMessages: Record<string, string> =
     {
         "401": "Access unauthorized",
         "403": "Access forbidden",
         "404": "Not found"
     };
 
+interface AlertProps {
+    shouldFocus: boolean
+    preventScroll: boolean
+}
+
 class AlertDialog {
-    /**
-     * Initialize a new alert dialog
-     * @param parent
-     * @param alertProps - Optional - properties such as scroll to error
-     */
-    constructor(parent, alertProps) {
+
+    alertProps: AlertProps
+    container: HTMLDivElement
+    errorHeadline: HTMLDivElement
+    body: HTMLDivElement
+    ok: HTMLDivElement
+    callback: ((value: string) => void) | undefined
+
+    constructor(parent: HTMLElement, alertProps?: Partial<AlertProps>) {
         this.alertProps = Object.assign({
-            /** When an alert is presented - focus occur */
             shouldFocus: true,
-            /** When focus occur - scroll into that element in the view */
             preventScroll: false
         }, alertProps);
 
@@ -55,7 +61,7 @@ class AlertDialog {
         ok_container.appendChild(this.ok);
         this.ok.textContent = 'OK';
 
-        const okHandler = () => {
+        const okHandler = (): void => {
 
             if (typeof this.callback === 'function') {
                 this.callback("OK");
@@ -65,12 +71,12 @@ class AlertDialog {
             this.container.style.display = 'none'
         }
 
-        this.ok.addEventListener('click', event => {
+        this.ok.addEventListener('click', (event: Event) => {
             event.stopPropagation()
             okHandler()
         });
 
-        this.container.addEventListener('keypress', event => {
+        this.container.addEventListener('keypress', (event: KeyboardEvent) => {
             event.stopPropagation()
             if ('Enter' === event.key) {
                 okHandler()
@@ -82,10 +88,10 @@ class AlertDialog {
         this.container.style.display = 'none'
     }
 
-    present(alert, callback) {
+    present(alert: any, callback?: (value: string) => void): void {
 
         this.errorHeadline.textContent = alert.message ? 'ERROR' : ''
-        let string = alert.message || alert
+        let string: string = alert.message || alert
 
         if (httpMessages.hasOwnProperty(string)) {
             string = httpMessages[string];

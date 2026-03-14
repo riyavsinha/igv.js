@@ -1,14 +1,14 @@
 /**
- * Create a table with an optional row click handler *
- *
- * @param tableConfig {
- *     headers: column headers (strings)
- *     rows: row data (array of arrays, 1 for ecah row)
- *     rowClickHandler:  Optional click handler for a row.  Supplied function will receive a row's data as an array
- * }
- * @returns {HTMLTableElement}
+ * Create a table with an optional row click handler
  */
-function createTable(tableConfig) {
+
+interface TableConfig {
+    headers: string[]
+    rows: string[][]
+    rowClickHandler?: (rowData: string[]) => void
+}
+
+function createTable(tableConfig: TableConfig): HTMLTableElement {
 
     const table = document.createElement("table")
     table.classList.add("igv-ui-table")
@@ -20,7 +20,7 @@ function createTable(tableConfig) {
 
     const headers = tableConfig.headers
     for (let j = 0; j < headers.length; j++) {
-        var cell = document.createElement("th")
+        const cell = document.createElement("th")
         headerRow.appendChild(cell)
         cell.innerHTML = headers[j]
     }
@@ -34,15 +34,15 @@ function createTable(tableConfig) {
         tbody.appendChild(row)
 
         for (let j = 0; j < headers.length; j++) {
-            var value = rowData[j]
-            cell = document.createElement("td")
+            const value = rowData[j]
+            const cell = document.createElement("td")
             row.appendChild(cell)
             cell.innerHTML = value
         }
 
         if (tableConfig.rowClickHandler) {
             row.onclick = (event) => {
-                tableConfig.rowClickHandler(rowData)
+                tableConfig.rowClickHandler!(rowData)
             }
         }
     }

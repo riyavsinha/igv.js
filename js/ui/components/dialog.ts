@@ -2,13 +2,30 @@ import * as UIUtils from "../utils/ui-utils.js"
 import * as DOMUtils from "../utils/dom-utils.js"
 import makeDraggable from "../utils/draggable.js"
 
+interface DialogConfig {
+    parent: HTMLElement
+    label?: string
+    content: { elem: HTMLElement; html?: HTMLElement }
+    okHandler?: (dialog: Dialog) => void
+    cancelHandler?: (dialog: Dialog) => void
+}
+
 class Dialog {
 
-    constructor({parent, label, content, okHandler, cancelHandler}) {
+    parent: HTMLElement
+    elem: HTMLElement
+    ok: HTMLElement
+    cancel: HTMLElement
+    content: { elem: HTMLElement; html?: HTMLElement }
+    label?: HTMLElement
+    input?: HTMLInputElement
+    callback: ((dialog: Dialog) => void) | undefined
+
+    constructor({parent, label, content, okHandler, cancelHandler}: DialogConfig) {
 
         this.parent = parent
 
-        const cancel = () => {
+        const cancel = (): void => {
             this.elem.style.display = 'none'
             if (typeof cancelHandler === 'function') {
                 cancelHandler(this);
@@ -54,7 +71,7 @@ class Dialog {
 
         this.callback = undefined
 
-        this.ok.addEventListener('click',  e => {
+        this.ok.addEventListener('click',  (e: Event) => {
             this.elem.style.display = 'none'
             if (typeof okHandler === 'function') {
                 okHandler(this);
@@ -68,14 +85,14 @@ class Dialog {
         makeDraggable(this.elem, header);
 
         // Consume all clicks in component
-        this.elem.addEventListener('click', (e) => {
+        this.elem.addEventListener('click', (e: Event) => {
             e.preventDefault();
             e.stopPropagation();
         })
 
     }
 
-    present(options, e) {
+    present(options: any, e: any): void {
 
         if (options.label && this.label) {
             this.label.textContent = options.label;
@@ -83,12 +100,12 @@ class Dialog {
 
         if (options.html) {
             const div = this.content.html
-            div.innerHTML = options.html
+            if (div) div.innerHTML = options.html
         }
 
         if (options.text) {
             const div = this.content.html
-            div.innerText = options.text
+            if (div) (div as HTMLElement).innerText = options.text
         }
 
         if (options.value && this.input) {

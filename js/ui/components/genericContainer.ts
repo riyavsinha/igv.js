@@ -2,10 +2,21 @@ import * as UIUtils from "../utils/ui-utils.js"
 import * as DOMUtils from "../utils/dom-utils.js"
 import makeDraggable from "../utils/draggable.js"
 
+interface GenericContainerOptions {
+    parent: HTMLElement
+    top?: number
+    left?: number
+    width?: number
+    height?: number
+    border?: string
+    closeHandler?: () => void
+}
 
 class GenericContainer {
 
-    constructor({parent,  top, left, width, height, border, closeHandler}) {
+    container: HTMLElement
+
+    constructor({parent,  top, left, width, height, border, closeHandler}: GenericContainerOptions) {
 
         const container = DOMUtils.div({class: 'igv-ui-generic-container'});
         parent.appendChild(container);
@@ -27,9 +38,9 @@ class GenericContainer {
         this.container.appendChild(header);
 
         // close button
-        UIUtils.attachDialogCloseHandlerWithParent(header, (e) => {
+        UIUtils.attachDialogCloseHandlerWithParent(header, () => {
             if(typeof closeHandler === "function") {
-                closeHandler(e);
+                closeHandler();
             }
             this.hide()
         });
@@ -39,17 +50,17 @@ class GenericContainer {
         this.hide()
     }
 
-    show() {
+    show(): void {
         this.container.style.display = 'flex'
     }
 
-    hide() {
+    hide(): void {
         this.container.style.display = 'none'
     }
 
-    dispose() {
-        if(this.container.parent)  {
-            this.container.parent.removeChild(this.container);
+    dispose(): void {
+        if(this.container.parentElement)  {
+            this.container.parentElement.removeChild(this.container);
         }
     }
 }

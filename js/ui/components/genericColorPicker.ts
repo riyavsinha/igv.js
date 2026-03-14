@@ -5,9 +5,15 @@ import {genericColorPickerPalette} from "../../util/colorPalletes.js"
 
 class GenericColorPicker extends GenericContainer {
 
-    static maxRecentColors = 10
+    static maxRecentColors: number = 10
 
-    constructor({parent, width}) {
+    colorSwatchContainer: HTMLElement
+    moreColorsContainer: HTMLElement
+    recentColorsSwatches: HTMLElement
+    recentColors: string[]
+    moreColorsPresentationColor: string | undefined
+
+    constructor({parent, width}: { parent: HTMLElement; width?: number }) {
         super({parent, width, border: '1px solid gray'})
 
         this.container.classList.add('igv-ui-colorpicker-container')
@@ -30,7 +36,7 @@ class GenericColorPicker extends GenericContainer {
 
     }
 
-    configure(initialTrackColor, colorHandler, moreColorsPresentationColor) {
+    configure(initialTrackColor: string, colorHandler: (color: string) => void, moreColorsPresentationColor: string): void {
 
         this.moreColorsPresentationColor = moreColorsPresentationColor
 
@@ -60,17 +66,17 @@ class GenericColorPicker extends GenericContainer {
 
     }
 
-    decorateSwatch(swatch, hexColorString, colorHandler) {
+    decorateSwatch(swatch: HTMLElement, hexColorString: string, colorHandler: (color: string) => void): void {
 
         swatch.style.backgroundColor = hexColorString
 
-        swatch.addEventListener('click', event => {
+        swatch.addEventListener('click', (event: Event) => {
             event.stopPropagation()
             colorHandler(hexColorString)
             this.moreColorsPresentationColor = hexColorString
         })
 
-        swatch.addEventListener('touchend', event => {
+        swatch.addEventListener('touchend', (event: Event) => {
             event.stopPropagation()
             colorHandler(hexColorString)
             this.moreColorsPresentationColor = hexColorString
@@ -78,18 +84,18 @@ class GenericColorPicker extends GenericContainer {
 
     }
 
-    decorateMoreColorsButton(moreColorsContainer, colorHandler) {
+    decorateMoreColorsButton(moreColorsContainer: HTMLElement, colorHandler: (color: string) => void): void {
 
         moreColorsContainer.innerText = 'More Colors ...'
 
-        moreColorsContainer.addEventListener('click', event => {
+        moreColorsContainer.addEventListener('click', (event: Event) => {
             event.stopPropagation()
-            this.createAndPresentMoreColorsPicker(moreColorsContainer, hexColorString => colorHandler(hexColorString))
+            this.createAndPresentMoreColorsPicker(moreColorsContainer, (hexColorString: string) => colorHandler(hexColorString))
         })
 
     }
 
-    updateRecentColorsSwatches(colorHandler) {
+    updateRecentColorsSwatches(colorHandler: (color: string) => void): void {
         this.recentColorsSwatches.innerHTML = ''
         for (const hexColorString of this.recentColors) {
             const swatch = DOMUtils.div({class: 'igv-ui-color-swatch'})
@@ -98,9 +104,9 @@ class GenericColorPicker extends GenericContainer {
         }
     }
 
-    createAndPresentMoreColorsPicker(moreColorsContainer, colorHandler) {
+    createAndPresentMoreColorsPicker(moreColorsContainer: HTMLElement, colorHandler: (color: string) => void): void {
 
-        let picker
+        let picker: any
 
         moreColorsContainer.innerHTML = ''
         moreColorsContainer.innerText = 'More Colors ...'
@@ -115,7 +121,7 @@ class GenericColorPicker extends GenericContainer {
         colorPickerContainer.style.width = `${width}px`
         colorPickerContainer.style.height = `${height}px`
 
-        colorPickerContainer.addEventListener('click', (event) => {
+        colorPickerContainer.addEventListener('click', (event: Event) => {
             event.stopPropagation()
         })
 
@@ -139,9 +145,9 @@ class GenericColorPicker extends GenericContainer {
         picker.onOpen = () => {
             console.log(`picker - onOpen`)
         }
-        picker.onChange = color => moreColorsContainer.style.backgroundColor = color.rgba
+        picker.onChange = (color: any) => moreColorsContainer.style.backgroundColor = color.rgba
 
-        picker.onDone = color => {
+        picker.onDone = (color: any) => {
 
             // Remove alpha from hex color string
             const hexColorString = color.hex.substring(0, 7)
@@ -164,7 +170,7 @@ class GenericColorPicker extends GenericContainer {
         picker.show()
     }
 
-    present(event) {
+    present(event: MouseEvent): void {
 
         // Make the dialog visible to measure its dimensions
         this.show()

@@ -107,3 +107,16 @@ The constant `diagnosticColor = "rgb(251,128,114)"` was declared but never refer
 
 ### `js/util/igvUtils.ts:4-10` — `extend` function (prototypal inheritance helper) [FIXED]
 This was a pre-ES6 inheritance helper (`child.prototype = Object.create(parent.prototype)`). Confirmed no callers exist (only a different `extend` method on `Locus`/`ReferenceFrame` classes). Removed the function and its export.
+
+---
+
+## Phase 2 Bugs
+
+### `js/ui/popover.ts` & `js/ui/menuPopup.ts` — `typeof item === 'Node'` always false [FIXED]
+Both files used `typeof item === 'Node'` to check if a menu item was a DOM node. But `typeof` returns `'object'` for DOM nodes, never `'Node'`. This check was always false, meaning DOM node menu items were never handled correctly. Fixed to `item instanceof Node`.
+
+### `js/ui/menuPopup.ts` — `dispose()` loses `this` context [FIXED]
+The `dispose()` method used `Object.keys(this).forEach(function(key) { this[key] = undefined })`. The regular `function` keyword creates its own `this` binding, so `this` inside the callback was `undefined` (strict mode) or `window` — never the MenuPopup instance. Fixed to an arrow function to preserve `this`.
+
+### `js/ui/circularViewControl.ts` — constructor-function pattern instead of ES6 class [FIXED]
+Used old-style `function CircularViewControl(...)` with prototype method assignments, inconsistent with the rest of the codebase. Converted to an ES6 `class` with proper constructor and method declarations.

@@ -1,12 +1,19 @@
 import {createIcon} from "./utils/icons.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 
-const sliderMin = 0
-let sliderMax = 23
-let sliderValueRaw = 0
+const sliderMin: number = 0
+let sliderMax: number = 23
+let sliderValueRaw: number = 0
 
 class ZoomWidget {
-    constructor(config, browser, parent) {
+
+    browser: any
+    zoomContainer: HTMLDivElement
+    zoomOutButton: HTMLDivElement
+    slider: HTMLInputElement
+    zoomInButton: HTMLDivElement
+
+    constructor(config: any, browser: any, parent: HTMLElement) {
 
         this.browser = browser
 
@@ -18,12 +25,11 @@ class ZoomWidget {
         this.zoomContainer.appendChild(this.zoomOutButton)
         this.zoomOutButton.appendChild(createIcon('minus-circle'))
         this.zoomOutButton.addEventListener('click', () => {
-            // browser.zoomWithScaleFactor(2.0)
             browser.zoomOut()
         })
 
         // Range slider
-        const el = DOMUtils.div()
+        const el: HTMLDivElement = DOMUtils.div()
         this.zoomContainer.appendChild(el)
         this.slider = document.createElement('input')
         this.slider.type = 'range'
@@ -33,24 +39,21 @@ class ZoomWidget {
 
         el.appendChild(this.slider)
 
-        this.slider.addEventListener('change', e => {
+        this.slider.addEventListener('change', (e: Event) => {
 
             e.preventDefault()
             e.stopPropagation()
 
+            const target = e.target as HTMLInputElement
             const referenceFrame = browser.referenceFrameList[0]
             const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)
             const {end, start} = referenceFrame
 
             const extent = end - start
 
-            // bpLength/(end - start)
-            const scaleFactor = Math.pow(2, e.target.valueAsNumber)
+            const scaleFactor = Math.pow(2, target.valueAsNumber)
 
-            // (end - start) = bpLength/scaleFactor
             const zoomedExtent = bpLength / scaleFactor
-
-            // console.log(`zoom-widget - slider ${ e.target.value } scaleFactor ${ scaleFactor } extent-zoomed ${ StringUtils.numberFormatter(Math.round(zoomedExtent)) }`)
 
             browser.zoomWithScaleFactor(zoomedExtent / extent)
 
@@ -61,11 +64,10 @@ class ZoomWidget {
         this.zoomContainer.appendChild(this.zoomInButton)
         this.zoomInButton.appendChild(createIcon('plus-circle'))
         this.zoomInButton.addEventListener('click', () => {
-            // browser.zoomWithScaleFactor(0.5)
             browser.zoomIn()
         })
 
-        browser.on('locuschange', (referenceFrameList) => {
+        browser.on('locuschange', (referenceFrameList: any[]) => {
 
             if (this.browser.isMultiLocusMode()) {
                 this.disable()
@@ -78,7 +80,7 @@ class ZoomWidget {
 
     }
 
-    update(referenceFrameList) {
+    update(referenceFrameList: any[]): void {
 
         if (this.slider) {
             const referenceFrame = referenceFrameList[0]
@@ -95,41 +97,29 @@ class ZoomWidget {
     }
 
 
-    enable() {
-
-        // this.zoomInButton.style.color = appleCrayonPalette[ 'steel' ];
-        // this.zoomInButton.style.pointerEvents = 'auto';
-        //
-        // this.zoomOutButton.style.color = appleCrayonPalette[ 'steel' ];
-        // this.zoomOutButton.style.pointerEvents = 'auto';
+    enable(): void {
 
         if (this.slider) this.slider.disabled = false
     }
 
-    disable() {
-
-        // this.zoomInButton.style.color = appleCrayonPalette[ 'silver' ];
-        // this.zoomInButton.style.pointerEvents = 'none';
-        //
-        // this.zoomOutButton.style.color = appleCrayonPalette[ 'silver' ];
-        // this.zoomOutButton.style.pointerEvents = 'none';
+    disable(): void {
 
         if (this.slider) this.slider.disabled = true
     }
 
-    hide() {
+    hide(): void {
         this.zoomContainer.style.display = 'none'
     }
 
-    show() {
+    show(): void {
         this.zoomContainer.style.display = 'block'
     }
 
-    hideSlider() {
+    hideSlider(): void {
         if (this.slider) this.slider.style.display = 'none'
     }
 
-    showSlider() {
+    showSlider(): void {
         if (this.slider) this.slider.style.display = 'block'
     }
 }

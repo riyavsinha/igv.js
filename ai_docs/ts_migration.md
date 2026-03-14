@@ -620,54 +620,57 @@ dynamic and fighting it with pure types would add complexity without benefit.
 
 ---
 
-## 5. Phase 1: Utilities & Data Models
+## 5. Phase 1: Utilities & Data Models — STATUS: DONE (partial)
 
 **~35 files, ~5,000 LOC**
 
 Start with files that have zero or minimal internal dependencies. These are the "leaves" of the
 dependency tree.
 
-### Subphase 1a: Zero-dependency files
+### Subphase 1a: Zero-dependency files — STATUS: DONE
 
 | File | LOC | Notes |
 |------|-----|-------|
-| `js/version.js` | 1 | Single constant export |
-| `js/events.js` | ~60 | Standalone EventEmitter class |
-| `js/locus.js` | ~50 | Locus parsing utilities |
-| `js/binary.js` | ~80 | Binary data utilities |
+| `js/version.ts` | 1 | Single constant export |
+| `js/events.ts` | ~60 | Standalone EventEmitter class; added `EventHandler` type alias |
+| `js/locus.ts` | ~50 | Locus parsing utilities; added `LocusOptions` interface |
+| `js/binary.ts` | ~80 | Binary data utilities; all class properties declared |
 
-### Subphase 1b: Pure utility functions
-
-| File | Notes |
-|------|-------|
-| `js/util/nucleotideColors.js` | Color mapping constants |
-| `js/util/sequenceUtils.js` | Sequence manipulation |
-| `js/util/deepCopy.js` | Deep cloning utility |
-| `js/util/colorPalletes.js` | Color palette definitions |
-| `js/util/colorScale.js` | Color scale class |
-| `js/util/getChrColor.js` | Chromosome color lookup |
-| `js/util/lruCache.js` | LRU cache data structure |
-| `js/util/downsample.js` | Downsampling algorithm |
-| `js/util/bufferUtils.js` | ArrayBuffer utilities |
-| `js/util/translationDict.js` | Amino acid translation table |
-
-### Subphase 1c: Utility files with cross-dependencies
+### Subphase 1b: Pure utility functions — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/util/defaultOptions.js` | Default browser config values |
-| `js/util/fileFormats.js` | File format registry |
-| `js/util/fileFormatUtils.js` | Format detection utilities |
-| `js/util/trackUtils.js` | Track-specific helpers |
-| `js/util/igvUtils.js` | Core utility functions |
-| `js/util/ucscUtils.js` | UCSC-specific utilities |
-| `js/util/sessionResourceValidator.js` | Session validation |
-| `js/util/bgzLineReader.js` | BGZF line reader |
-| `js/util/paintAxis.js` | Axis painting helper |
-| `js/util/viewportUtils.js` | Viewport utilities |
-| `js/util/trackClassRegistry.js` | Track class registry (Map-based) |
+| `js/util/nucleotideColors.ts` | Color mapping constants (inference sufficient) |
+| `js/util/sequenceUtils.ts` | Sequence manipulation; typed `Map<string,string>` complements |
+| `js/util/deepCopy.ts` | Deep cloning utility; fixed `Object.keys()` on arrays |
+| `js/util/colorPalletes.ts` | Color palette definitions; converted `RandomColorGenerator` to ES6 class |
+| `js/util/colorScale.ts` | Color scale classes; added interfaces, fixed O(n²) lookup |
+| `js/util/getChrColor.ts` | Chromosome color lookup |
+| `js/util/lruCache.ts` | Generic `LRU<V>` class |
+| `js/util/downsample.ts` | Generic `<T>` downsampling; fixed `RAND.nextDouble()` bug |
+| `js/util/bufferUtils.ts` | ArrayBuffer utilities |
+| `js/util/translationDict.ts` | Amino acid translation table (inference sufficient) |
 
-### Subphase 1d: Genome data models
+### Subphase 1c: Utility files with cross-dependencies — STATUS: DONE (except fileFormatUtils, viewportUtils)
+
+| File | Notes |
+|------|-------|
+| `js/util/defaultOptions.ts` | Default browser config values |
+| `js/util/fileFormats.ts` | File format registry; fixed `expandFormat` mutation |
+| `js/util/fileFormatUtils.js` | **DEFERRED** — depends on feature parsers (Phase 4) |
+| `js/util/trackUtils.ts` | Track-specific helpers |
+| `js/util/igvUtils.ts` | Core utility functions; removed unused `extend()`, hoisted `SIMPLE_TYPES` Set, fixed duck-typing |
+| `js/util/ucscUtils.ts` | UCSC-specific utilities; replaced deprecated `substr` |
+| `js/util/sessionResourceValidator.ts` | Session validation; type guard `isLocalFile` |
+| `js/util/bgzLineReader.ts` | BGZF line reader class |
+| `js/util/paintAxis.ts` | Axis painting helper; removed unused `diagnosticColor` |
+| `js/util/viewportUtils.js` | **DEFERRED** — depends on viewport classes (Phase 6) |
+| `js/util/trackClassRegistry.ts` | Track class registry |
+| `js/igv-canvas.ts` | Canvas drawing wrapper; removed unused debug logging |
+| `js/searchFeatures.ts` | Feature search; added `SearchConfig`, `LocusResult` interfaces |
+| `js/intervalTree.ts` | Red-black interval tree; converted free functions to `#private` methods |
+
+### Subphase 1d: Genome data models — STATUS: NOT STARTED
 
 | File | Notes |
 |------|-------|
@@ -682,7 +685,7 @@ dependency tree.
 | `js/genome/cytoband.js` | Cytoband data model |
 | `js/genome/sequenceInterval.js` | Cached sequence interval |
 
-### Subphase 1e: Create `js/types/` directory
+### Subphase 1e: Create `js/types/` directory — STATUS: NOT STARTED
 
 During this phase, create the foundational type files:
 - `js/types/config.ts`
@@ -705,77 +708,67 @@ For each file in this phase:
 
 ---
 
-## 6. Phase 2: Canvas, UI Utilities & Components
+## 6. Phase 2: Canvas, UI Utilities & Components — STATUS: DONE
 
-**~25 files, ~4,000 LOC**
+**~31 files converted, ~4,000 LOC**
 
-### Subphase 2a: Graphics utilities
-
-| File | Notes |
-|------|-------|
-| `js/igv-canvas.js` | Canvas 2D drawing wrapper (IGVGraphics) |
-| `js/canvas2svg.js` | SVG export from canvas commands |
-| `js/igv-icons.js` | Icon SVG generation |
-
-### Subphase 2b: UI utility functions
+### Subphase 2a: Graphics utilities — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/ui/utils/dom-utils.js` | DOM manipulation helpers |
-| `js/ui/utils/icons.js` | Icon utilities |
-| All files in `js/ui/navbarIcons/` | Navigation bar icon components |
+| `js/igv-canvas.ts` | Already converted in Phase 1c |
+| `js/canvas2svg.ts` | Vendored third-party code; `@ts-nocheck` applied (1,397 LOC) |
+| `js/igv-icons.ts` | Typed `createCheckbox(name: string, initialState?: boolean): HTMLDivElement` |
 
-### Subphase 2c: UI components (leaf components)
-
-All files in `js/ui/components/`:
+### Subphase 2b: UI utility functions — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `alertDialog.js` | Alert/error dialog |
-| `checkbox.js` | Checkbox component |
-| `colorScaleEditor.js` | Color scale editor UI |
-| `dataRangeDialog.js` | Data range input dialog |
-| `dialog.js` | Generic modal dialog |
-| `genericColorPicker.js` | Color picker wrapper |
-| `genericContainer.js` | Container component |
-| `inputDialog.js` | Text input dialog |
-| `panel.js` | Panel component |
-| `segFilterDialog.js` | Segmentation filter dialog |
-| `sliderDialog.js` | Slider input dialog |
-| `table.js` | Table component |
-| `textbox.js` | Text display component |
+| `js/ui/utils/dom-utils.ts` | Added `CreateElementOptions` interface; typed all functions |
+| `js/ui/utils/icons.ts` | Added `IconDef` type alias; typed `createIcon` returning `SVGSVGElement` |
+| `js/ui/utils/ui-utils.ts` | Generic `throttle<T>` function with proper return type |
+| `js/ui/utils/draggable.ts` | Added `DragData` interface; typed `this: HTMLElement` on handlers |
+| `js/ui/navbarIcons/*.ts` (11 files) | Trivial rename — pure SVG string exports |
+| `js/ui/utils/colorPalettes.js` | **SKIPPED** — dead code, nobody imports it |
 
-### Subphase 2d: Higher-level UI
+### Subphase 2c: UI components — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/ui/alert.js` | Alert system |
-| `js/ui/popover.js` | Popover/tooltip system |
-| `js/ui/menuPopup.js` | Context menu |
-| `js/ui/menuUtils.js` | Menu construction helpers |
-| `js/ui/dropdown.js` | Dropdown component |
-| Remaining `js/ui/*.js` files | Various UI components |
+| `js/ui/components/panel.ts` | Declared `elem: HTMLElement`, `html: HTMLElement \| undefined` |
+| `js/ui/components/table.ts` | Added `TableConfig` interface |
+| `js/ui/components/checkbox.ts` | Added option interfaces, declared class properties |
+| `js/ui/components/textbox.ts` | Added option interfaces, declared class properties |
+| `js/ui/components/genericContainer.ts` | Added option interfaces, declared class properties |
+| `js/ui/components/alertDialog.ts` | Declared all properties |
+| `js/ui/components/inputDialog.ts` | Declared all properties; `static FORM_EMBED_MODE` |
+| `js/ui/components/dialog.ts` | Declared all properties |
+| `js/ui/components/dataRangeDialog.ts` | Typed with `any` for browser/track references |
+| `js/ui/components/sliderDialog.ts` | Typed with `any` for browser/track references |
+| `js/ui/components/segFilterDialog.ts` | Typed with `any` for browser/track references |
+| `js/ui/components/genericColorPicker.ts` | Inner classes typed, external `Picker` import preserved |
+| `js/ui/components/colorScaleEditor.ts` | Inner classes typed, external `DOMPurify` import preserved |
 
-### Typing Considerations for UI Code
+### Subphase 2d: Higher-level UI — STATUS: DONE
 
-UI code involves heavy DOM manipulation. Key patterns to type:
+| File | Notes |
+|------|-------|
+| `js/ui/alert.ts` | Straightforward class property declarations |
+| `js/ui/popover.ts` | Added `MenuItem`/`MenuElement` interfaces; **bug fix**: `typeof item === 'Node'` → `item instanceof Node` |
+| `js/ui/menuPopup.ts` | **Bug fix**: same `instanceof Node` fix; **bug fix**: `dispose()` arrow function for `this` |
+| `js/ui/menuUtils.ts` | `this: any` parameter on click handlers called via `.call(track, e)` |
+| `js/ui/dropdown.ts` | Added `Shim` interface |
+| `js/ui/zoomWidget.ts` | Straightforward class property declarations |
+| `js/ui/igvTable.ts` | Straightforward class property declarations |
+| `js/ui/navbarButton.ts` | Straightforward class property declarations |
+| `js/ui/circularViewControl.ts` | Converted from constructor-function pattern to ES6 class |
+| `js/ui/cursorGuideButton.ts` | Extends NavbarButton |
 
-```typescript
-// DOM element creation — common pattern in igv.js UI code
-function createEl(tag: string, parent?: HTMLElement, className?: string): HTMLElement {
-  const el = document.createElement(tag)
-  if (className) el.className = className
-  if (parent) parent.appendChild(el)
-  return el
-}
+### Bugs found & fixed during Phase 2
 
-// Event handler callbacks
-type MenuItemConfig = {
-  label: string
-  click: (e: MouseEvent) => void
-  init?: () => HTMLElement
-}
-```
+1. **`typeof item === 'Node'` always false** (popover.ts, menuPopup.ts) — `typeof` returns `'object'` for DOM nodes; fixed to `item instanceof Node`
+2. **`dispose()` loses `this`** (menuPopup.ts) — regular function in `forEach` loses `this` context; fixed to arrow function
+3. **Constructor-function pattern** (circularViewControl.ts) — converted to ES6 class for consistency
 
 ---
 

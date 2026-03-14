@@ -11,12 +11,15 @@ import {createTable} from "./components/table.js"
 
 class IGVTable {
 
+    parent: HTMLElement
+    popover: HTMLDivElement
+
     /**
      *
      * @param parent - parent element for the popup's html element
      * @param tableConfig - see components/table.js
      */
-    constructor(parent, tableConfig) {
+    constructor(parent: HTMLElement, tableConfig: any) {
 
         this.parent = parent
 
@@ -25,10 +28,10 @@ class IGVTable {
         parent.appendChild(this.popover)
 
         // header
-        const popoverHeader = DOMUtils.div()
+        const popoverHeader: HTMLDivElement = DOMUtils.div()
         this.popover.appendChild(popoverHeader)
 
-        const titleElement = DOMUtils.div()
+        const titleElement: HTMLDivElement = DOMUtils.div()
         popoverHeader.appendChild(titleElement)
         if (tableConfig.title) {
             titleElement.innerHTML = tableConfig.title
@@ -37,32 +40,32 @@ class IGVTable {
         UIUtils.attachDialogCloseHandlerWithParent(popoverHeader, () => this.hide())
         makeDraggable(this.popover, popoverHeader)
 
-        const tableContainer = document.createElement("div")
+        const tableContainer: HTMLDivElement = document.createElement("div")
         tableContainer.style.maxHeight = tableConfig.maxHeight ? tableConfig.maxHeight + "px" : "800px"
         tableContainer.style.overflow = "auto"
         this.popover.appendChild(tableContainer)
 
         // TODO -- this will be passed as an argument
 
-        const table = createTable(tableConfig)
+        const table: HTMLTableElement = createTable(tableConfig)
         tableContainer.appendChild(table)
 
         this.popover.style.display = 'none'
 
     }
 
-    show() {
+    show(): void {
         this.popover.style.display = 'block'
     }
 
-    hide() {
+    hide(): void {
         this.popover.style.display = 'none'
     }
 
-    dispose() {
+    dispose(): void {
 
         if (this.popover) {
-            this.popover.parentNode.removeChild(this.popover)
+            this.popover.parentNode!.removeChild(this.popover)
         }
     }
 

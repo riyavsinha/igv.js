@@ -3,9 +3,27 @@ import * as DOMUtils from "./utils/dom-utils.js"
 import makeDraggable from "./utils/draggable.js"
 import {createIcon} from "./utils/icons.js"
 
+interface MenuItem {
+    init?: () => void
+    click?: () => void
+    label?: string
+    type?: string
+    value?: any
+}
+
+interface MenuElement {
+    element: HTMLElement
+    init?: () => void
+}
+
 class Popover {
 
-    constructor(parent, isDraggable, title, closeHandler) {
+    parent: HTMLElement
+    popover: HTMLElement
+    popoverHeader: HTMLElement
+    popoverContent: HTMLElement
+
+    constructor(parent: HTMLElement, isDraggable: boolean, title?: string, closeHandler?: () => void) {
 
         this.parent = parent;
 
@@ -15,17 +33,17 @@ class Popover {
         this.popoverHeader = DOMUtils.div();
         this.popover.appendChild(this.popoverHeader);
 
-        const titleElement = DOMUtils.div();
+        const titleElement: HTMLElement = DOMUtils.div();
         this.popoverHeader.appendChild(titleElement);
         if (title) {
             titleElement.textContent = title;
         }
 
         // attach close handler
-        const el = DOMUtils.div()
+        const el: HTMLElement = DOMUtils.div()
         this.popoverHeader.appendChild(el)
         el.appendChild(createIcon('times'))
-        el.addEventListener('click', e => {
+        el.addEventListener('click', (e: Event) => {
             e.stopPropagation();
             e.preventDefault();
             closeHandler ? closeHandler() : this.dismiss()
@@ -43,13 +61,13 @@ class Popover {
 
     }
 
-    configure(menuItems) {
+    configure(menuItems: (string | Node | MenuItem)[]): void {
 
         if (0 === menuItems.length) {
             return
         }
 
-        const menuElements = createMenuElements(menuItems, this.popover)
+        const menuElements: MenuElement[] = createMenuElements(menuItems, this.popover)
 
         for (const { element } of menuElements) {
             this.popoverContent.appendChild(element)
@@ -57,11 +75,11 @@ class Popover {
 
     }
 
-    present(event) {
+    present(event: MouseEvent): void {
 
         this.popover.style.display = 'block'
 
-        const parent = this.popover.parentNode
+        const parent = this.popover.parentNode as HTMLElement
         const { x, y, width } = DOMUtils.translateMouseCoordinates(event, parent)
         this.popover.style.top  = `${ y }px`
 
@@ -74,7 +92,7 @@ class Popover {
         this.popoverContent.style.maxWidth = `${ Math.min(w, width) }px`
     }
 
-    presentContentWithEvent(e, content) {
+    presentContentWithEvent(e: MouseEvent, content: string): void {
 
         this.popover.style.display = 'block'
 
@@ -84,7 +102,7 @@ class Popover {
 
     }
 
-    presentMenu(e, menuItems) {
+    presentMenu(e: MouseEvent, menuItems: (string | Node | MenuItem)[]): void {
 
         if (0 === menuItems.length) {
             return
@@ -92,7 +110,7 @@ class Popover {
 
         this.popover.style.display = 'block'
 
-        const menuElements = createMenuElements(menuItems, this.popover)
+        const menuElements: MenuElement[] = createMenuElements(menuItems, this.popover)
         for (let item of menuElements) {
             this.popoverContent.appendChild(item.element)
         }
@@ -100,16 +118,16 @@ class Popover {
         present(e, this.popover, this.popoverContent)
     }
 
-    dismiss() {
+    dismiss(): void {
         this.popover.style.display = 'none'
     }
 
-    hide() {
+    hide(): void {
         this.popover.style.display = 'none'
         this.dispose()
     }
 
-    dispose() {
+    dispose(): void {
 
         if (this.popover) {
             this.popover.parentNode.removeChild(this.popover);
@@ -117,15 +135,15 @@ class Popover {
 
         const keys = Object.keys(this)
         for (let key of keys) {
-            this[ key ] = undefined
+            (this as any)[ key ] = undefined
         }
     }
 
 }
 
-function present(e, popover, popoverContent) {
+function present(e: MouseEvent, popover: HTMLElement, popoverContent: HTMLElement): void {
 
-    const { x, y, width } = DOMUtils.translateMouseCoordinates(e, popover.parentNode)
+    const { x, y, width } = DOMUtils.translateMouseCoordinates(e, popover.parentNode as HTMLElement)
     popover.style.top  = `${ y }px`
 
     const { width: w } = popover.getBoundingClientRect()
@@ -139,16 +157,16 @@ function present(e, popover, popoverContent) {
 
 }
 
-function createMenuElements(itemList, popover) {
+function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTMLElement): MenuElement[] {
 
-    const list  = itemList.map(function (item, i) {
-        let element;
+    const list: MenuElement[]  = itemList.map(function (item: string | Node | MenuItem, i: number): MenuElement {
+        let element: HTMLElement;
 
         if (typeof item === 'string') {
             element = DOMUtils.div();
             element.innerHTML = item;
-        } else if (typeof item === 'Node') {
-            element = item;
+        } else if (item instanceof Node) {
+            element = item as HTMLElement;
         } else {
             if (typeof item.init === 'function') {
                 item.init();
@@ -168,14 +186,14 @@ function createMenuElements(itemList, popover) {
             if (item.click && "color" !== item.type) {
                 element.addEventListener('click', handleClick);
                 element.addEventListener('touchend', handleClick);
-                element.addEventListener('mouseup', function (e) {
+                element.addEventListener('mouseup', function (e: Event) {
                     e.preventDefault();
                     e.stopPropagation();
                 })
 
                 // eslint-disable-next-line no-inner-declarations
-                function handleClick(e) {
-                    item.click();
+                function handleClick(e: Event): void {
+                    (item as MenuItem).click();
                     DOMUtils.hide(popover);
                     e.preventDefault();
                     e.stopPropagation()
@@ -184,7 +202,7 @@ function createMenuElements(itemList, popover) {
         }
 
 
-        return { element, init: item.init };
+        return { element, init: (item as MenuItem).init };
     })
 
     return list;
@@ -192,4 +210,3 @@ function createMenuElements(itemList, popover) {
 
 export { createMenuElements }
 export default Popover;
-

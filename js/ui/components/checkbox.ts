@@ -8,9 +8,20 @@ const style = {
     backgroundColor: 'transparent',
 }
 
+interface CheckboxOptions {
+    selected: boolean
+    label?: string
+    onchange?: (state: boolean) => void
+}
+
 class Checkbox {
 
-    constructor({selected, label, onchange}) {
+    state: boolean
+    onchange?: (state: boolean) => void
+    elem: HTMLElement
+    svg: any
+
+    constructor({selected, label, onchange}: CheckboxOptions) {
 
         this.state = selected;
         this.onchange = onchange;
@@ -32,12 +43,12 @@ class Checkbox {
         this.elem.appendChild(svgDiv);
 
         if (label) {
-            const d = DOMUtils.div({style: {marginLeft: '5px'}}); //{ class: 'igv-some-label-class' });
+            const d = DOMUtils.div({style: {marginLeft: '5px'}});
             d.textContent = label
             this.elem.appendChild(d);
         }
 
-        const handleClick = (e) => {
+        const handleClick = (e: Event): void => {
             e.preventDefault();
             e.stopPropagation();
             const newState = !this.state;
@@ -50,20 +61,15 @@ class Checkbox {
         this.elem.addEventListener('touchend', handleClick);
     }
 
-    set selected(selected) {
+    set selected(selected: boolean) {
         this.state = selected;
         const p = this.svg.querySelector('path');
         p.setAttributeNS(null, 'fill', (true === selected ? '#444' : 'transparent'));
     }
 
-    get selected() {
+    get selected(): boolean {
         return this.state;
     }
-
-    onchange(handler) {
-        this.onchange = handler;
-    }
-
 
 }
 

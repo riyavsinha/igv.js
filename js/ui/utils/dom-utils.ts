@@ -1,15 +1,21 @@
 
-function createElementWithString(htmlString){
+interface CreateElementOptions {
+    class?: string
+    id?: string
+    style?: Record<string, string>
+}
+
+function createElementWithString(htmlString: string): Element | null {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlString;
     return tempDiv.firstElementChild;
 }
 
-function div(options) {
-    return create("div", options);
+function div(options?: CreateElementOptions): HTMLDivElement {
+    return create("div", options) as HTMLDivElement;
 }
 
-function create(tag, options) {
+function create(tag: string, options?: CreateElementOptions): HTMLElement {
     const elem = document.createElement(tag);
     if (options) {
         if (options.class) {
@@ -25,75 +31,67 @@ function create(tag, options) {
     return elem;
 }
 
-function hide(elem) {
+function hide(elem: HTMLElement): void {
     const cssStyle = getComputedStyle(elem);
     if(cssStyle.display !== "none") {
-        elem._initialDisplay = cssStyle.display;
+        (elem as any)._initialDisplay = cssStyle.display;
     }
     elem.style.display = "none";
 }
 
-function show(elem) {
-    //const currentDisplay = getComputedStyle(elem).display;
-    //if (currentDisplay === "none") {
-        const d = elem._initialDisplay || "block";
-        elem.style.display = d;
-   // }
+function show(elem: HTMLElement): void {
+    const d = (elem as any)._initialDisplay || "block";
+    elem.style.display = d;
 }
 
-function empty(elem) {
+function empty(elem: HTMLElement): void {
     while(elem.firstChild){
         elem.removeChild(elem.firstChild);
     }
 }
 
-function offset(elem) {
+function offset(elem: HTMLElement): {top: number, left: number} {
     // Return zeros for disconnected and hidden (display: none) elements (gh-2310)
-    // Support: IE <=11 only
-    // Running getBoundingClientRect on a
-    // disconnected node in IE throws an error
     if (!elem.getClientRects().length) {
         return {top: 0, left: 0};
     }
 
-    // Get document-relative position by adding viewport scroll to viewport-relative gBCR
     const rect = elem.getBoundingClientRect();
-    const win = elem.ownerDocument.defaultView;
+    const win = elem.ownerDocument.defaultView!;
     return {
         top: rect.top + win.pageYOffset,
         left: rect.left + win.pageXOffset
     };
 }
 
-function pageCoordinates(e) {
+function pageCoordinates(e: MouseEvent | TouchEvent): {x: number, y: number} {
 
     if (e.type.startsWith("touch")) {
-        const touch = e.touches[0];
+        const touch = (e as TouchEvent).touches[0];
         return {x: touch.pageX, y: touch.pageY};
     } else {
-        return {x: e.pageX, y: e.pageY}
+        return {x: (e as MouseEvent).pageX, y: (e as MouseEvent).pageY}
     }
 }
 
-const relativeDOMBBox = (parentElement, childElement) => {
+const relativeDOMBBox = (parentElement: HTMLElement, childElement: HTMLElement): {x: number, y: number, width: number, height: number} => {
     const { x: x_p, y: y_p, width: width_p, height: height_p } = parentElement.getBoundingClientRect();
     const { x: x_c, y: y_c, width: width_c, height: height_c } = childElement.getBoundingClientRect();
     return { x: (x_c - x_p), y: (y_c - y_p), width: width_c, height:height_c };
 };
 
-function applyStyle(elem, style) {
+function applyStyle(elem: HTMLElement, style: Record<string, string>): void {
     for (let key of Object.keys(style)) {
-        elem.style[key] = style[key];
+        (elem.style as any)[key] = style[key];
     }
 }
 
-function guid  () {
+function guid(): string {
     return ("0000" + (Math.random() * Math.pow(36, 4) << 0).toString(36)).slice(-4);
 }
 
-let getMouseXY = (domElement, { clientX, clientY }) => {
+let getMouseXY = (domElement: HTMLElement, { clientX, clientY }: {clientX: number, clientY: number}) => {
 
-    // DOMRect object with eight properties: left, top, right, bottom, x, y, width, height
     const { left, top, width, height } = domElement.getBoundingClientRect();
 
     const x = clientX - left;
@@ -104,11 +102,8 @@ let getMouseXY = (domElement, { clientX, clientY }) => {
 
 /**
  * Translate the mouse coordinates for the event to the coordinates for the given target element
- * @param event
- * @param domElement
- * @returns {{x: number, y: number}}
  */
-function translateMouseCoordinates(event, domElement) {
+function translateMouseCoordinates(event: MouseEvent, domElement: HTMLElement) {
 
     const { clientX, clientY } = event;
     return getMouseXY(domElement, { clientX, clientY });

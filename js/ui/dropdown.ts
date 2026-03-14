@@ -1,8 +1,19 @@
 import {createMenuElements} from "./popover.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 
+interface Shim {
+    left: number
+    top: number
+}
+
 class Dropdown {
-    constructor(parent, shim) {
+
+    parent: HTMLElement
+    popover: HTMLElement
+    popoverContent: HTMLElement
+    shim: Shim
+
+    constructor(parent: HTMLElement, shim: Shim) {
 
         this.parent = parent;
 
@@ -19,7 +30,7 @@ class Dropdown {
         this.shim = shim
     }
 
-    configure(dropdownItems) {
+    configure(dropdownItems: any[]): void {
 
         if (0 === dropdownItems.length) {
             return
@@ -33,7 +44,7 @@ class Dropdown {
 
     }
 
-    present(event) {
+    present(event: MouseEvent): void {
         this.popover.style.display = 'block'
 
         let { x, y } = DOMUtils.translateMouseCoordinates(event, this.parent)
@@ -45,7 +56,7 @@ class Dropdown {
         this.popover.style.top  = `${ y + this.shim.top }px`
     }
 
-    _present(event) {
+    _present(event: MouseEvent): void {
 
         this.popover.style.display = 'block'
 
@@ -66,7 +77,7 @@ class Dropdown {
         // this.popoverContent.style.maxWidth = `${ Math.min(w, width) }px`
     }
 
-    dismiss() {
+    dismiss(): void {
         this.popover.style.display = 'none'
     }
 }

@@ -6,9 +6,9 @@ import Checkbox from "./checkbox.js"
 import {DivergingGradientScale, GradientColorScale} from "../../util/colorScale.js"
 
 
-function paintLegend(legend, newColorScale) {
+function paintLegend(legend: HTMLCanvasElement, newColorScale: any): void {
 
-    const ctx = legend.getContext("2d")
+    const ctx = legend.getContext("2d")!
     const w = legend.width
     const step = (newColorScale.max - newColorScale.min) / w
     for (let i = 0; i < w; i++) {
@@ -19,18 +19,9 @@ function paintLegend(legend, newColorScale) {
     }
 }
 
-/**
- *   Editor for color scales.  Supported types:
- *
- *   'gradient': {min, max, minColor, maxColor}
- *
- *   'diverging': {mid, midColor, lowGradientScale, highGradientScale}
- *
- *
- */
 class ColorScaleEditor {
 
-    static open(colorScale, parent, callback) {
+    static open(colorScale: any, parent: HTMLElement, callback?: (colorScale: any) => void): void {
 
         let newColorScale = colorScale.clone()
 
@@ -45,7 +36,7 @@ class ColorScaleEditor {
         const minTextbox = new TextBoxRow({
             label: "Min value",
             value: newColorScale.min.toString(),
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.min = Number.parseFloat(v)
                 paintLegend(legend, newColorScale)
             }
@@ -55,7 +46,7 @@ class ColorScaleEditor {
         const midTextbox = new TextBoxRow({
             label: "Mid value",
             value: (newColorScale.mid || newColorScale.min).toString(),
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.mid = Number.parseFloat(v)
                 paintLegend(legend, newColorScale)
             }
@@ -65,7 +56,7 @@ class ColorScaleEditor {
         const maxTextbox = new TextBoxRow({
             label: "Max value",
             value: newColorScale.max.toString(),
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.max = Number.parseFloat(v)
                 paintLegend(legend, newColorScale)
             }
@@ -76,7 +67,7 @@ class ColorScaleEditor {
         const colorElem = new ColorPickerRow({
             label: "Min color",
             value: newColorScale.minColor,
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.minColor = v
                 paintLegend(legend, newColorScale)
             }
@@ -86,7 +77,7 @@ class ColorScaleEditor {
         const midColorElem = new ColorPickerRow({
             label: "Mid color",
             value: newColorScale.midColor || newColorScale.minColor,
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.midColor = v
                 paintLegend(legend, newColorScale)
             }
@@ -96,7 +87,7 @@ class ColorScaleEditor {
         const highColorElem = new ColorPickerRow({
             label: "Max color",
             value: newColorScale.maxColor,
-            onchange: (v) => {
+            onchange: (v: string) => {
                 newColorScale.maxColor = v
                 paintLegend(legend, newColorScale)
             }
@@ -106,7 +97,7 @@ class ColorScaleEditor {
         const divergingCheckbox = new Checkbox({
             selected: "diverging" === colorScale.type,
             label: "Diverging Scale",
-            onchange: (diverging) => {
+            onchange: (diverging: boolean) => {
                 if (diverging) {
                     // Converting from gradient to diverting
                     newColorScale.mid = newColorScale.min < 0 && newColorScale.max > 0 ? 0 : (newColorScale.min + newColorScale.max) / 2
@@ -142,7 +133,7 @@ class ColorScaleEditor {
         panel.appendChild(table)
         panel.appendChild(legend)
 
-        const okHandler = () => {
+        const okHandler = (): void => {
             if (callback) {
                 callback(newColorScale)
             }
@@ -163,8 +154,17 @@ class ColorScaleEditor {
 
 }
 
+interface RowConfig {
+    label: string
+    value?: string
+    onchange?: (value: string) => void
+}
+
 class LabeledButtonRow {
-    constructor({label, value, onchange}) {
+
+    row: HTMLTableRowElement
+
+    constructor({label, value, onchange}: RowConfig) {
 
         this.row = document.createElement('tr')
         const cell = document.createElement('td')
@@ -175,18 +175,20 @@ class LabeledButtonRow {
         cell.appendChild(div)
     }
 
-    hide() {
+    hide(): void {
         this.row.style.display = 'none'
     }
 
-    show() {
+    show(): void {
         this.row.style.display = 'table-row'
     }
 }
 
 class TextBoxRow extends LabeledButtonRow {
 
-    constructor({label, value, onchange}) {
+    input: HTMLInputElement
+
+    constructor({label, value, onchange}: RowConfig) {
         super({label, value, onchange})
 
         const cell2 = document.createElement('td')
@@ -199,22 +201,24 @@ class TextBoxRow extends LabeledButtonRow {
         cell2.appendChild(this.input)
 
         if (onchange) {
-            this.input.addEventListener('change', (e) => onchange(this.input.value))
+            this.input.addEventListener('change', (e: Event) => onchange(this.input.value))
         }
     }
 
-    get value() {
+    get value(): any {
         return this.input.value
     }
 
-    set value(v) {
+    set value(v: any) {
         this.input.value = v
     }
 }
 
 class ColorPickerRow extends LabeledButtonRow {
 
-    constructor({label, value, onchange}) {
+    colorButton: HTMLDivElement
+
+    constructor({label, value, onchange}: RowConfig) {
         super({label, value, onchange})
 
         const cell2 = document.createElement('td')
@@ -234,7 +238,7 @@ class ColorPickerRow extends LabeledButtonRow {
             alpha: false, color: value
         })
 
-        picker.onDone =  (color) => {
+        picker.onDone =  (color: any) => {
             colorButton.style.background = color.rgbString
             if (onchange) {
                 onchange(color.rgbString)
@@ -242,7 +246,7 @@ class ColorPickerRow extends LabeledButtonRow {
         }
     }
 
-    set value(c) {
+    set value(c: string) {
         this.colorButton.style.background = c
     }
 }

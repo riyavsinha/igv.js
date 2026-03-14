@@ -5,7 +5,17 @@ import DOMPurify from "../../../node_modules/dompurify/dist/purify.es.mjs"
 
 class InputDialog {
 
-    constructor(parent) {
+    static FORM_EMBED_MODE: boolean
+    parent: HTMLElement
+    container: HTMLElement
+    label: HTMLElement
+    input_container: HTMLElement
+    _input: HTMLInputElement
+    ok: HTMLElement
+    cancel: HTMLElement
+    callback: ((value: any) => void) | undefined
+
+    constructor(parent: HTMLElement) {
 
         this.parent = parent
 
@@ -53,13 +63,13 @@ class InputDialog {
 
         DOMUtils.hide(this.container)
 
-        this._input.addEventListener('keyup', e => {
+        this._input.addEventListener('keyup', (e: KeyboardEvent) => {
             if ('Enter' === e.code) {
                 if (typeof this.callback === 'function') {
                     this.callback(this._input.value)
                     this.callback = undefined
                 }
-                this._input.value = undefined
+                (this._input as any).value = undefined
                 DOMUtils.hide(this.container)
             }
             e.stopImmediatePropagation()   // Prevent key event to cause track keyboard navigation ("next feature")
@@ -70,11 +80,11 @@ class InputDialog {
                 this.callback(this._input.value)
                 this.callback = undefined
             }
-            this._input.value = undefined
+            (this._input as any).value = undefined
             DOMUtils.hide(this.container)
         })
 
-        const cancel = () => {
+        const cancel = (): void => {
             this._input.value = ''
             DOMUtils.hide(this.container)
         }
@@ -86,12 +96,12 @@ class InputDialog {
 
     }
 
-    get value() {
+    get value(): string {
         return DOMPurify.sanitize(this._input.value)
     }
 
 
-    present(options, e) {
+    present(options: any, e: MouseEvent): void {
         this.label.textContent = options.label
         this._input.value = options.value
         this.callback = options.callback || options.click
@@ -123,28 +133,21 @@ class InputDialog {
         this.container.style.top = `${top}px`
     }
 
-    /**
-     * Capture key input in embedded form mode to prevent parent form handling.  This is a workaround for pages
-     * that embed igv.js in a form element which has key listeners.  Without this the parent form will handle key events,
-     * even if stopPropagation() is called.
-     *
-     * @param input
-     */
-    static captureKeyInput(input) {
+    static captureKeyInput(input: HTMLInputElement): void {
 
-        input.addEventListener('mousedown', (e) => {
+        input.addEventListener('mousedown', (e: MouseEvent) => {
             input.focus() // Explicitly set focus on the input element
         })
 
         // Prevent key event propagation to parent form
-        input.addEventListener('keydown', e => {
+        input.addEventListener('keydown', (e: KeyboardEvent) => {
 
             // Prevent parent listeners from handling this event.
             e.preventDefault()
             e.stopPropagation()
 
-            const start = input.selectionStart
-            const end = input.selectionEnd
+            const start = input.selectionStart!
+            const end = input.selectionEnd!
 
             if (e.key.length === 1) {
                 // Handle printable characters

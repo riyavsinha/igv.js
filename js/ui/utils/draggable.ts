@@ -5,13 +5,25 @@
 
  */
 
-let dragData  // Its assumed we are only dragging one element at a time.
+interface DragData {
+    constraint: unknown
+    dragFunction: (event: MouseEvent) => void
+    dragEndFunction: (event: MouseEvent) => void
+    screenX: number
+    screenY: number
+    minDy: number
+    minDx: number
+    top: number
+    left: number
+}
 
-function makeDraggable(target, handle, constraint) {
+let dragData: DragData | undefined  // Its assumed we are only dragging one element at a time.
+
+function makeDraggable(target: HTMLElement, handle: HTMLElement, constraint?: unknown): void {
 
     handle.addEventListener('mousedown', dragStart.bind(target))
 
-    function dragStart(event) {
+    function dragStart(this: HTMLElement, event: MouseEvent): void {
 
         event.stopPropagation()
         event.preventDefault()
@@ -38,11 +50,11 @@ function makeDraggable(target, handle, constraint) {
         document.addEventListener('mousemove', dragFunction)
         document.addEventListener('mouseup', dragEndFunction)
         document.addEventListener('mouseleave', dragEndFunction)
-        document.addEventListener('mouseexit', dragEndFunction)
+        document.addEventListener('mouseexit' as any, dragEndFunction)
     }
 }
 
-function drag(event) {
+function drag(this: HTMLElement, event: MouseEvent): void {
 
     if (!dragData) {
         console.error("No drag data!")
@@ -59,7 +71,7 @@ function drag(event) {
     this.style.top = `${top}px`
 }
 
-function dragEnd(event) {
+function dragEnd(this: HTMLElement, event: MouseEvent): void {
 
     if (!dragData) {
         console.error("No drag data!")
@@ -73,7 +85,7 @@ function dragEnd(event) {
     document.removeEventListener('mousemove', dragFunction)
     document.removeEventListener('mouseup', dragEndFunction)
     document.removeEventListener('mouseleave', dragEndFunction)
-    document.removeEventListener('mouseexit', dragEndFunction)
+    document.removeEventListener('mouseexit' as any, dragEndFunction)
     dragData = undefined
 }
 
