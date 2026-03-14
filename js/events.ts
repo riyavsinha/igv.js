@@ -1,30 +1,31 @@
+type EventHandler = (...args: unknown[]) => unknown
+
 class EventEmitter {
 
+    eventHandlers: Map<string, EventHandler[]>
 
     constructor() {
         // Map of event name -> [ handlerFn, ... ]
         this.eventHandlers = new Map()
     }
 
-    on(eventName, fn) {
+    on(eventName: string, fn: EventHandler): void {
         if (!this.eventHandlers.has(eventName)) {
             this.eventHandlers.set(eventName, [])
         }
-        this.eventHandlers.get(eventName).push(fn)
+        this.eventHandlers.get(eventName)!.push(fn)
     }
 
 
     /**
      * @deprecated use off()
-     * @param eventName
-     * @param fn
      */
-    un(eventName, fn) {
+    un(eventName: string, fn: EventHandler): void {
         this.off(eventName, fn)
     }
 
 
-    off(eventName, fn) {
+    off(eventName?: string, fn?: EventHandler): void {
 
         if (!eventName) {
             this.eventHandlers.clear()   // Remove all event handlers
@@ -44,7 +45,7 @@ class EventEmitter {
         }
     }
 
-    emit(eventName, args, thisObj) {
+    emit(eventName: string, args?: unknown[], thisObj?: unknown): unknown {
 
         const handlers = this.eventHandlers.get(eventName)
         if (undefined === handlers || handlers.length === 0) {

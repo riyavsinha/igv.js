@@ -9,7 +9,7 @@ import {randomRGB} from "./util/colorPalletes.js";
 
 var debug = false
 
-var log = function (msg) {
+var log = function (msg: string): void {
     if (debug) {
         var d = new Date()
         var time = d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds()
@@ -22,10 +22,9 @@ var log = function (msg) {
 
 const IGVGraphics = {
 
-    configureHighDPICanvas: function (ctx, w, h) {
+    configureHighDPICanvas: function (ctx: CanvasRenderingContext2D, w: number, h: number): void {
 
         const scaleFactor = window.devicePixelRatio
-        // const scaleFactor = 1
 
         ctx.canvas.style.width = (`${w}px`)
         ctx.canvas.width = Math.floor(scaleFactor * w)
@@ -37,17 +36,17 @@ const IGVGraphics = {
 
     },
 
-    setProperties: function (ctx, properties) {
+    setProperties: function (ctx: CanvasRenderingContext2D, properties: Record<string, any>): void {
 
         for (var key in properties) {
             if (properties.hasOwnProperty(key)) {
                 var value = properties[key]
-                ctx[key] = value
+                ;(ctx as any)[key] = value
             }
         }
     },
 
-    strokeLine: function (ctx, x1, y1, x2, y2, properties) {
+    strokeLine: function (ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, properties?: Record<string, any>): void {
 
         x1 = Math.floor(x1) + 0.5
         y1 = Math.floor(y1) + 0.5
@@ -69,7 +68,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    fillRect: function (ctx, x, y, w, h, properties) {
+    fillRect: function (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, properties?: Record<string, any>): void {
 
         if (properties) {
             ctx.save()
@@ -81,7 +80,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    fillPolygon: function (ctx, x, y, properties) {
+    fillPolygon: function (ctx: CanvasRenderingContext2D, x: number[], y: number[], properties?: Record<string, any>): void {
         if (properties) {
             ctx.save()
             IGVGraphics.setProperties(ctx, properties)
@@ -91,7 +90,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    strokePolygon: function (ctx, x, y, properties) {
+    strokePolygon: function (ctx: CanvasRenderingContext2D, x: number[], y: number[], properties?: Record<string, any>): void {
         if (properties) {
             ctx.save()
             IGVGraphics.setProperties(ctx, properties)
@@ -101,7 +100,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    fillText: function (ctx, text, x, y, properties, transforms) {
+    fillText: function (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, properties?: Record<string, any>, transforms?: Record<string, any>): void {
 
         if (properties || transforms) {
             ctx.save()
@@ -135,7 +134,7 @@ const IGVGraphics = {
         if (properties || transforms) ctx.restore()
     },
 
-    strokeText: function (ctx, text, x, y, properties, transforms) {
+    strokeText: function (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, properties?: Record<string, any>, transforms?: Record<string, any>): void {
 
 
         if (properties || transforms) {
@@ -169,7 +168,7 @@ const IGVGraphics = {
         if (properties || transforms) ctx.restore()
     },
 
-    strokeCircle: function (ctx, x, y, radius, properties) {
+    strokeCircle: function (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, properties?: Record<string, any>): void {
         if (properties) {
             ctx.save()
             IGVGraphics.setProperties(ctx, properties)
@@ -180,7 +179,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    fillCircle: function (ctx, x, y, radius, properties) {
+    fillCircle: function (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, properties?: Record<string, any>): void {
         if (properties) {
             ctx.save()
             IGVGraphics.setProperties(ctx, properties)
@@ -191,7 +190,7 @@ const IGVGraphics = {
         if (properties) ctx.restore()
     },
 
-    drawArrowhead: function (ctx, x, y, size, lineWidth) {
+    drawArrowhead: function (ctx: CanvasRenderingContext2D, x: number, y: number, size?: number, lineWidth?: number): void {
 
         ctx.save()
         if (!size) {
@@ -210,14 +209,14 @@ const IGVGraphics = {
         ctx.restore()
     },
 
-    dashedLine: function (ctx, x1, y1, x2, y2, dashLen, properties = {}) {
+    dashedLine: function (ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, dashLen?: number, properties: Record<string, any> = {}): void {
         if (dashLen === undefined) dashLen = 2
         ctx.setLineDash([dashLen, dashLen])
         IGVGraphics.strokeLine(ctx, x1, y1, x2, y2, properties)
         ctx.setLineDash([])
     },
 
-    roundRect: function (ctx, x, y, width, height, radius, fill, stroke) {
+    roundRect: function (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius?: number, fill?: boolean, stroke?: boolean): void {
 
         if (typeof stroke == "undefined") {
             stroke = true
@@ -243,7 +242,7 @@ const IGVGraphics = {
             ctx.fill()
         }
     },
-    polygon: function (ctx, x, y, fill, stroke) {
+    polygon: function (ctx: CanvasRenderingContext2D, x: number[], y: number[], fill?: boolean, stroke?: boolean): void {
 
         if (typeof stroke == "undefined") {
             stroke = true
@@ -254,7 +253,6 @@ const IGVGraphics = {
         ctx.moveTo(x[0], y[0])
         for (var i = 1; i < len; i++) {
             ctx.lineTo(x[i], y[i])
-            // this.moveTo(x[i], y[i]);
         }
 
         ctx.closePath()
@@ -266,13 +264,13 @@ const IGVGraphics = {
         }
     },
 
-    drawRandomColorVerticalLines: ctx => {
+    drawRandomColorVerticalLines: (ctx: CanvasRenderingContext2D): void => {
         for (let x = 0; x < ctx.canvas.width; x++) {
             IGVGraphics.fillRect(ctx, x, 0, 1, ctx.canvas.height, { fillStyle: randomRGB(100, 250) })
         }
     },
 
-    labelTransformWithContext: (ctx, exe) => {
+    labelTransformWithContext: (ctx: CanvasRenderingContext2D, exe: number): void => {
         ctx.translate(exe, 0);
         ctx.scale(-1, 1);
         ctx.translate(-exe, 0);
@@ -280,7 +278,7 @@ const IGVGraphics = {
 
 }
 
-function doPath(ctx, x, y) {
+function doPath(ctx: CanvasRenderingContext2D, x: number[], y: number[]): void {
     var i, len = x.length
     ctx.beginPath()
     ctx.moveTo(x[0], y[0])
@@ -291,4 +289,3 @@ function doPath(ctx, x, y) {
 }
 
 export default IGVGraphics
-

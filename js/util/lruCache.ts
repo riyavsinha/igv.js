@@ -1,10 +1,13 @@
-class LRU {
-    constructor(max = 10) {
+class LRU<V = unknown> {
+    max: number
+    map: Map<string, V>
+
+    constructor(max: number = 10) {
         this.max = max
         this.map = new Map()
     }
 
-    get(key) {
+    get(key: string): V | undefined {
         let item = this.map.get(key)
         if (item) {
             // refresh key
@@ -14,27 +17,27 @@ class LRU {
         return item
     }
 
-    set(key, val) {
+    set(key: string, val: V): void {
         // If key exists, delete it to refresh its position later
         if (this.map.has(key)) {
             this.map.delete(key)
         }
         // If cache is full, evict the oldest item
         else if (this.map.size === this.max) {
-            this.map.delete(this.first())
+            this.map.delete(this.first()!)
         }
         this.map.set(key, val)
     }
 
-    has(key) {
+    has(key: string): boolean {
         return this.map.has(key)
     }
 
-    clear() {
+    clear(): void {
         this.map.clear()
     }
 
-    first() {
+    first(): string | undefined {
         return this.map.keys().next().value
     }
 }

@@ -1,11 +1,6 @@
 // Lazy import to avoid circular dependency
 import {igvxhr, StringUtils} from "../node_modules/igv-utils/src/index.js"
 
-/**
- * Search for a feature by name across various data sources
- * This module is separate to avoid circular dependencies between search.js and hgvs.js
- */
-
 const DEFAULT_SEARCH_CONFIG = {
     timeout: 5000,
     type: "plain",
@@ -13,16 +8,31 @@ const DEFAULT_SEARCH_CONFIG = {
     coords: 0
 }
 
-/**
- * Search for a feature by name in MANE transcripts, searchable tracks, and web services
- * @param {Object} browser - The IGV browser instance
- * @param {string} name - The feature name to search for
- * @returns {Promise<Object|undefined>} The found feature or undefined
- */
-async function searchFeatures(browser, name) {
+// TODO: Replace with proper Browser type once browser.ts is migrated
+interface SearchConfig {
+    timeout?: number
+    type?: string
+    url: string
+    coords?: number
+    resultsField?: string
+    chromosomeField?: string
+    startField?: string
+    endField?: string
+    geneField?: string
+    snpField?: string
+}
+
+interface LocusResult {
+    chr: string
+    start: number
+    end: number
+    name?: string
+}
+
+async function searchFeatures(browser: any, name: string): Promise<LocusResult | undefined> {
 
     const searchConfig = browser.searchConfig || DEFAULT_SEARCH_CONFIG
-    let feature
+    let feature: LocusResult | undefined
 
     name = name.toUpperCase()
 
@@ -32,7 +42,7 @@ async function searchFeatures(browser, name) {
         return feature
     }
 
-    const searchableTracks = browser.tracks.filter(t => t.searchable)
+    const searchableTracks = browser.tracks.filter((t: any) => t.searchable)
     for (let track of searchableTracks) {
         const feature = await track.search(name)
         if (feature) {
@@ -52,14 +62,7 @@ async function searchFeatures(browser, name) {
 
 }
 
-/**
- * Search for a feature using a web service
- * @param {Object} browser - The IGV browser instance
- * @param {string} locus - The locus to search for
- * @param {Object} searchConfig - Search configuration
- * @returns {Promise<Object|undefined>} The search result
- */
-async function searchWebService(browser, locus, searchConfig) {
+async function searchWebService(browser: any, locus: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
 
     let path = searchConfig.url.replace("$FEATURE$", locus.toUpperCase())
     if (path.indexOf("$GENOME$") > -1) {
@@ -71,16 +74,9 @@ async function searchWebService(browser, locus, searchConfig) {
     return await processSearchResult(browser, result, searchConfig)
 }
 
-/**
- * Process search results from web service
- * @param {Object} browser - The IGV browser instance
- * @param {string} result - The raw result from the web service
- * @param {Object} searchConfig - Search configuration
- * @returns {Promise<Object|undefined>} The processed search result
- */
-async function processSearchResult(browser, result, searchConfig) {
+async function processSearchResult(browser: any, result: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
 
-    let results
+    let results: any
 
     if ('plain' === searchConfig.type) {
         results = await parseSearchResults(browser, result)
@@ -103,7 +99,7 @@ async function processSearchResult(browser, result, searchConfig) {
         const coords = searchConfig.coords || 1
 
 
-        let result
+        let result: any
         if (Array.isArray(results)) {
             // Ignoring all but first result for now
             // TODO -- present all and let user select if results.length > 1
@@ -125,7 +121,7 @@ async function processSearchResult(browser, result, searchConfig) {
             end = start + 1
         }
 
-        const locusObject = {chr, start, end}
+        const locusObject: LocusResult = {chr, start, end}
 
         // Some GTEX hacks
         if (searchConfig.geneField && searchConfig.snpField) {
@@ -137,19 +133,9 @@ async function processSearchResult(browser, result, searchConfig) {
     }
 }
 
-/**
- * Parse the igv line-oriented (non json) search results.
- * NOTE:  currently, and probably permanently,  this will always be a single line
- * Example
- *    EGFR    chr7:55,086,724-55,275,031    refseq
- *
- * @param {Object} browser - The IGV browser instance
- * @param {string} data - The raw search result data
- * @returns {Array} Array of parsed search results
- */
-async function parseSearchResults(browser, data) {
+async function parseSearchResults(browser: any, data: string): Promise<LocusResult[]> {
 
-    const results = []
+    const results: LocusResult[] = []
     const lines = StringUtils.splitLines(data)
 
     for (let line of lines) {
@@ -164,7 +150,7 @@ async function parseSearchResults(browser, data) {
                 start: parseInt(rangeTokens[0].replace(/,/g, '')),
                 end: parseInt(rangeTokens[1].replace(/,/g, '')),
                 name: tokens[0].toUpperCase()
-            })
+            } as any)
         }
     }
 
@@ -173,4 +159,3 @@ async function parseSearchResults(browser, data) {
 }
 
 export {searchFeatures, searchWebService}
-

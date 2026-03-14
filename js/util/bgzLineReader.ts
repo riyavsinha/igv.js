@@ -7,23 +7,29 @@ import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
  */
 
 class BGZLineReader {
+    config: Record<string, any>
+    filePtr: number
+    bufferPtr: number
+    buffer: Uint8Array | undefined
+    eof: boolean
 
-    constructor(config) {
+    constructor(config: Record<string, any>) {
         this.config = config
         this.filePtr = 0
         this.bufferPtr = 0
-        this.buffer
+        this.buffer = undefined
+        this.eof = false
     }
 
-    async nextLine() {
+    async nextLine(): Promise<string | undefined> {
 
-        let result = undefined
+        let result: string | undefined = undefined
 
         try {
             while (true) {
                 const length = this.buffer ? this.buffer.length : 0
                 while (this.bufferPtr < length) {
-                    const c = String.fromCharCode(this.buffer[this.bufferPtr++])
+                    const c = String.fromCharCode(this.buffer![this.bufferPtr++])
                     if (c === '\r') continue
                     if (c === '\n') {
                         return result
@@ -43,7 +49,7 @@ class BGZLineReader {
         }
     }
 
-    async readNextBlock() {
+    async readNextBlock(): Promise<void> {
 
         const bsizeOptions = buildOptions(this.config, {
             range: {
@@ -69,7 +75,7 @@ class BGZLineReader {
                 this.eof = true
             }
             this.bufferPtr = 0
-            this.filePtr += data.byteLength //data.byteLength;
+            this.filePtr += data.byteLength
         }
     }
 

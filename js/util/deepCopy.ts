@@ -5,7 +5,7 @@
 import {FileUtils} from "../../node_modules/igv-utils/src/index.js"
 
 
-function cloneArray(a, fn) {
+function cloneArray(a: unknown[], fn: (o: unknown) => unknown): unknown[] {
     const keys = Object.keys(a)
     const a2 = new Array(keys.length)
     for (let i = 0; i < keys.length; i++) {
@@ -22,12 +22,12 @@ function cloneArray(a, fn) {
     return a2
 }
 
-function deepCopy(o) {
+function deepCopy(o: unknown): unknown {
     if (FileUtils.isFile(o)) return o
     if (typeof o !== 'object' || o === null) return o
     if (o instanceof Date) return new Date(o)
     if (Array.isArray(o)) return cloneArray(o, deepCopy)
-    if (typeof o.then === "function") return o
+    if (typeof (o as Record<string, unknown>).then === "function") return o
     const o2 = {}
     for (let k in o) {
         if (Object.hasOwnProperty.call(o, k) === false) continue

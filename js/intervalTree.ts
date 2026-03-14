@@ -7,10 +7,20 @@
  *   Search       findOverlapping
  */
 
-var BLACK = 1
-var RED = 2
+const BLACK = 1
+const RED = 2
 
-var NIL = {}
+interface TreeNode {
+    color: number
+    parent: TreeNode
+    left: TreeNode
+    right: TreeNode
+    interval: Interval
+    max: number
+    min: number
+}
+
+const NIL = {} as TreeNode
 NIL.color = BLACK
 NIL.parent = NIL
 NIL.left = NIL
@@ -18,15 +28,16 @@ NIL.right = NIL
 
 
 class IntervalTree {
+    root: TreeNode
 
     constructor() {
         this.root = NIL
     }
 
-    insert(start, end, value) {
+    insert(start: number, end: number, value: unknown): void {
 
         var interval = new Interval(start, end, value)
-        var x = new Node(interval)
+        var x = createNode(interval)
         this.treeInsert(x)
         x.color = RED
         while (x !== this.root && x.parent.color === RED) {
@@ -73,7 +84,7 @@ class IntervalTree {
      * @param end - query interval
      * @returns Array of all intervals overlapping the query region
      */
-    findOverlapping(start, end) {
+    findOverlapping(start: number, end: number): Interval[] {
 
 
         var searchInterval = new Interval(start, end, 0)
@@ -83,7 +94,7 @@ class IntervalTree {
         var intervals = searchAll.call(this, searchInterval, this.root, [])
 
         if (intervals.length > 1) {
-            intervals.sort(function (i1, i2) {
+            intervals.sort(function (i1: Interval, i2: Interval) {
                 return i1.low - i2.low
             })
         }
@@ -94,15 +105,15 @@ class IntervalTree {
     /**
      * Dump info on intervals to console.  For debugging.
      */
-    logIntervals() {
+    logIntervals(): void {
 
         logNode(this.root, 0)
 
-        function logNode(node, indent) {
+        function logNode(node: TreeNode, indent: number): void {
 
             var space = ""
             for (var i = 0; i < indent; i++) space += " "
-            console.log(space + node.interval.low + " " + node.interval.high) // + " " + (node.interval.value ? node.interval.value : " null"));
+            console.log(space + node.interval.low + " " + node.interval.high)
 
             indent += 5
 
@@ -112,11 +123,11 @@ class IntervalTree {
 
     }
 
-    mapIntervals(func) {
+    mapIntervals(func: (interval: Interval) => void): void {
 
         applyInterval(this.root)
 
-        function applyInterval(node) {
+        function applyInterval(node: TreeNode): void {
 
             func(node.interval)
 
@@ -131,7 +142,7 @@ class IntervalTree {
      *
      * @param x  a Node
      */
-    treeInsert(x) {
+    treeInsert(x: TreeNode): void {
         var node = this.root
         var y = NIL
         while (node !== NIL) {
@@ -159,7 +170,7 @@ class IntervalTree {
     }
 }
 
-function searchAll(interval, node, results) {
+function searchAll(this: IntervalTree, interval: Interval, node: TreeNode, results: Interval[]): Interval[] {
 
     if (node.interval.overlaps(interval)) {
         results.push(node.interval)
@@ -176,7 +187,7 @@ function searchAll(interval, node, results) {
     return results
 }
 
-function leftRotate(x) {
+function leftRotate(this: IntervalTree, x: TreeNode): void {
     var y = x.right
     x.right = y.left
     if (y.left !== NIL) {
@@ -196,12 +207,10 @@ function leftRotate(x) {
     x.parent = y
 
     applyUpdate.call(this, x)
-    // no need to apply update on y, since it'll y is an ancestor
-    // of x, and will be touched by applyUpdate().
 }
 
 
-function rightRotate(x) {
+function rightRotate(this: IntervalTree, x: TreeNode): void {
     var y = x.left
     x.left = y.right
     if (y.right !== NIL) {
@@ -222,13 +231,11 @@ function rightRotate(x) {
 
 
     applyUpdate.call(this, x)
-    // no need to apply update on y, since it'll y is an ancestor
-    // of x, and will be touched by applyUpdate().
 }
 
 
 // Applies the statistic update on the node and its ancestors.
-function applyUpdate(node) {
+function applyUpdate(this: IntervalTree, node: TreeNode): void {
     while (node !== NIL) {
         var nodeMax = node.left.max > node.right.max ? node.left.max : node.right.max
         var intervalHigh = node.interval.high
@@ -244,13 +251,17 @@ function applyUpdate(node) {
 
 
 class Interval {
-    constructor(low, high, value) {
+    low: number
+    high: number
+    value: unknown
+
+    constructor(low: number, high: number, value: unknown) {
         this.low = low
         this.high = high
         this.value = value
     }
 
-    equals(other) {
+    equals(other: Interval | null | undefined): boolean {
         if (!other) {
             return false
         }
@@ -262,7 +273,7 @@ class Interval {
 
     }
 
-    compareTo(other) {
+    compareTo(other: Interval): number {
         if (this.low < other.low)
             return -1
         if (this.low > other.low)
@@ -279,164 +290,21 @@ class Interval {
     /**
      * Returns true if this interval overlaps the other.
      */
-    overlaps(other) {
+    overlaps(other: Interval): boolean {
         return (this.low <= other.high && other.low <= this.high)
     }
 }
 
-function Node(interval) {
-    this.parent = NIL
-    this.left = NIL
-    this.right = NIL
-    this.interval = interval
-    this.color = RED
+function createNode(interval: Interval): TreeNode {
+    return {
+        parent: NIL,
+        left: NIL,
+        right: NIL,
+        interval: interval,
+        color: RED,
+        max: interval.high,
+        min: interval.low
+    }
 }
-
-
-//
-//
-//    function minimum(node) {
-//        while (node.left != NIL) {
-//            node = node.left;
-//        }
-//        return node;
-//    }
-//
-//
-//    function maximum(node) {
-//
-//        while (node.right != NIL) {
-//            node = node.right;
-//        }
-//        return node;
-//    }
-//
-//
-//    function successor(x) {
-//
-//        if (x.right != NIL) {
-//            return minimum(x.right);
-//        }
-//        var y = x.parent;
-//        while (y != NIL && x == y.right) {
-//            x = y;
-//            y = y.parent;
-//        }
-//        return y;
-//    }
-//
-//
-//    function predecessor(x) {
-//        if (x.left != NIL) {
-//            return maximum(x.left);
-//        }
-//        var y = x.parent;
-//        while (y != NIL && x == y.left) {
-//            x = y;
-//            y = y.parent;
-//        }
-//        return y;
-//    }
-//
-//
-//
-//    allRedNodesFollowConstraints = function (node) {
-//        if (node == NIL)
-//            return true;
-//
-//        if (node.color == BLACK) {
-//            return (this.allRedNodesFollowConstraints(node.left) &&
-//                this.allRedNodesFollowConstraints(node.right));
-//        }
-//
-//        // At this point, we know we're on a RED node.
-//        return (node.left.color == BLACK &&
-//            node.right.color == BLACK &&
-//            this.allRedNodesFollowConstraints(node.left) &&
-//            this.allRedNodesFollowConstraints(node.right));
-//    }
-//
-//
-//    // Check that both ends are equally balanced in terms of black height.
-//    isBalancedBlackHeight = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (blackHeight(node.left) == blackHeight(node.right) &&
-//            this.isBalancedBlackHeight(node.left) &&
-//            this.isBalancedBlackHeight(node.right));
-//    }
-//
-//
-//    // The black height of a node should be left/right equal.
-//    blackHeight = function (node) {
-//        if (node == NIL)
-//            return 0;
-//        var leftBlackHeight = blackHeight(node.left);
-//        if (node.color == BLACK) {
-//            return leftBlackHeight + 1;
-//        } else {
-//            return leftBlackHeight;
-//        }
-//    }
-
-
-/**
- * Test code: make sure that the tree has all the properties
- * defined by Red Black trees and interval trees
- * <p/>
- * o.  Root is black.
- * <p/>
- * o.  NIL is black.
- * <p/>
- * o.  Red nodes have black children.
- * <p/>
- * o.  Every path from root to leaves contains the same number of
- * black nodes.
- * <p/>
- * o.  getMax(node) is the maximum of any interval rooted at that node..
- * <p/>
- * This code is expensive, and only meant to be used for
- * assertions and testing.
- */
-//
-//    isValid = function () {
-//        if (this.root.color != BLACK) {
-//            logger.warn("root color is wrong");
-//            return false;
-//        }
-//        if (NIL.color != BLACK) {
-//            logger.warn("NIL color is wrong");
-//            return false;
-//        }
-//        if (allRedNodesFollowConstraints(this.root) == false) {
-//            logger.warn("red node doesn't follow constraints");
-//            return false;
-//        }
-//        if (isBalancedBlackHeight(this.root) == false) {
-//            logger.warn("black height unbalanced");
-//            return false;
-//        }
-//
-//        return hasCorrectMaxFields(this.root) &&
-//            hasCorrectMinFields(this.root);
-//    }
-//
-//
-//    hasCorrectMaxFields = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (getRealMax(node) == (node.max) &&
-//            this.hasCorrectMaxFields(node.left) &&
-//            this.hasCorrectMaxFields(node.right));
-//    }
-//
-//
-//    hasCorrectMinFields = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (getRealMin(node) == (node.min) &&
-//            this.hasCorrectMinFields(node.left) &&
-//            this.hasCorrectMinFields(node.right));
-//    }
 
 export default IntervalTree

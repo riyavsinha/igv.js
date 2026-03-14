@@ -1,12 +1,23 @@
-function scoreShade(score) {
+function scoreShade(score: number): string {
     const alpha = Math.min(1, 0.11 + 0.89 * (score / 779))
     return alpha.toString()
 }
 
-function parseAutoSQL(str) {
+interface AutoSQLField {
+    type: string
+    name: string
+    description: string
+}
 
-    let table
-    const fields = []
+interface AutoSQLResult {
+    table: string | undefined
+    fields: AutoSQLField[]
+}
+
+function parseAutoSQL(str: string): AutoSQLResult {
+
+    let table: string | undefined
+    const fields: AutoSQLField[] = []
     let startDecoding = false
     const lines = str.trim().split(/\s*[\r\n]+\s*/g)
     for (let line of lines) {

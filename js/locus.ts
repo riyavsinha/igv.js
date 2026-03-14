@@ -1,29 +1,39 @@
 import {StringUtils} from "../node_modules/igv-utils/src/index.js"
 
+interface LocusOptions {
+    chr: string
+    start?: number
+    end?: number
+}
+
 class Locus {
 
-    constructor({chr, start, end}) {
+    chr: string
+    start: number
+    end: number
+
+    constructor({chr, start, end}: LocusOptions) {
         this.chr = chr
-        this.start = start
-        this.end = end
+        this.start = start!
+        this.end = end!
     }
 
 
-    contains(locus) {
+    contains(locus: Locus): boolean {
         return locus.chr === this.chr && locus.start >= this.start && locus.end <= this.end
     }
 
-    overlaps(locus) {
+    overlaps(locus: Locus): boolean {
         return locus.chr === this.chr && !(locus.end < this.start || locus.start > this.end)
     }
 
-    extend(l) {
+    extend(l: Locus): void {
         if (l.chr !== this.chr) return
         this.start = Math.min(l.start, this.start)
         this.end = Math.max(l.end, this.end)
     }
 
-    getLocusString() {
+    getLocusString(): string {
         if ('all' === this.chr) {
             return 'all'
         } else {
@@ -33,7 +43,7 @@ class Locus {
         }
     }
 
-    static fromLocusString(str) {
+    static fromLocusString(str: string): Locus {
         if ('all' === str) {
             return new Locus({chr: 'all'})
         }
@@ -47,10 +57,8 @@ class Locus {
 
     /**
      * Return true if the locus string represents a single base, e.g. "chr1:12345" or "chr1:12345-12345"
-     * @param locus
-     * @returns {boolean}
      */
-    static isSingleBaseLocusString(locus) {
+    static isSingleBaseLocusString(locus: string): boolean {
 
         if (!locus || typeof locus !== 'string') {
             return false

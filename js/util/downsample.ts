@@ -1,15 +1,15 @@
-const downsample = (input, max) => {
+const downsample = <T>(input: T[], max: number): T[] => {
     if (input.length < max) {
         return input
     } else {
-        const downsampled = []
+        const downsampled: T[] = []
         for (let i = 0; i < input.length; i++) {
             if (i < max) {
                 downsampled.push(input[i])
             } else {
                 const samplingProb = max / (i + 1)
                 if (Math.random() < samplingProb) {
-                    const idx = Math.floor((RAND.nextDouble() * (max - 1)))
+                    const idx = Math.floor((Math.random() * (max - 1)))
                     downsampled[idx] = input[i]
                 }
             }

@@ -1,5 +1,5 @@
 
-function concatenateArrayBuffers(arrayBuffers) {
+function concatenateArrayBuffers(arrayBuffers: ArrayBuffer[]): ArrayBuffer {
 
     if (arrayBuffers.length === 1) {
         return arrayBuffers[0]

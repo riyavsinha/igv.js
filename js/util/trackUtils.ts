@@ -1,4 +1,4 @@
-function inferTrackType(format) {
+function inferTrackType(format: string | undefined): string | undefined {
 
     if (format) {
         switch (format.toLowerCase()) {
@@ -49,7 +49,7 @@ function inferTrackType(format) {
     }
 }
 
-function translateDeprecatedTypes(config) {
+function translateDeprecatedTypes(config: Record<string, unknown>): void {
 
     if (config.featureType) {  // Translate deprecated "feature" type
         config.type = config.type || config.featureType

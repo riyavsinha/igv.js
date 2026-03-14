@@ -1,5 +1,10 @@
 class BinaryParser {
-    constructor(dataView, littleEndian = true) {
+    littleEndian: boolean
+    position: number
+    view: DataView
+    length: number
+
+    constructor(dataView: DataView, littleEndian: boolean = true) {
 
         this.littleEndian = littleEndian
         this.position = 0
@@ -9,70 +14,69 @@ class BinaryParser {
 
     /**
      * Print the first "n" bytes to the console.  Used for debugging.
-     * @param n
      */
-    dumpBytes (n = 100) {
+    dumpBytes(n: number = 100): void {
         const pos = this.position
-        const bytes = []
-        for(let i=0; i<= n; i++) {
+        const bytes: number[] = []
+        for (let i = 0; i <= n; i++) {
             bytes.push(this.getByte())
         }
         console.log(bytes.join(" "))
         this.setPosition(pos)
     }
 
-    setPosition(position) {
+    setPosition(position: number): void {
         this.position = position
     }
 
-    available() {
+    available(): number {
         return this.length - this.position
     }
 
-    remLength() {
+    remLength(): number {
         return this.length - this.position
     }
 
-    hasNext() {
+    hasNext(): boolean {
         return this.position < this.length - 1
     }
 
-    getByte() {
-        const retValue = this.view.getUint8(this.position, this.littleEndian)
+    getByte(): number {
+        const retValue = this.view.getUint8(this.position)
         this.position++
         return retValue
     }
 
-    getShort() {
+    getShort(): number {
         const retValue = this.view.getInt16(this.position, this.littleEndian)
         this.position += 2
         return retValue
     }
 
-    getUShort() {
+    getUShort(): number {
         const retValue = this.view.getUint16(this.position, this.littleEndian)
         this.position += 2
         return retValue
     }
 
 
-    getInt() {
+    getInt(): number {
         const retValue = this.view.getInt32(this.position, this.littleEndian)
         this.position += 4
         return retValue
     }
 
 
-    getUInt() {
+    getUInt(): number {
         const retValue = this.view.getUint32(this.position, this.littleEndian)
         this.position += 4
         return retValue
     }
 
-    getLong() {
+    getLong(): number {
 
         // DataView doesn't support long. So we'll try manually
-        var b = []
+        var b: number[] = []
         b[0] = this.view.getUint8(this.position)
         b[1] = this.view.getUint8(this.position + 1)
         b[2] = this.view.getUint8(this.position + 2)
@@ -96,10 +100,10 @@ class BinaryParser {
         return value
     }
 
-    getString(len) {
+    getString(len?: number): string {
 
         let s = ""
-        let c
+        let c: number
         while ((c = this.view.getUint8(this.position++)) !== 0) {
             s += String.fromCharCode(c)
             if (len && s.length === len) break
@@ -107,7 +111,7 @@ class BinaryParser {
         return s
     }
 
-    getFixedLengthString(len) {
+    getFixedLengthString(len: number): string {
 
         let s = ""
         for (let i = 0; i < len; i++) {
@@ -119,7 +123,7 @@ class BinaryParser {
         return s
     }
 
-    getFloat() {
+    getFloat(): number {
 
         var retValue = this.view.getFloat32(this.position, this.littleEndian)
         this.position += 4
@@ -128,14 +132,14 @@ class BinaryParser {
 
     }
 
-    getDouble() {
+    getDouble(): number {
 
         var retValue = this.view.getFloat64(this.position, this.littleEndian)
         this.position += 8
         return retValue
     }
 
-    skip(n) {
+    skip(n: number): number {
         this.position += n
         return this.position
     }
@@ -145,9 +149,8 @@ class BinaryParser {
      * Return a BGZip (bam and tabix) virtual pointer
      * TODO -- why isn't 8th byte used ?
      * TODO -- does endian matter here ?
-     * @returns {*}
      */
-    getVPointer() {
+    getVPointer(): VPointer {
 
         var position = this.position,
             offset = (this.view.getUint8(position + 1) << 8) | (this.view.getUint8(position)),
@@ -164,26 +167,29 @@ class BinaryParser {
 }
 
 class VPointer {
-    constructor(block, offset) {
+    block: number
+    offset: number
+
+    constructor(block: number, offset: number) {
         this.block = block
         this.offset = offset
     }
 
-    isLessThan(vp) {
+    isLessThan(vp: VPointer): boolean {
         return this.block < vp.block ||
             (this.block === vp.block && this.offset < vp.offset)
     }
 
-    isGreaterThan(vp) {
+    isGreaterThan(vp: VPointer): boolean {
         return this.block > vp.block ||
             (this.block === vp.block && this.offset > vp.offset)
     }
 
-    isEqualTo(vp) {
+    isEqualTo(vp: VPointer): boolean {
         return this.block === vp.block && this.offset === vp.offset
     }
 
-    print() {
+    print(): string {
         return "" + this.block + ":" + this.offset
     }
 }

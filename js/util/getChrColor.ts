@@ -1,6 +1,6 @@
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
 
-export function getChrColor(chr) {
+export function getChrColor(chr: string): string {
     if (chrColorMap[chr]) {
         return chrColorMap[chr]
     } else if (chrColorMap["chr" + chr]) {
@@ -14,7 +14,7 @@ export function getChrColor(chr) {
     }
 }
 
-const chrColorMap = {
+const chrColorMap: Record<string, string> = {
     "chrX": "rgb(204, 153, 0)",
     "chrY": "rgb(153, 204, 0)",
     "chrUn": "rgb(50, 50, 50)",

@@ -1,6 +1,6 @@
 import {IGVMath} from "../../node_modules/igv-utils/src/index.js"
 
-function hexToRGB(hex) {
+function hexToRGB(hex: string): string {
     // Ensure the hex value is in the proper format
     hex = hex.replace(/^#/, '');
 
@@ -158,12 +158,12 @@ const appleCrayonRGBPalette =
         nickel: {r: 136, g: 135, b: 135}
     }
 
-function appleCrayonRGB(name) {
+function appleCrayonRGB(name: string): string {
     const {r, g, b} = appleCrayonRGBPalette[name]
     return `rgb(${r},${g},${b})`
 }
 
-function appleCrayonRGBA(name, alpha) {
+function appleCrayonRGBA(name: string, alpha: number): string {
     const {r, g, b} = appleCrayonRGBPalette[name]
     return `rgba(${r},${g},${b},${alpha})`
 }
@@ -188,13 +188,13 @@ const webColorRGBPalette =
         purple: 'rgb(128, 0, 128)',
     }
 
-function isValidColorName(name) {
+function isValidColorName(name: string): boolean {
     const a = new Set(Object.keys(webColorRGBPalette))
     const b = new Set(Object.keys(appleCrayonPalette))
     return a.has(name) || b.has(name)
 }
 
-function getColorNameRGBString(name) {
+function getColorNameRGBString(name: string): string | undefined {
 
     if (isValidColorName(name)) {
          return webColorRGBPalette[ name ] || appleCrayonRGB(name)
@@ -295,7 +295,12 @@ const colorPalettes = {
 
 class PaletteColorTable {
 
-    constructor(palette) {
+    colors: string[]
+    colorTable: Map<string, string>
+    nextIdx: number
+    colorGenerator: any
+
+    constructor(palette: string) {
         this.colors = colorPalettes[palette]
         if (!Array.isArray(this.colors)) this.colors = []
         this.colorTable = new Map()
@@ -303,7 +308,7 @@ class PaletteColorTable {
         this.colorGenerator = new RandomColorGenerator()
     }
 
-    getColor(key) {
+    getColor(key: string): string {
         if (!this.colorTable.has(key)) {
             if (this.nextIdx < this.colors.length) {
                 this.colorTable.set(key, this.colors[this.nextIdx])
@@ -317,13 +322,17 @@ class PaletteColorTable {
 }
 
 class ColorTable {
-    constructor(colors) {
+    colorTable: Record<string, string>
+    nextIdx: number
+    colorGenerator: any
+
+    constructor(colors?: Record<string, string>) {
         this.colorTable = colors || {}
         this.nextIdx = 0
         this.colorGenerator = new RandomColorGenerator()
     }
 
-    getColor(key) {
+    getColor(key: string): string {
         if (!this.colorTable.hasOwnProperty(key)) {
             if (this.colorTable.hasOwnProperty("*")) {
                 return this.colorTable["*"]
@@ -397,12 +406,12 @@ RandomColorGenerator.prototype.get = function (saturation, value) {
 
 const randomColorGenerator = new RandomColorGenerator()
 
-function randomColor() {
+function randomColor(): string {
     return randomColorGenerator.get()
 }
 
 // Returns a random number between min (inclusive) and max (exclusive)
-function random(min, max) {
+function random(min: number, max: number): number {
     return Math.random() * (max - min) + min
 }
 
@@ -416,7 +425,7 @@ function random(min, max) {
 //     }
 // }
 
-function randomRGBConstantAlpha(min, max, alpha) {
+function randomRGBConstantAlpha(min: number, max: number, alpha: number): string {
 
     min = IGVMath.clamp(min, 0, 255)
     max = IGVMath.clamp(max, 0, 255)
@@ -428,7 +437,7 @@ function randomRGBConstantAlpha(min, max, alpha) {
 
 }
 
-function rgbaColor(r, g, b, a) {
+function rgbaColor(r: number, g: number, b: number, a: number): string {
     r = IGVMath.clamp(r, 0, 255)
     g = IGVMath.clamp(g, 0, 255)
     b = IGVMath.clamp(b, 0, 255)
@@ -436,19 +445,19 @@ function rgbaColor(r, g, b, a) {
     return `rgba(${r}, ${g}, ${b}, ${a})`
 }
 
-function rgbColor(r, g, b) {
+function rgbColor(r: number, g: number, b: number): string {
     r = IGVMath.clamp(r, 0, 255)
     g = IGVMath.clamp(g, 0, 255)
     b = IGVMath.clamp(b, 0, 255)
     return `rgb(${r}, ${g}, ${b})`
 }
 
-function greyScale(value) {
+function greyScale(value: number): string {
     value = IGVMath.clamp(value, 0, 255)
     return `rgb(${value}, ${value}, ${value})`
 }
 
-function randomRGB(min, max) {
+function randomRGB(min: number, max: number): string {
 
     min = IGVMath.clamp(min, 0, 255)
     max = IGVMath.clamp(max, 0, 255)
@@ -460,7 +469,7 @@ function randomRGB(min, max) {
 
 }
 
-function randomGrey(min, max) {
+function randomGrey(min: number, max: number): string {
 
     min = IGVMath.clamp(min, 0, 255)
     max = IGVMath.clamp(max, 0, 255)
@@ -470,7 +479,7 @@ function randomGrey(min, max) {
 
 }
 
-function rgbaStringTokens(rgbaString) {
+function rgbaStringTokens(rgbaString: string): number[] | undefined {
 
     if (rgbaString.startsWith('rgba(')) {
 
@@ -485,7 +494,7 @@ function rgbaStringTokens(rgbaString) {
     }
 }
 
-function rgbStringTokens(rgbString) {
+function rgbStringTokens(rgbString: string): number[] | undefined {
 
     if (rgbString.startsWith('rgb(')) {
 
@@ -500,7 +509,7 @@ function rgbStringTokens(rgbString) {
     }
 }
 
-function rgbStringLerp(_a, _b, interpolant) {
+function rgbStringLerp(_a: string, _b: string, interpolant: number): string {
     const [ rA, gA, bA ] = rgbStringTokens(_a)
     const [ rB, gB, bB ] = rgbStringTokens(_b)
     const [ r, g, b ] =
@@ -514,7 +523,7 @@ function rgbStringLerp(_a, _b, interpolant) {
 }
 
 const fudge = 0.005
-function rgbStringHeatMapLerp(_a, _b, interpolant) {
+function rgbStringHeatMapLerp(_a: string, _b: string, interpolant: number): string {
 
     if (interpolant < fudge) {
         return _a

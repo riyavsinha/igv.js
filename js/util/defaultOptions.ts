@@ -1,4 +1,4 @@
-const defaultOptions = {
+const defaultOptions: Record<string, unknown> = {
     minimumBases: 40,
     showIdeogram: true,
     showCytobandNames: false,
@@ -20,7 +20,7 @@ const defaultOptions = {
     tracks: []
 }
 
-function setDefaults(config, defaults) {
+function setDefaults(config: Record<string, unknown>, defaults?: Record<string, unknown>): Record<string, unknown> {
     if (typeof defaults === "undefined") {
         defaults = defaultOptions
     }
@@ -33,4 +33,3 @@ function setDefaults(config, defaults) {
 }
 
 export {setDefaults, defaultOptions}
-
