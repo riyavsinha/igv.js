@@ -1,0 +1,4 @@
+ui: tdd
+node-option:
+  - import=tsx
+spec: "test/*.{js,ts}"
