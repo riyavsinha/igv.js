@@ -1,27 +1,34 @@
 import {getCodingLength, getCodingStart, getCodingEnd} from "../feature/exonUtils.js"
-import {searchFeatures} from "../searchFeatures.js"
+import {searchFeatures} from "../searchFeatures"
 
-const log = console
+const log: Console = console
 
-function isValidHGVS(notation) {
+function isValidHGVS(notation: string): boolean {
     if (!notation) return false
     // We only need to validate that we can parse the notation in the search method.
     // Check for basic structure: <accession>:g.<position> or <accession>:c.<position> or <accession>:p.<position>
     // We don't validate the variant details since we only need the position for searching.
 
     // Genomic: g.\d+ (with optional range and anything after)
-    const genomic = "g\\.\\d+.*"
+    const genomic: string = "g\\.\\d+.*"
     // Coding: c. followed by optional -, *, then digits, with optional intronic offset and anything after
-    const coding = "c\\.[-*]?\\d+.*"
+    const coding: string = "c\\.[-*]?\\d+.*"
     // Non-coding: n. followed by optional leading '-' then digits, anything after
-    const nonCoding = "n\\.-?\\d+.*"
+    const nonCoding: string = "n\\.-?\\d+.*"
     // Protein: p. followed by optional AA letters, digits, with optional range and anything after
-    const protein = "p\\.[A-Za-z*]*\\d+.*"
+    const protein: string = "p\\.[A-Za-z*]*\\d+.*"
     // Optional gene symbol in parentheses immediately after accession
-    const accessionWithOptionalGene = "^[A-Za-z0-9_.]+(?:\\([^)]+\\))?"
+    const accessionWithOptionalGene: string = "^[A-Za-z0-9_.]+(?:\\([^)]+\\))?"
 
-    const pattern = new RegExp(accessionWithOptionalGene + ":(?:" + genomic + "|" + coding + "|" + nonCoding + "|" + protein + ")$")
+    const pattern: RegExp = new RegExp(accessionWithOptionalGene + ":(?:" + genomic + "|" + coding + "|" + nonCoding + "|" + protein + ")$")
     return pattern.test(notation)
+}
+
+interface SearchResult {
+    resultType?: string
+    chr: string
+    start: number
+    end: number
 }
 
 /**
@@ -29,21 +36,21 @@ function isValidHGVS(notation) {
  * Returns a SearchResult with the corresponding chromosome and position if found,
  * otherwise returns null.
  */
-async function search(hgvs, browser) {
+async function search(hgvs: string, browser: any): Promise<SearchResult | null> {
 
     if (!isValidHGVS(hgvs)) {
         return null
     }
 
-    const genome = browser.genome
+    const genome: any = browser.genome
 
     // Determine type and extract accession and position
-    const idxG = hgvs.indexOf(":g.")
-    const idxC = hgvs.indexOf(":c.")
-    const idxP = hgvs.indexOf(":p.")
-    const idxN = hgvs.indexOf(":n.")
-    let type
-    let idx
+    const idxG: number = hgvs.indexOf(":g.")
+    const idxC: number = hgvs.indexOf(":c.")
+    const idxP: number = hgvs.indexOf(":p.")
+    const idxN: number = hgvs.indexOf(":n.")
+    let type: string
+    let idx: number
     if (idxG >= 0) {
         type = "g"
         idx = idxG
@@ -59,15 +66,15 @@ async function search(hgvs, browser) {
     } else {
         return null
     }
-    let accession = hgvs.substring(0, idx)
+    let accession: string = hgvs.substring(0, idx)
     // Strip optional trailing gene symbol in parentheses, e.g., "NM_000302.3(PLOD1)" -> "NM_000302.3"
     if (accession.endsWith(")")) {
-        const openIdx = accession.lastIndexOf('(')
+        const openIdx: number = accession.lastIndexOf('(')
         if (openIdx > 0) {
             accession = accession.substring(0, openIdx)
         }
     }
-    const positionPart = hgvs.substring(idx + 3) // skip ':g.' or ':c.' or ':p.'
+    const positionPart: string = hgvs.substring(idx + 3) // skip ':g.' or ':c.' or ':p.'
 
     if (type === "g") {
         if (!positionPart) return null
@@ -76,14 +83,14 @@ async function search(hgvs, browser) {
         // - Range: 123_456
         // - Uncertain positions: 123_? or ?_456 or (123_456)
         // Extract just the numeric positions, ignoring variant notation after
-        const match = positionPart.match(/^\(?(\d+)(?:_(\d+|\?))?/)
+        const match: RegExpMatchArray | null = positionPart.match(/^\(?(\d+)(?:_(\d+|\?))?/)
         if (!match) return null
-        const start = parseInt(match[1], 10)
-        const endGroup = match[2]
+        const start: number = parseInt(match[1], 10)
+        const endGroup: string | undefined = match[2]
         // If end is '?' or undefined, use start as end
-        const end = (endGroup && endGroup !== '?') ? parseInt(endGroup, 10) : start
-        const aliasRecord = await genome.getAliasRecord(accession)
-        const chr = aliasRecord ? aliasRecord.chr : accession
+        const end: number = (endGroup && endGroup !== '?') ? parseInt(endGroup, 10) : start
+        const aliasRecord: any = await genome.getAliasRecord(accession)
+        const chr: string = aliasRecord ? aliasRecord.chr : accession
         return {chr, start: start - 1, end: end}
 
     } else if (type === "p") {
@@ -127,101 +134,101 @@ async function search(hgvs, browser) {
     } else if (type === "n") {
 
         // Non-coding transcript mapping: n.123 or n.-123 maps relative to transcript start
-        const transcript = await getTranscript(browser, accession)
+        const transcript: any = await getTranscript(browser, accession)
         if (!transcript) return null
 
         // Parse signed position with optional range and intronic offset (e.g., n.123, n.123_456, n.-7080_-1781, n.123+5)
-        const matcher = positionPart.match(/^(-?\d+)(?:_(-?\d+))?([+-]\d+)?/)
+        const matcher: RegExpMatchArray | null = positionPart.match(/^(-?\d+)(?:_(-?\d+))?([+-]\d+)?/)
         if (!matcher) return null
 
-        const t1 = parseInt(matcher[1], 10)
-        const t2Str = matcher[2]
-        const t2 = t2Str != null ? parseInt(t2Str, 10) : t1
+        const t1: number = parseInt(matcher[1], 10)
+        const t2Str: string | undefined = matcher[2]
+        const t2: number = t2Str != null ? parseInt(t2Str, 10) : t1
 
         // Map both transcript positions to genomic
-        let g1 = transcriptPositionToGenomicPosition(transcript, t1)
-        let g2 = transcriptPositionToGenomicPosition(transcript, t2)
+        let g1: number = transcriptPositionToGenomicPosition(transcript, t1)
+        let g2: number = transcriptPositionToGenomicPosition(transcript, t2)
         if (g1 <= 0 || g2 <= 0) return null
 
         // Apply intronic offset (if any) to BOTH endpoints, strand-aware
-        const offsetStr = matcher[3]
+        const offsetStr: string | undefined = matcher[3]
         if (offsetStr) {
-            let offset = parseInt(offsetStr, 10)
+            let offset: number = parseInt(offsetStr, 10)
             if (transcript.strand === '-') offset = -offset
             g1 += offset
             g2 += offset
         }
 
         // Normalize to genomic span regardless of strand
-        const regionStart = Math.min(g1, g2)
-        const regionEndInclusive = Math.max(g1, g2)
-        const halfOpenEnd = regionEndInclusive + 1
+        const regionStart: number = Math.min(g1, g2)
+        const regionEndInclusive: number = Math.max(g1, g2)
+        const halfOpenEnd: number = regionEndInclusive + 1
         return {chr: transcript.chr, start: regionStart, end: halfOpenEnd}
 
     } else { // "c"
 
-        const transcript = await getTranscript(browser, accession)
+        const transcript: any = await getTranscript(browser, accession)
         if (transcript) {
             // UTR 5' c.-N with optional range and intronic offset (e.g., c.-211_-215 or c.-211-1058C>G)
-            const utr5Matcher = positionPart.match(/^-(\d+)(?:_-(\d+))?([+-]\d+)?/)
+            const utr5Matcher: RegExpMatchArray | null = positionPart.match(/^-(\d+)(?:_-(\d+))?([+-]\d+)?/)
             if (utr5Matcher) {
-                const n1 = parseInt(utr5Matcher[1], 10)
-                const n2Str = utr5Matcher[2]
-                const n2 = n2Str != null ? parseInt(n2Str, 10) : null
-                const firstCodingGenomic = codingToGenomePosition(transcript, 1)
+                const n1: number = parseInt(utr5Matcher[1], 10)
+                const n2Str: string | undefined = utr5Matcher[2]
+                const n2: number | null = n2Str != null ? parseInt(n2Str, 10) : null
+                const firstCodingGenomic: number = codingToGenomePosition(transcript, 1)
                 if (firstCodingGenomic > 0) {
-                    let g1 = transcript.strand === '+' ? (firstCodingGenomic - n1) : (firstCodingGenomic + n1)
-                    let g2 = g1
+                    let g1: number = transcript.strand === '+' ? (firstCodingGenomic - n1) : (firstCodingGenomic + n1)
+                    let g2: number = g1
                     if (n2 != null) {
                         g2 = transcript.strand === '+' ? (firstCodingGenomic - n2) : (firstCodingGenomic + n2)
                     }
                     // Apply intronic offset (single value) to both ends if present
-                    const offsetStr = utr5Matcher[3]
+                    const offsetStr: string | undefined = utr5Matcher[3]
                     if (offsetStr) {
-                        let offset = parseInt(offsetStr, 10)
+                        let offset: number = parseInt(offsetStr, 10)
                         if (transcript.strand === '-') offset = -offset
                         g1 += offset
                         g2 += offset
                     }
-                    const start = Math.min(g1, g2)
-                    const endInclusive = Math.max(g1, g2)
-                    const endExclusive = endInclusive + 1
+                    const start: number = Math.min(g1, g2)
+                    const endInclusive: number = Math.max(g1, g2)
+                    const endExclusive: number = endInclusive + 1
                     return {resultType: "LOCUS", chr: transcript.chr, start, end: endExclusive}
                 }
                 return null
             }
 
             // UTR 3' c.*N with optional range and intronic offset (e.g., c.*526_*529delATCA or c.*123+45)
-            const utr3Matcher = positionPart.match(/^\*(\d+)(?:_\*(\d+))?([+-]\d+)?/)
+            const utr3Matcher: RegExpMatchArray | null = positionPart.match(/^\*(\d+)(?:_\*(\d+))?([+-]\d+)?/)
             if (utr3Matcher) {
-                const n1 = parseInt(utr3Matcher[1], 10)
-                const n2Str = utr3Matcher[2]
-                const n2 = n2Str != null ? parseInt(n2Str, 10) : null
-                let codingLen = 0
+                const n1: number = parseInt(utr3Matcher[1], 10)
+                const n2Str: string | undefined = utr3Matcher[2]
+                const n2: number | null = n2Str != null ? parseInt(n2Str, 10) : null
+                let codingLen: number = 0
                 if (transcript.exons) {
                     for (const exon of transcript.exons) {
                         codingLen += getCodingLength(exon)
                     }
                 }
                 if (codingLen > 0) {
-                    const lastCodingGenomic = codingToGenomePosition(transcript, codingLen)
+                    const lastCodingGenomic: number = codingToGenomePosition(transcript, codingLen)
                     if (lastCodingGenomic > 0) {
-                        let g1 = transcript.strand === '+' ? (lastCodingGenomic + n1) : (lastCodingGenomic - n1)
-                        let g2 = g1
+                        let g1: number = transcript.strand === '+' ? (lastCodingGenomic + n1) : (lastCodingGenomic - n1)
+                        let g2: number = g1
                         if (n2 != null) {
                             g2 = transcript.strand === '+' ? (lastCodingGenomic + n2) : (lastCodingGenomic - n2)
                         }
                         // Apply intronic offset (single value) to both ends if present
-                        const offsetStr = utr3Matcher[3]
+                        const offsetStr: string | undefined = utr3Matcher[3]
                         if (offsetStr) {
-                            let offset = parseInt(offsetStr, 10)
+                            let offset: number = parseInt(offsetStr, 10)
                             if (transcript.strand === '-') offset = -offset
                             g1 += offset
                             g2 += offset
                         }
-                        const start = Math.min(g1, g2)
-                        const endInclusive = Math.max(g1, g2)
-                        const endExclusive = endInclusive + 1
+                        const start: number = Math.min(g1, g2)
+                        const endInclusive: number = Math.max(g1, g2)
+                        const endExclusive: number = endInclusive + 1
                         return {resultType: "LOCUS", chr: transcript.chr, start, end: endExclusive}
                     }
                 }
@@ -230,30 +237,30 @@ async function search(hgvs, browser) {
 
             // CDS position with optional range
             // First parse endpoints c.X(_Y)? ignoring intronic offsets
-            const cpos = positionPart.match(/^(\d+)(?:_(\d+))?/)
+            const cpos: RegExpMatchArray | null = positionPart.match(/^(\d+)(?:_(\d+))?/)
             if (!cpos) return null
-            const c1 = parseInt(cpos[1], 10)
-            const c2Str = cpos[2]
-            const c2 = c2Str != null ? parseInt(c2Str, 10) : c1
+            const c1: number = parseInt(cpos[1], 10)
+            const c2Str: string | undefined = cpos[2]
+            const c2: number = c2Str != null ? parseInt(c2Str, 10) : c1
 
             // Map both coding positions to genomic
-            let g1 = codingToGenomePosition(transcript, c1)
-            let g2 = codingToGenomePosition(transcript, c2)
+            let g1: number = codingToGenomePosition(transcript, c1)
+            let g2: number = codingToGenomePosition(transcript, c2)
             if (g1 <= 0 || g2 <= 0) return null
 
             // Now parse optional intronic offsets for each endpoint separately
             // Patterns like: 123+5 or 123-2 at the beginning, optionally followed by _ and second with offset
-            const offs = positionPart.match(/^(\d+)([+-]\d+)?(?:_(\d+)([+-]\d+)?)?/)
+            const offs: RegExpMatchArray | null = positionPart.match(/^(\d+)([+-]\d+)?(?:_(\d+)([+-]\d+)?)?/)
             if (offs) {
-                const off1Str = offs[2]
-                const off2Str = offs[4]
+                const off1Str: string | undefined = offs[2]
+                const off2Str: string | undefined = offs[4]
                 if (off1Str) {
-                    let off1 = parseInt(off1Str, 10)
+                    let off1: number = parseInt(off1Str, 10)
                     if (transcript.strand === '-') off1 = -off1
                     g1 += off1
                 }
                 if (off2Str) {
-                    let off2 = parseInt(off2Str, 10)
+                    let off2: number = parseInt(off2Str, 10)
                     if (transcript.strand === '-') off2 = -off2
                     g2 += off2
                 }
@@ -264,9 +271,9 @@ async function search(hgvs, browser) {
                 g2 = g1
             }
 
-            const start = Math.min(g1, g2)
-            const endInclusive = Math.max(g1, g2)
-            const endExclusive = endInclusive + 1
+            const start: number = Math.min(g1, g2)
+            const endInclusive: number = Math.max(g1, g2)
+            const endExclusive: number = endInclusive + 1
             return {chr: transcript.chr, start, end: endExclusive}
         }
         return null
@@ -274,7 +281,7 @@ async function search(hgvs, browser) {
 
 }
 
-async function getTranscript(browser, accession) {
+async function getTranscript(browser: any, accession: string): Promise<any> {
     return searchFeatures(browser, accession)
 }
 
@@ -282,14 +289,14 @@ async function getTranscript(browser, accession) {
  * Convert a transcript position (1-based, from transcription start) to genomic position
  * for non-coding transcripts. Walks through exons to find the genomic coordinate.
  */
-function transcriptPositionToGenomicPosition(transcript, transcriptPos) {
+function transcriptPositionToGenomicPosition(transcript: any, transcriptPos: number): number {
     // Handle positions upstream of transcript start (negative n. values)
     if (transcriptPos <= 0) {
-        const d = Math.abs(transcriptPos)
+        const d: number = Math.abs(transcriptPos)
         return transcript.strand === '+' ? (transcript.getStart() - d) : (transcript.getEnd() + d)
     }
 
-    const exons = transcript.exons
+    const exons: any[] | undefined = transcript.exons
     if (!exons || exons.length === 0) {
         // No exons, treat as simple feature
         if (transcript.strand === '+') {
@@ -299,22 +306,22 @@ function transcriptPositionToGenomicPosition(transcript, transcriptPos) {
         }
     }
 
-    const positive = transcript.strand === '+'
-    let accumulatedLength = 0
+    const positive: boolean = transcript.strand === '+'
+    let accumulatedLength: number = 0
 
     // Sort exons appropriately based on strand
-    const sortedExons = exons.slice()
+    const sortedExons: any[] = exons.slice()
     if (!positive) {
-        sortedExons.sort((e1, e2) => e2.getStart() - e1.getStart())
+        sortedExons.sort((e1: any, e2: any) => e2.getStart() - e1.getStart())
     } else {
-        sortedExons.sort((e1, e2) => e1.getStart() - e2.getStart())
+        sortedExons.sort((e1: any, e2: any) => e1.getStart() - e2.getStart())
     }
 
     for (const exon of sortedExons) {
-        const exonLength = exon.getEnd() - exon.getStart()
+        const exonLength: number = exon.getEnd() - exon.getStart()
         if (accumulatedLength + exonLength >= transcriptPos) {
             // Position is in this exon
-            const offsetInExon = transcriptPos - accumulatedLength - 1
+            const offsetInExon: number = transcriptPos - accumulatedLength - 1
             if (positive) {
                 return exon.getStart() + offsetInExon
             } else {
@@ -331,32 +338,33 @@ function transcriptPositionToGenomicPosition(transcript, transcriptPos) {
 /**
  * Translate a 1-based coding position to a 0-based genomic position.  Supports HGVS parsing
  *
+ * @param feature The transcript feature
  * @param codingPosition 1-based coding position
  * @return 0-based genomic position, or -1 if not found.
  */
-function codingToGenomePosition(feature, codingPosition) {
+function codingToGenomePosition(feature: any, codingPosition: number): number {
     if (codingPosition <= 0) {
         return -1
     }
-    const cdna = codingPosition - 1  // Convert to 0-based
+    const cdna: number = codingPosition - 1  // Convert to 0-based
 
-    const exons = feature.exons
+    const exons: any[] | undefined = feature.exons
     if (!exons) {
         return -1
     }
 
-    const strand = feature.strand
+    const strand: string = feature.strand
     // if (strand === 'NONE') {
     //     throw new Error("Cannot translate from coding position on an unstranded feature.")
     // }
-    const positive = strand === '+'
+    const positive: boolean = strand === '+'
 
-    let codingLength = 0
-    for (let i = 0; i < exons.length; i++) {
-        const exon = positive ? exons[i] : exons[exons.length - 1 - i]
-        const exonCodingLength = getCodingLength(exon)
+    let codingLength: number = 0
+    for (let i: number = 0; i < exons.length; i++) {
+        const exon: any = positive ? exons[i] : exons[exons.length - 1 - i]
+        const exonCodingLength: number = getCodingLength(exon)
         if (codingLength + exonCodingLength > cdna) {
-            const cdnaOffset = cdna - codingLength
+            const cdnaOffset: number = cdna - codingLength
             if (positive) {
                 return getCodingStart(exon) + cdnaOffset
             } else {
@@ -373,13 +381,13 @@ function codingToGenomePosition(feature, codingPosition) {
  * Returns genomic HGVS notation: <RefSeqAccession>:g.<position>
  * Example: NC_000001.11:g.1234567
  */
-async function getHGVSPosition(genome, chr, position) {
+async function getHGVSPosition(genome: any, chr: string, position: number): Promise<string | undefined> {
     try {
-        const aliasRecord = await genome.getAliasRecord(chr)
-        let accession = null
+        const aliasRecord: any = await genome.getAliasRecord(chr)
+        let accession: string | null = null
 
         if (aliasRecord) {
-            for (const alias of Object.values(aliasRecord)) {
+            for (const alias of Object.values(aliasRecord) as string[]) {
                 if (alias.startsWith("NC_") || alias.startsWith("NT_") || alias.startsWith("NW_") ||
                     alias.startsWith("NG_") || alias.startsWith("NM_") || alias.startsWith("NR_") ||
                     alias.startsWith("NP_")) {
@@ -396,7 +404,7 @@ async function getHGVSPosition(genome, chr, position) {
         return `${accession}:g.${position}`
     } catch (e) {
         log.error("Error getting HGVS position", e)
-        return null
+        return undefined
     }
 }
 
@@ -410,12 +418,12 @@ async function getHGVSPosition(genome, chr, position) {
  * @param position The genomic position (0-based)
  * @param reference The reference base (single-character string)
  * @param alternate The alternate base (single-character string)
- * @return {Promise<string|null>} HGVS notation string, or null if error
+ * @return HGVS notation string, or undefined if error
  */
-async function createHGVSAnnotation(genome, chr, position, reference, alternate) {
+async function createHGVSAnnotation(genome: any, chr: string, position: number, reference: string, alternate: string): Promise<string | undefined> {
 
     try {
-        const transcript = await genome.getManeTranscriptAt(chr, position)
+        const transcript: any = await genome.getManeTranscriptAt(chr, position)
 
         if (transcript && transcript.exons) {
 
@@ -429,11 +437,11 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
             }
 
 
-            let positionString = ""
+            let positionString: string = ""
 
-            let transcriptName = transcript.name
+            let transcriptName: string | undefined = transcript.name
             for (const key of Object.keys(transcript)) {
-                const value = transcript[key]
+                const value: any = transcript[key]
                 if (typeof value === 'string' && (value.startsWith("NM_") || value.startsWith("NR_"))) {
                     transcriptName = value
                     break
@@ -442,7 +450,7 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
 
             if (transcriptName) {
                 // Check if position is within an exon (coding or non-coding)
-                let positionIsInExon = false
+                let positionIsInExon: boolean = false
                 for (const exon of transcript.exons) {
                     if (position >= exon.start && position < exon.end) {
                         positionIsInExon = true
@@ -450,34 +458,34 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
                     }
                 }
 
-                const positive = transcript.strand === '+'
+                const positive: boolean = transcript.strand === '+'
 
                 if (positionIsInExon) {
                     // Try to convert to coding position
-                    const codingPosition = genomeToCodingPosition(position, positive, transcript.exons)
+                    const codingPosition: number = genomeToCodingPosition(position, positive, transcript.exons)
 
                     if (codingPosition >= 0) {
                         // Position is in a coding region, return c. notation (1-based)
                         positionString = `${transcriptName}:c.${codingPosition + 1}`
                     } else {
                         // Position is in an exon but not coding - check if in UTR
-                        const firstCodingPos = codingToGenomePosition(transcript, 1)
+                        const firstCodingPos: number = codingToGenomePosition(transcript, 1)
                         if (firstCodingPos > 0) {
                             // Calculate total coding length
-                            let codingLen = 0
+                            let codingLen: number = 0
                             for (const exon of transcript.exons) {
                                 codingLen += getCodingLength(exon)
                             }
-                            const lastCodingPos = codingToGenomePosition(transcript, codingLen)
+                            const lastCodingPos: number = codingToGenomePosition(transcript, codingLen)
 
                             // Check if in 5' UTR
                             if ((positive && position < firstCodingPos) || (!positive && position > firstCodingPos)) {
-                                const distance = Math.abs(position - firstCodingPos)
+                                const distance: number = Math.abs(position - firstCodingPos)
                                 positionString = `${transcriptName}:c.-${distance}`
                             }
                             // Check if in 3' UTR
                             else if ((positive && position >= lastCodingPos) || (!positive && position <= lastCodingPos)) {
-                                const distance = Math.abs(position - lastCodingPos) + 1
+                                const distance: number = Math.abs(position - lastCodingPos) + 1
                                 positionString = `${transcriptName}:c.*${distance}`
                             }
                         }
@@ -485,16 +493,16 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
                 } else {
                     // Position is intronic - find nearest exon boundary
                     // For HGVS, we reference the last coding base in the nearest exon
-                    let nearestExonEdge = -1
-                    let nearestCodingPos = -1
-                    let minDistance = Number.MAX_SAFE_INTEGER
+                    let nearestExonEdge: number = -1
+                    let nearestCodingPos: number = -1
+                    let minDistance: number = Number.MAX_SAFE_INTEGER
 
                     for (const exon of transcript.exons) {
                         if (getCodingLength(exon) === 0) continue // Skip non-coding exons
 
                         // Check distance to the last coding base at the start side of the exon
                         // exon.start is 0-based inclusive
-                        const distToStart = Math.abs(position - exon.start)
+                        const distToStart: number = Math.abs(position - exon.start)
                         if (distToStart > 0 && distToStart < minDistance) {
                             minDistance = distToStart
                             nearestExonEdge = exon.start
@@ -504,7 +512,7 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
 
                         // Check distance to the last coding base at the end side of the exon
                         // exon.end is 0-based exclusive, so last base is at end-1
-                        const distToEnd = Math.abs(position - (exon.end - 1))
+                        const distToEnd: number = Math.abs(position - (exon.end - 1))
                         if (distToEnd > 0 && distToEnd < minDistance) {
                             minDistance = distToEnd
                             nearestExonEdge = exon.end - 1
@@ -515,14 +523,14 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
 
                     if (nearestCodingPos >= 0) {
                         // Calculate offset: positive = downstream of exon, negative = upstream of exon
-                        let offset = position - nearestExonEdge
+                        let offset: number = position - nearestExonEdge
                         // For positive strand: + means to the right, - means to the left
                         // For negative strand: + means to the left (genomically), - means to the right
                         // But in HGVS, the sign is relative to transcript direction, so we need to flip for negative strand
                         if (!positive) {
                             offset = -offset
                         }
-                        const sign = offset >= 0 ? "+" : ""
+                        const sign: string = offset >= 0 ? "+" : ""
                         positionString = `${transcriptName}:c.${nearestCodingPos + 1}${sign}${offset}`
                     }
                 }
@@ -532,11 +540,11 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
         }
 
         // Fallback to genomic notation
-        const aliasRecord = await genome.getAliasRecord(chr)
-        let accession = chr
+        const aliasRecord: any = await genome.getAliasRecord(chr)
+        let accession: string = chr
 
         if (aliasRecord) {
-            for (const alias of Object.values(aliasRecord)) {
+            for (const alias of Object.values(aliasRecord) as string[]) {
                 if (alias.startsWith("NC_") || alias.startsWith("NT_") || alias.startsWith("NW_") ||
                     alias.startsWith("NG_") || alias.startsWith("NM_") || alias.startsWith("NR_") ||
                     alias.startsWith("NP_")) {
@@ -550,17 +558,17 @@ async function createHGVSAnnotation(genome, chr, position, reference, alternate)
         return `${accession}:g.${position + 1}${reference}>${alternate}`
     } catch (e) {
         log.error("Error creating HGVS annotation", e)
-        return null
+        return undefined
     }
 }
 
 // Helper function to complement a base (string)
-function complementBase(base) {
-    const complementMap = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' }
+function complementBase(base: string): string {
+    const complementMap: Record<string, string> = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' }
     return complementMap[base] || base
 }
 
-function genomeToCodingPosition(genomePosition, positive, exons) {
+function genomeToCodingPosition(genomePosition: number, positive: boolean, exons: any[]): number {
 
     if (exons) {
 
@@ -569,14 +577,14 @@ function genomeToCodingPosition(genomePosition, positive, exons) {
          Increment position only on coding regions.
          */
 
-        let codingOffset = 0
+        let codingOffset: number = 0
 
-        for (let exnum = 0; exnum < exons.length; exnum++) {
+        for (let exnum: number = 0; exnum < exons.length; exnum++) {
 
-            const exon = positive ? exons[exnum] : exons[exons.length - 1 - exnum]
+            const exon: any = positive ? exons[exnum] : exons[exons.length - 1 - exnum]
 
             if (exon.start <= genomePosition && exon.end > genomePosition) {
-                const delta = positive
+                const delta: number = positive
                     ? genomePosition - getCodingStart(exon)
                     : getCodingEnd(exon) - genomePosition - 1
                 return codingOffset + delta

@@ -3,7 +3,7 @@ import FeatureFileReader from "../js/feature/featureFileReader.js"
 import FeatureSource from "../js/feature/featureSource.js"
 import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"
-import Genome from "../js/genome/genome.js"
+import Genome from "../js/genome/genome"
 
 const genome = createGenome()
 

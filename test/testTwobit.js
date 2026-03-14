@@ -1,6 +1,6 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
-import TwobitSequence from "../js/genome/twobit.js"
+import TwobitSequence from "../js/genome/twobit"
 import BPTree from "../js/bigwig/bpTree.js"
 
 

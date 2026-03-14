@@ -3,7 +3,7 @@ import {IGVColor, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import IGVGraphics from "../igv-canvas.js"
 import {drawModifications} from "./mods/baseModificationCoverageRenderer.js"
 import {HGVS} from "../genome/hgvs.js"
-import {ClinVar} from "../genome/clinVar.js"
+import {ClinVar} from "../genome/clinVar"
 
 const DEFAULT_COVERAGE_COLOR = "rgb(150, 150, 150)"
 

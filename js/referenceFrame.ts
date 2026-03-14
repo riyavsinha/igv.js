@@ -1,13 +1,47 @@
 import {StringUtils} from "../node_modules/igv-utils/src/index.js"
-import * as DOMUtils from "./ui/utils/dom-utils.js"
-import {prettyBasePairNumber, validateGenomicExtent} from "./util/igvUtils.js"
-import GenomeUtils from "./genome/genomeUtils.js"
+import * as DOMUtils from "./ui/utils/dom-utils"
+import {prettyBasePairNumber, validateGenomicExtent} from "./util/igvUtils"
+import GenomeUtils from "./genome/genomeUtils"
 
 // Reference frame classes.  Converts domain coordinates (usually genomic) to pixel coordinates
 
+interface LocusLike {
+    chr: string
+    start: number
+    end: number
+    name?: string
+    bpPerPixel?: number
+}
+
+interface ReferenceFrameJSON {
+    chr: string
+    start: number
+    bpPerPixel: number
+}
+
+interface PresentationLocusComponents {
+    chr: string
+    start?: string
+    end?: string
+}
+
+interface Interval {
+    chr: string
+    start: number
+    end: number
+}
+
 class ReferenceFrame {
 
-    constructor(genome, chr, start, end, bpPerPixel) {
+    genome: any
+    chr: string
+    start: number
+    end: number
+    bpPerPixel: number
+    id: string
+    initialEnd?: number
+
+    constructor(genome: any, chr: string, start: number, end: number, bpPerPixel: number) {
         this.genome = genome
         this.chr = chr // this.genome.getChromosomeName(chr)
         this.start = start
@@ -16,11 +50,11 @@ class ReferenceFrame {
         this.id = DOMUtils.guid()
     }
 
-    get center() {
+    get center(): number {
         return (this.start + this.end) / 2
     }
 
-    get locusSearchString() {
+    get locusSearchString(): string {
         return `${this.chr}:${this.start + 1}-${this.end}`
     }
 
@@ -28,7 +62,7 @@ class ReferenceFrame {
      * Extend this frame to accomodate the given locus.  Used th CircularView methods to merge 2 frames.
      * @param locus
      */
-    extend(locus) {
+    extend(locus: { start: number; end: number }): void {
         const newStart = Math.min(locus.start, this.start)
         const newEnd = Math.max(locus.end, this.end)
         const ratio = (newEnd - newStart) / (this.end - this.start)
@@ -37,29 +71,29 @@ class ReferenceFrame {
         this.bpPerPixel *= ratio
     }
 
-    calculateEnd(pixels) {
+    calculateEnd(pixels: number): number {
         return this.start + this.bpPerPixel * pixels
     }
 
-    calculateCenter(pixels) {
+    calculateCenter(pixels: number): number {
         return this.start + this.bpPerPixel * pixels / 2
     }
 
-    calculateBPP(end, pixels) {
+    calculateBPP(end: number, pixels: number): number {
         return (end - this.start) / pixels
     }
 
-    set(json) {
+    set(json: ReferenceFrameJSON): void {
         this.chr = json.chr
         this.start = json.start
         this.bpPerPixel = json.bpPerPixel
     }
 
-    toPixels(bp) {
+    toPixels(bp: number): number {
         return bp / this.bpPerPixel
     }
 
-    toBP(pixels) {
+    toBP(pixels: number): number {
         return this.bpPerPixel * pixels
     }
 
@@ -67,7 +101,7 @@ class ReferenceFrame {
      * Shift frame by delta in base pairs
      * @param delta
      */
-    shift(delta) {
+    shift(delta: number): void {
         this.start += delta
         this.end += delta
     }
@@ -79,7 +113,7 @@ class ReferenceFrame {
      * @param clamp -- if true "clamp" shift to prevent panning off edge of chromosome.  This is disabled if "show soft clipping" is on
      * @param viewportWidth
      */
-    shiftPixels(pixels, viewportWidth, clamp) {
+    shiftPixels(pixels: number, viewportWidth: number, clamp: boolean): boolean {
 
         const currentStart = this.start
         const deltaBP = pixels * this.bpPerPixel
@@ -95,7 +129,7 @@ class ReferenceFrame {
         return currentStart !== this.start
     }
 
-    clampStart(viewportWidth) {
+    clampStart(viewportWidth?: number): void {
         // clamp left
         const min = (this.genome.getChromosome(this.chr).bpStart || 0)
         this.start = Math.max(min, this.start)
@@ -112,7 +146,7 @@ class ReferenceFrame {
         }
     }
 
-    async zoomWithScaleFactor(browser, scaleFactor, viewportWidth, centerBPOrUndefined) {
+    async zoomWithScaleFactor(browser: any, scaleFactor: number, viewportWidth: number, centerBPOrUndefined?: number): Promise<void> {
 
         const centerBP = undefined === centerBPOrUndefined ? (this.start + this.toBP(viewportWidth / 2.0)) : centerBPOrUndefined
 
@@ -143,7 +177,7 @@ class ReferenceFrame {
 
     }
 
-    getChromosome() {
+    getChromosome(): any {
         return this.genome.getChromosome(this.chr)
     }
 
@@ -151,7 +185,7 @@ class ReferenceFrame {
      * Update reference frame based on new viewport width
      * @param {number} viewportWidth - The calculated viewport width
      */
-    updateForViewportWidth(viewportWidth) {
+    updateForViewportWidth(viewportWidth: number): void {
         const {chr} = this
         const {bpLength} = this.getChromosome()
         const viewportWidthBP = this.toBP(viewportWidth)
@@ -164,30 +198,28 @@ class ReferenceFrame {
         }
     }
 
-    getMultiLocusLabelBPLengthOnly(pixels) {
+    getMultiLocusLabelBPLengthOnly(pixels: number): string {
         const margin = '&nbsp'
-        const space = '&nbsp &nbsp'
         const ss = Math.floor(this.start) + 1
         const ee = Math.round(this.start + this.bpPerPixel * pixels)
         return `${margin}${this.chr}${margin}${prettyBasePairNumber(ee - ss)}${margin}`
     }
 
-    getMultiLocusLabelLocusOnly(pixels) {
+    getMultiLocusLabelLocusOnly(pixels: number): string {
         const margin = '&nbsp'
         const {chr, start, end} = this.getPresentationLocusComponents(pixels)
         return `${margin}${chr}:${start}-${end}${margin}`
     }
 
-    getMultiLocusLabel(pixels) {
+    getMultiLocusLabel(pixels: number): string {
         const margin = '&nbsp'
-        const space = '&nbsp &nbsp'
         const {chr, start, end} = this.getPresentationLocusComponents(pixels)
         const ss = Math.floor(this.start) + 1
         const ee = Math.round(this.start + this.bpPerPixel * pixels)
         return `${margin}${chr}:${start}-${end}${margin}${margin}(${prettyBasePairNumber(ee - ss)})${margin}`
     }
 
-    getPresentationLocusComponents(pixels) {
+    getPresentationLocusComponents(pixels: number): PresentationLocusComponents {
 
         if ('all' === this.chr) {
             return {chr: this.chr}
@@ -200,7 +232,7 @@ class ReferenceFrame {
 
     }
 
-    getLocusString() {
+    getLocusString(): string {
         if ('all' === this.chr) {
             return 'all'
         } else {
@@ -211,21 +243,21 @@ class ReferenceFrame {
         }
     }
 
-    description(blurb) {
+    description(blurb?: string): void {
         console.log(` ${blurb || ''} referenceFrame - ${this.chr} bpp ${this.bpPerPixel.toFixed(3)} start ${StringUtils.numberFormatter(Math.round(this.start))} end ${StringUtils.numberFormatter(Math.round(this.end))} `)
     }
 
-    overlaps(interval) {
+    overlaps(interval: Interval): boolean {
         return this.chr === interval.chr && this.end >= interval.start && interval.end >= this.start
     }
 
 }
 
-function createReferenceFrameList(loci, genome, browserFlanking, minimumBases, viewportWidth, isSoftclipped) {
+function createReferenceFrameList(loci: LocusLike[], genome: any, browserFlanking: number, minimumBases: number, viewportWidth: number, isSoftclipped: boolean): ReferenceFrame[] {
 
-    return loci.map(l => {
+    return loci.map((l: LocusLike): ReferenceFrame => {
 
-        let referenceFrame
+        let referenceFrame: ReferenceFrame
         if (l.bpPerPixel) {
             // This is an explicit locus with bpPerPixel defined, just use it.
             referenceFrame = new ReferenceFrame(

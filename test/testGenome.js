@@ -1,5 +1,5 @@
 import "./utils/mockObjects.js"
-import Genome from "../js/genome/genome.js"
+import Genome from "../js/genome/genome"
 import {updateReference} from "../js/genome/updateReference.js"
 import {assert} from 'chai'
 import {shortenChromsomeName} from "../js/rulerTrack.js"

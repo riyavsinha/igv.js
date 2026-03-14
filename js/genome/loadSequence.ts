@@ -1,20 +1,21 @@
-import NonIndexedFasta from "./nonIndexedFasta.js"
-import FastaSequence from "./indexedFasta.js"
-import {isDataURL} from "../util/igvUtils.js"
+import NonIndexedFasta from "./nonIndexedFasta"
+import FastaSequence from "./indexedFasta"
+import {isDataURL} from "../util/igvUtils"
 import ChromSizes from "./chromSizes"
-import Twobit from "./twobit.js"
-import CachedSequence from "./cachedSequence.js"
+import Twobit from "./twobit"
+import CachedSequence from "./cachedSequence"
 
 /**
  * Create a sequence object.  The referenced object can include multiple sequence references, in particular
  * fasta and 2bit URLs.  This is for backward compatibility, the 2bit URL has preference.
  *
  * @param reference
+ * @param browser
  * @returns {Promise<CachedSequence|ChromSizes|NonIndexedFasta>}
  */
-async function loadSequence(reference, browser) {
+async function loadSequence(reference: any, browser?: any): Promise<any> {
 
-    let fasta
+    let fasta: any
     if ("chromsizes" === reference.format) {
         fasta = new ChromSizes(reference.fastaURL || reference.url)
     } else if ("2bit" === reference.format || reference.twoBitURL) {

@@ -3,7 +3,7 @@ import {createSupplementaryAlignments} from "./supplementaryAlignment.js"
 import {byteToUnsignedInt, getBaseModificationSets} from "./mods/baseModificationUtils.js"
 import orientationTypes from "./orientationTypes.js"
 import {HGVS} from "../genome/hgvs.js"
-import {ClinVar} from "../genome/clinVar.js"
+import {ClinVar} from "../genome/clinVar"
 
 
 const READ_PAIRED_FLAG = 0x1

@@ -3,7 +3,7 @@ import { StringUtils } from '../../node_modules/igv-utils/src/index.js'
 
 import { createRegionKey, parseRegionKey } from './roiUtils.js'
 import RegionTableBase from '../ui/regionTableBase.js'
-import {parseLocusString} from "../search.js"
+import {parseLocusString} from "../search"
 import {appleCrayonRGB} from "../util/colorPalletes.js"
 
 class ROITable extends RegionTableBase {

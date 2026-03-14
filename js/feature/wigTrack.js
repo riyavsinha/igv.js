@@ -1,7 +1,7 @@
 import FeatureSource from './featureSource.js'
 import TDFSource from "../tdf/tdfSource.js"
 import TrackBase from "../trackBase.js"
-import BWSource from "../bigwig/bwSource.js"
+import BWSource from "../bigwig/bwSource"
 import IGVGraphics from "../igv-canvas.js"
 import paintAxis from "../util/paintAxis.js"
 import {IGVColor, StringUtils} from "../../node_modules/igv-utils/src/index.js"

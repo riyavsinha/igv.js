@@ -2,18 +2,36 @@
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import GenomicInterval from "./genomicInterval"
 import Chromosome from "./chromosome"
-import {buildOptions} from "../util/igvUtils.js"
+import {buildOptions} from "../util/igvUtils"
 
-const splitLines = StringUtils.splitLines
+const splitLines: (text: string) => string[] = StringUtils.splitLines
 
 const reservedProperties = new Set(['fastaURL', 'indexURL', 'compressedIndexURL', 'cytobandURL', 'indexed'])
 
+interface FastaIndexEntry {
+    size: number
+    position: number
+    basesPerLine: number
+    bytesPerLine: number
+}
+
+interface FastaIndex {
+    [chr: string]: FastaIndexEntry | null
+}
+
 class FastaSequence {
 
-    #chromosomeNames
-    chromosomes = new Map()
+    #chromosomeNames: string[] | undefined
+    chromosomes: Map<string, Chromosome> = new Map()
+    file: string
+    indexFile: string
+    compressedIndexFile: string | undefined
+    withCredentials: boolean | undefined
+    config: Record<string, any>
+    index: FastaIndex | undefined
+    compressedIndex: number[][] | undefined
 
-    constructor(reference) {
+    constructor(reference: any) {
 
         this.file = reference.fastaURL
         this.indexFile = reference.indexURL
@@ -22,7 +40,7 @@ class FastaSequence {
 
 
         // Build a track-like config object from the referenceObject
-        const config = {}
+        const config: Record<string, any> = {}
         for (let key in reference) {
             if (reference.hasOwnProperty(key) && !reservedProperties.has(key)) {
                 config[key] = reference[key]
@@ -31,50 +49,50 @@ class FastaSequence {
         this.config = config
     }
 
-    getSequenceRecord(chr) {
+    getSequenceRecord(chr: string): Chromosome | undefined {
         return this.chromosomes.get(chr)
     }
 
-    async init() {
+    async init(): Promise<FastaIndex> {
         return this.getIndex()
     }
 
-    get chromosomeNames() {
+    get chromosomeNames(): string[] {
         if(!this.#chromosomeNames) {
             this.#chromosomeNames = Array.from(this.chromosomes.keys())
         }
         return this.#chromosomeNames
     }
 
-    getFirstChromosomeName() {
+    getFirstChromosomeName(): string {
         return this.chromosomeNames[0]
     }
 
-    async getIndex() {
+    async getIndex(): Promise<FastaIndex> {
 
         if (this.index) {
             return this.index
         } else {
-            const data = await igvxhr.load(this.indexFile, buildOptions(this.config))
-            const lines = splitLines(data)
-            const len = lines.length
+            const data: string = await igvxhr.load(this.indexFile, buildOptions(this.config))
+            const lines: string[] = splitLines(data)
+            const len: number = lines.length
             let lineNo = 0
             let order = 0
             this.index = {}
 
             while (lineNo < len) {
-                const tokens = lines[lineNo++].split("\t")
-                const nTokens = tokens.length
+                const tokens: string[] = lines[lineNo++].split("\t")
+                const nTokens: number = tokens.length
 
                 if (nTokens === 5) {
                     // Parse the index line.
-                    const chr = tokens[0]
-                    const size = parseInt(tokens[1])
-                    const position = parseInt(tokens[2])
-                    const basesPerLine = parseInt(tokens[3])
-                    const bytesPerLine = parseInt(tokens[4])
+                    const chr: string = tokens[0]
+                    const size: number = parseInt(tokens[1])
+                    const position: number = parseInt(tokens[2])
+                    const basesPerLine: number = parseInt(tokens[3])
+                    const bytesPerLine: number = parseInt(tokens[4])
 
-                    const indexEntry = {
+                    const indexEntry: FastaIndexEntry = {
                         size: size,
                         position: position,
                         basesPerLine: basesPerLine,
@@ -95,7 +113,7 @@ class FastaSequence {
     //Additionally, replaced calls to the Long.js interface with standard JS calls for ArrayBuffers and the associated views
     //
     //The compressed index is an array of blocks, with each block being a pair: compressed-position & uncompressed-position (both in bytes)
-    async getCompressedIndex() {
+    async getCompressedIndex(): Promise<number[][]> {
         const GZI_NUM_BYTES_OFFSET = 8
         const GZI_NUM_BYTES_BLOCK = 8
         if (this.compressedIndex) {
@@ -108,15 +126,15 @@ class FastaSequence {
         //In contrast to the 'normal' reference (for which the index is chromosome based), this index is block-based
         //As such there is not need to make it a hash. An array is sufficient.
         this.compressedIndex = []
-        const gziData = await igvxhr.loadArrayBuffer(this.compressedIndexFile, buildOptions(this.config))
-        const givenFileSize = gziData.byteLength
+        const gziData: ArrayBuffer = await igvxhr.loadArrayBuffer(this.compressedIndexFile, buildOptions(this.config))
+        const givenFileSize: number = gziData.byteLength
         if (givenFileSize < GZI_NUM_BYTES_OFFSET) {
             console.log("Cannot parse GZI index file: length (" + givenFileSize + " bytes) is insufficient to determine content of index.")
             return this.compressedIndex
         }
         //First 8 bytes are a little endian unsigned bigint (64bit), indicating the number of blocks in the index.
-        const numBlocksBuffer = gziData.slice(0, GZI_NUM_BYTES_OFFSET)
-        const numBlocks = Number((new DataView(numBlocksBuffer)).getBigUint64(0, true))
+        const numBlocksBuffer: ArrayBuffer = gziData.slice(0, GZI_NUM_BYTES_OFFSET)
+        const numBlocks: number = Number((new DataView(numBlocksBuffer)).getBigUint64(0, true))
         //The remainder of the gzi content are pairs of little endian unsigned bigint (64bit) numbers.
         //The first of the pair is the compressed position of a block
         //The second of the pair is the uncompressed position of a block
@@ -125,7 +143,7 @@ class FastaSequence {
         //Is the size of the array-buffer (of the entire file) correct with regards to the number of blocks detailled by the first 8 bytes of the file?
         //Total file-size should be:
         // 8 + 2*(num_entries*8) bytes, with the first 8 bytes indicating the number of entries
-        const expectedFileSize = GZI_NUM_BYTES_OFFSET + numBlocks * 2 * GZI_NUM_BYTES_BLOCK
+        const expectedFileSize: number = GZI_NUM_BYTES_OFFSET + numBlocks * 2 * GZI_NUM_BYTES_BLOCK
         if (givenFileSize != expectedFileSize) {
             console.log("Incorrect file size of reference genome index. Expected : " + expectedFileSize + ". Received : " + givenFileSize)
             return this.compressedIndex
@@ -136,12 +154,12 @@ class FastaSequence {
 
         //Further process all the blocks of the GZI index, and keep them in memory
         for (let blockNumber = 0; blockNumber < numBlocks; blockNumber++) {
-            const bufferBlockStart = GZI_NUM_BYTES_OFFSET + blockNumber * 2 * GZI_NUM_BYTES_BLOCK
-            const bufferBlockEnd = GZI_NUM_BYTES_OFFSET + blockNumber * 2 * GZI_NUM_BYTES_BLOCK + 2 * GZI_NUM_BYTES_BLOCK
-            const bufferBlock = gziData.slice(bufferBlockStart, bufferBlockEnd)
-            const viewBlock = new DataView(bufferBlock)
-            const compressedPosition = Number(viewBlock.getBigUint64(0, true))  //First 8 bytes
-            const uncompressedPosition = Number(viewBlock.getBigUint64(GZI_NUM_BYTES_BLOCK, true)) //Last 8 bytes
+            const bufferBlockStart: number = GZI_NUM_BYTES_OFFSET + blockNumber * 2 * GZI_NUM_BYTES_BLOCK
+            const bufferBlockEnd: number = GZI_NUM_BYTES_OFFSET + blockNumber * 2 * GZI_NUM_BYTES_BLOCK + 2 * GZI_NUM_BYTES_BLOCK
+            const bufferBlock: ArrayBuffer = gziData.slice(bufferBlockStart, bufferBlockEnd)
+            const viewBlock: DataView = new DataView(bufferBlock)
+            const compressedPosition: number = Number(viewBlock.getBigUint64(0, true))  //First 8 bytes
+            const uncompressedPosition: number = Number(viewBlock.getBigUint64(GZI_NUM_BYTES_BLOCK, true)) //Last 8 bytes
             this.compressedIndex.push([compressedPosition, uncompressedPosition])
         }
         return this.compressedIndex
@@ -149,11 +167,11 @@ class FastaSequence {
 
     //The Fasta-index gives a byte-position of the chromosomal sequences within the FASTA file.
     //These locations need to be remapped to the locations within the zipped reference genome, using the GZI index
-    //This function provides this functionality by 
+    //This function provides this functionality by
     //1) taking the indicated start/stop byte locations within the UNCOMPRESSED FASTA file
     //2) remapping these byte locations to the correct blocks (and associated positions) within the COMPRESSED FASTA file
     //Subsequently, the calling method can then extract the correct blocks from the compressed FASTA files and uncompressed the data
-    async getRelevantCompressedBlockNumbers(queryPositionStart, queryPositionEnd) {
+    async getRelevantCompressedBlockNumbers(queryPositionStart: number, queryPositionEnd: number): Promise<number[]> {
         const COMPRESSED_POSITION = 0
         const UNCOMPRESSED_POSITION = 1
         //Fallback for impossible values
@@ -163,33 +181,33 @@ class FastaSequence {
         }
         //Ensure compressed index is loaded
         await this.getCompressedIndex()
-        let result = []
+        let result: number[] = []
         //Now search for the correct block-numbers (going from 0 to length(compressed-index)) which overlap with the provided byte-positions
         const lowestBlockNumber = 0
-        const highestBlockNumber = this.compressedIndex.length - 1
+        const highestBlockNumber: number = this.compressedIndex!.length - 1
         //Failsafe if for some reason the compressed index wasn't loaded or doesn't contain any data
-        if (this.compressedIndex.length == 0) {
+        if (this.compressedIndex!.length == 0) {
             console.log("Compressed index does not contain any content")
             return []
         }
         //Failsafe: if the queryPositionStart is greater than the uncompressed-position of the final block,
         //then this final block is the only possible result
-        if (queryPositionStart > (this.compressedIndex)[highestBlockNumber][UNCOMPRESSED_POSITION]) {
+        if (queryPositionStart > (this.compressedIndex!)[highestBlockNumber][UNCOMPRESSED_POSITION]) {
             return [highestBlockNumber]
         }
 
         //Rather than doing a linear search over all blocks, a binary search is done for speed considerations
         //We are searching for the highest block number for which its position is smaller than the query start position
         //Afterwards we will simply expand the blocks until the entire query range is covered
-        let searchLow = lowestBlockNumber
-        let searchHigh = highestBlockNumber
-        let searchPosition = Math.floor(this.compressedIndex.length / 2)
-        let maxIterations = this.compressedIndex.length + 1
+        let searchLow: number = lowestBlockNumber
+        let searchHigh: number = highestBlockNumber
+        let searchPosition: number = Math.floor(this.compressedIndex!.length / 2)
+        let maxIterations: number = this.compressedIndex!.length + 1
         let solutionFound = false
         //instead of doing a while(true), this for-loop prevents eternal loops in case of issues
         for (let iteration = 0; iteration < maxIterations; iteration++) {
-            const searchUncompressedPosition = (this.compressedIndex)[searchPosition][UNCOMPRESSED_POSITION]
-            const nextSearchUncompressedPosition = (searchPosition < (this.compressedIndex.length - 1)) ? (this.compressedIndex)[searchPosition + 1][UNCOMPRESSED_POSITION] : Infinity
+            const searchUncompressedPosition: number = (this.compressedIndex!)[searchPosition][UNCOMPRESSED_POSITION]
+            const nextSearchUncompressedPosition: number = (searchPosition < (this.compressedIndex!.length - 1)) ? (this.compressedIndex!)[searchPosition + 1][UNCOMPRESSED_POSITION] : Infinity
             //The query position lies within the current search block
             if (searchUncompressedPosition <= queryPositionStart && nextSearchUncompressedPosition > queryPositionStart) {
                 solutionFound = true
@@ -214,9 +232,9 @@ class FastaSequence {
 
         //Now extend the result by adding additional blocks until the entire query range is covered
         result.push(searchPosition)
-        for (let blockIndex = searchPosition + 1; blockIndex < this.compressedIndex.length; blockIndex++) {
+        for (let blockIndex = searchPosition + 1; blockIndex < this.compressedIndex!.length; blockIndex++) {
             result.push(blockIndex)
-            const blockUncompressedPosition = (this.compressedIndex)[blockIndex][UNCOMPRESSED_POSITION]
+            const blockUncompressedPosition: number = (this.compressedIndex!)[blockIndex][UNCOMPRESSED_POSITION]
             if (blockUncompressedPosition >= queryPositionEnd) {
                 break
             }
@@ -224,10 +242,10 @@ class FastaSequence {
 
         //It is possible that the query end position lies AFTER the start of the final block
         //If this is the case, we add a 'fake' negative index which will be interpreted by the loadAndUncompressBlocks method as an indicator
-        //to read until the end of the file 
-        const finalRelevantBlock = result[result.length - 1]
-        const finalIndexBlock = this.compressedIndex.length - 1
-        if (finalRelevantBlock === finalIndexBlock && (this.compressedIndex)[finalRelevantBlock][UNCOMPRESSED_POSITION] < queryPositionEnd) {
+        //to read until the end of the file
+        const finalRelevantBlock: number = result[result.length - 1]
+        const finalIndexBlock: number = this.compressedIndex!.length - 1
+        if (finalRelevantBlock === finalIndexBlock && (this.compressedIndex!)[finalRelevantBlock][UNCOMPRESSED_POSITION] < queryPositionEnd) {
             result.push(-1)
         }
 
@@ -238,7 +256,7 @@ class FastaSequence {
     //Load the content from the blockIndices.
     //This is done on a per-block basis
     //Content of the first block will be trimmed in order to match the expected offset
-    async loadAndUncompressBlocks(blockIndices, startByte) {
+    async loadAndUncompressBlocks(blockIndices: number[], startByte: number): Promise<string> {
         const COMPRESSED_POSITION = 0
         const UNCOMPRESSED_POSITION = 1
         //Normally the compressed index should already exist, we're just makeing sure here
@@ -249,18 +267,18 @@ class FastaSequence {
         }
 
         //Storing data in seperate array with indices in order to assert order due to async behaviour of loops
-        let resultCache = Array(blockIndices.length - 1)
+        let resultCache: Uint8Array[] = Array(blockIndices.length - 1)
         for (let i = 0; i < blockIndices.length - 1; i++) {
-            const currentBlockNumber = blockIndices[i]
-            const currentBlockInfo = (this.compressedIndex)[currentBlockNumber]
-            const currentBlockCompressedPosition = currentBlockInfo[COMPRESSED_POSITION]
+            const currentBlockNumber: number = blockIndices[i]
+            const currentBlockInfo: number[] = (this.compressedIndex!)[currentBlockNumber]
+            const currentBlockCompressedPosition: number = currentBlockInfo[COMPRESSED_POSITION]
 
-            const nextBlockNumber = blockIndices[i + 1]
-            let compressedBytes = []
+            const nextBlockNumber: number = blockIndices[i + 1]
+            let compressedBytes: ArrayBuffer
             if (nextBlockNumber != -1) {  //default : read current entire block only
-                const nextBlockInfo = (this.compressedIndex)[nextBlockNumber]
-                const nextBlockCompressedPosition = nextBlockInfo[COMPRESSED_POSITION]
-                const compressedLength = nextBlockCompressedPosition - currentBlockCompressedPosition
+                const nextBlockInfo: number[] = (this.compressedIndex!)[nextBlockNumber]
+                const nextBlockCompressedPosition: number = nextBlockInfo[COMPRESSED_POSITION]
+                const compressedLength: number = nextBlockCompressedPosition - currentBlockCompressedPosition
                 compressedBytes = await igvxhr.loadArrayBuffer(this.file, buildOptions(this.config, {
                     range: {
                         start: currentBlockCompressedPosition,
@@ -275,7 +293,7 @@ class FastaSequence {
                 }))
             }
             //now unzip the compressed bytes, and store them in the resultCache
-            const uncompressedBytes = await BGZip.unbgzf(compressedBytes)
+            const uncompressedBytes: Uint8Array = await BGZip.unbgzf(compressedBytes)
             resultCache[i] = uncompressedBytes
         }
 
@@ -283,50 +301,50 @@ class FastaSequence {
         let result = ""
         for (let i = 0; i < resultCache.length; i++) {
             for (let j = 0; j < resultCache[i].length; j++) {
-                const c = String.fromCharCode(resultCache[i][j])
+                const c: string = String.fromCharCode(resultCache[i][j])
                 result = result + c
             }
         }
 
-        //postprocess this data: because entire blocks are read we need to remove the first N bases of the first used block, 
+        //postprocess this data: because entire blocks are read we need to remove the first N bases of the first used block,
         //which are not included in the original query positions
-        const firstBlockInfo = (this.compressedIndex)[blockIndices[0]]
-        const offset = startByte - firstBlockInfo[UNCOMPRESSED_POSITION]
+        const firstBlockInfo: number[] = (this.compressedIndex!)[blockIndices[0]]
+        const offset: number = startByte - firstBlockInfo[UNCOMPRESSED_POSITION]
         result = result.substring(offset)
 
         return result
     }
 
 
-    async readSequence(chr, qstart, qend) {
+    async readSequence(chr: string, qstart: number, qend: number): Promise<string | null> {
 
         await this.getIndex()
         await this.getCompressedIndex() //This will work even if no compressed index file is set
 
-        const idxEntry = this.index[chr]
+        const idxEntry: FastaIndexEntry | null | undefined = this.index![chr]
         if (!idxEntry) {
             console.log("No index entry for chr: " + chr)
             // Tag interval with null so we don't try again
             // this.interval = new GenomicInterval(chr, qstart, qend, null)
-            this.index[chr] = null
+            this.index![chr] = null
             return null
         }
 
-        const start = Math.max(0, qstart)    // qstart should never be < 0
-        const end = Math.min(idxEntry.size, qend)
-        const bytesPerLine = idxEntry.bytesPerLine
-        const basesPerLine = idxEntry.basesPerLine
-        const position = idxEntry.position
-        const nEndBytes = bytesPerLine - basesPerLine
-        const startLine = Math.floor(start / basesPerLine)
-        const endLine = Math.floor(end / basesPerLine)
-        const base0 = startLine * basesPerLine   // Base at beginning of start line
-        const offset = start - base0
-        const startByte = position + startLine * bytesPerLine + offset
-        const base1 = endLine * basesPerLine
-        const offset1 = end - base1
-        const endByte = position + endLine * bytesPerLine + offset1 - 1
-        const byteCount = endByte - startByte + 1
+        const start: number = Math.max(0, qstart)    // qstart should never be < 0
+        const end: number = Math.min(idxEntry.size, qend)
+        const bytesPerLine: number = idxEntry.bytesPerLine
+        const basesPerLine: number = idxEntry.basesPerLine
+        const position: number = idxEntry.position
+        const nEndBytes: number = bytesPerLine - basesPerLine
+        const startLine: number = Math.floor(start / basesPerLine)
+        const endLine: number = Math.floor(end / basesPerLine)
+        const base0: number = startLine * basesPerLine   // Base at beginning of start line
+        const offset: number = start - base0
+        const startByte: number = position + startLine * bytesPerLine + offset
+        const base1: number = endLine * basesPerLine
+        const offset1: number = end - base1
+        const endByte: number = position + endLine * bytesPerLine + offset1 - 1
+        const byteCount: number = endByte - startByte + 1
 
         if (byteCount <= 0) {
             console.error("No sequence for " + chr + ":" + qstart + "-" + qend)
@@ -337,7 +355,7 @@ class FastaSequence {
         //The selection of startByte/endByte is done for the non-compressed genome sequence.
         //These need to be 'converted' to the correct byte positions in the compressed genome sequence,
         //by making use of the compressed index (GZI file)
-        let allBytes
+        let allBytes: string
         if (!this.compressedIndexFile) {
             allBytes = await igvxhr.load(this.file, buildOptions(this.config, {
                 range: {
@@ -346,7 +364,7 @@ class FastaSequence {
                 }
             }))
         } else {
-            let relevantBlockIndices = await this.getRelevantCompressedBlockNumbers(startByte, endByte)
+            let relevantBlockIndices: number[] = await this.getRelevantCompressedBlockNumbers(startByte, endByte)
             if (relevantBlockIndices.length === 0) {
                 console.log("No blocks in the compressed index that correspond with the requested byte positions (" + startByte + "," + endByte + ")")
                 return null
@@ -358,11 +376,11 @@ class FastaSequence {
             return null
         }
 
-        let nBases,
+        let nBases: number,
             seqBytes = "",
             srcPos = 0,
             desPos = 0,
-            allBytesLength = allBytes.length
+            allBytesLength: number = allBytes.length
 
         if (offset > 0) {
             nBases = Math.min(end - start, basesPerLine - offset)
@@ -384,5 +402,3 @@ class FastaSequence {
 }
 
 export default FastaSequence
-
-

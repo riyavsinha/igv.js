@@ -770,59 +770,65 @@ For each file in this phase:
 
 ---
 
-## 7. Phase 3: Genome, Sequence & Data Infrastructure
+## 7. Phase 3: Genome, Sequence & Data Infrastructure — STATUS: DONE
 
-**~25 files, ~6,000 LOC**
+**20 files converted, ~5,000 LOC**
 
-### Subphase 3a: Sequence readers
-
-| File | Notes |
-|------|-------|
-| `js/genome/indexedFasta.js` | Indexed FASTA reader |
-| `js/genome/nonIndexedFasta.js` | Non-indexed FASTA reader |
-| `js/genome/loadSequence.js` | Sequence loading factory |
-| `js/genome/twobit.js` | 2bit format reader |
-| `js/genome/cachedSequence.js` | Sequence caching layer |
-
-### Subphase 3b: Genome utility files
+### Subphase 3a: Sequence readers — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/genome/hgvs.js` | HGVS notation support |
-| `js/genome/clinVar.js` | ClinVar integration |
-| `js/genome/updateReference.js` | Reference genome updates |
+| `js/genome/indexedFasta.ts` | Added `FastaIndexEntry`/`FastaIndex` interfaces; typed binary parsing |
+| `js/genome/nonIndexedFasta.ts` | Added `FastaHeaderRecord` interface; typed `SequenceSlice` nested class |
+| `js/genome/loadSequence.ts` | Factory function returning polymorphic sequence readers |
+| `js/genome/twobit.ts` | Added `TwobitIndex`/`SequenceRecordMeta` interfaces; typed `Block` class |
+| `js/genome/cachedSequence.ts` | Added `SequenceReader` interface; **bug fix**: `contains()` → `containsRange()` |
 
-### Subphase 3c: Core Genome class
-
-| File | Notes |
-|------|-------|
-| `js/genome/genome.js` | Core Genome class (depends on all genome/ files) |
-| `js/genome/genomeUtils.js` | Genome utility functions |
-
-### Subphase 3d: Navigation infrastructure
+### Subphase 3b: Genome utility files — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/referenceFrame.js` | Genomic coordinate ↔ pixel mapping |
-| `js/intervalTree.js` | Interval tree data structure |
-| `js/search.js` | Feature search by name/locus |
-| `js/searchFeatures.js` | Feature search helpers |
+| `js/genome/hgvs.ts` | Added `SearchResult` interface; 598 LOC typed with `any` for browser/genome |
+| `js/genome/clinVar.ts` | Added `ESearchResult`/`ESearchResponse` interfaces |
+| `js/genome/updateReference.ts` | Added `Reference`/`ReferenceUpdate` interfaces |
 
-### Subphase 3e: BigWig/BigBed data access
-
-All 11 files in `js/bigwig/`:
+### Subphase 3c: Core Genome class — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `bwReader.js` | BigWig/BigBed file reader |
-| `bwSource.js` | BigWig data source |
-| `bpTree.js` | B+ tree index |
-| `rpTree.js` | R tree index |
-| `chromTree.js` | Chromosome tree |
-| `bbDecoders.js` | BigBed field decoders |
-| `bufferedReader.js` | Buffered binary reader |
-| `trix.js` | TRIX text index |
-| etc. | |
+| `js/genome/genome.ts` | Added `ChromAliasSource`/`CytobandSource` interfaces; **fix**: `.call(this)` → `#private` method; typed all 20+ methods |
+| `js/genome/genomeUtils.ts` | Typed namespace object with `KNOWN_GENOMES`, `initializeGenomes`, `expandReference` |
+
+### Subphase 3d: Navigation infrastructure — STATUS: DONE
+
+| File | Notes |
+|------|-------|
+| `js/referenceFrame.ts` | Added `LocusLike`/`ReferenceFrameJSON`/`PresentationLocusComponents` interfaces |
+| `js/intervalTree.ts` | Already converted in Phase 1c |
+| `js/search.ts` | Added `LocusObject` interface; **bug fix**: `extent` → `locusObject.start`; **fix**: `replaceAll` → `replace` |
+| `js/searchFeatures.ts` | Already converted in Phase 1c |
+
+### Subphase 3e: BigWig/BigBed data access — STATUS: DONE
+
+| File | Notes |
+|------|-------|
+| `js/bigwig/bwReader.ts` | 743 LOC; added `BBHeader`/`WigFeature`/`Loader` interfaces; typed all decoders |
+| `js/bigwig/bwSource.ts` | Added `GetFeaturesParams`/`CachedWGValues` interfaces |
+| `js/bigwig/bpTree.ts` | Added `BPTreeHeader`/`BPTreeNode`/`BPTreeLeafItemValue` interfaces |
+| `js/bigwig/rpTree.ts` | Added `RPTreeHeader`/`RPTreeItem`/`RPTreeNode` interfaces |
+| `js/bigwig/chromTree.ts` | **Bug fix**: incorrect `idToName.set()` args; added `RunningTotal` interface |
+| `js/bigwig/bbDecoders.ts` | Added `Feature`/`AutoSql`/`FeatureDecoder` types; **bug fix**: variable shadowing |
+| `js/bigwig/bufferedReader.ts` | Added `ByteRange` interface |
+| `js/bigwig/trix.ts` | Added `IndexEntry` tuple type |
+
+### Bugs found & fixed during Phase 3
+
+1. **Variable shadowing** (bbDecoders.ts) — inner `let i` shadowed outer loop variable
+2. **Incorrect cache population** (chromTree.ts) — `idToName.set(id, itemId)` wrong args
+3. **Wrong method call** (cachedSequence.ts) — `contains(interval)` should be `containsRange(interval)`
+4. **Undefined variable** (search.ts) — `extent.start` → `locusObject.start`
+5. **ES2020 incompatibility** (search.ts) — `replaceAll` not in target lib
+6. **`.call(this)` with private fields** (genome.ts) — converted to `#private` method
 
 ---
 

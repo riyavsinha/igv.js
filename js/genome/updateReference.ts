@@ -2,8 +2,24 @@
  * Update deprecated fasta & index urls in the reference object.
  */
 
-const isString = (x) => {
-    return (x && typeof x === "string") || x instanceof String
+interface ReferenceUpdate {
+    twoBitURL: string
+    twoBitBptURL?: string
+    chromSizesURL?: string
+}
+
+interface Reference {
+    id?: string
+    fastaURL?: string
+    indexURL?: string
+    twoBitURL?: string
+    twoBitBptURL?: string
+    chromSizesURL?: string
+    [key: string]: unknown
+}
+
+const isString = (x: unknown): x is string => {
+    return (typeof x === "string") || x instanceof String
 }
 
 /**
@@ -12,13 +28,13 @@ const isString = (x) => {
  *
  * @param reference
  */
-function updateReference(reference) {
+function updateReference(reference: Reference): void {
 
-    if (!(requiresUpdate(reference) && updates[reference.id])) {
+    if (!(requiresUpdate(reference) && updates[reference.id!])) {
         return
     }
 
-    const updatedReference = updates[reference.id]
+    const updatedReference: ReferenceUpdate = updates[reference.id!]
     if (updatedReference) {
         delete reference.fastaURL
         if (reference.indexURL) delete reference.indexURL
@@ -28,14 +44,14 @@ function updateReference(reference) {
     }
 }
 
-function requiresUpdate(reference) {
+function requiresUpdate(reference: Reference): boolean {
     return isString(reference.fastaURL) &&
         (reference.fastaURL.startsWith("https://igv.org") ||
             ["igv.org.genomes", "igv.broadinstitute.org", "igv.genepattern.org", "igvdata.broadinstitute.org",
-                "igv-genepattern-org"].some(bucket => reference.fastaURL.includes(bucket)))
+                "igv-genepattern-org"].some(bucket => reference.fastaURL!.includes(bucket)))
 }
 
-const updates = {
+const updates: Record<string, ReferenceUpdate> = {
     "hs1": {
         "twoBitURL": "https://hgdownload.soe.ucsc.edu/goldenPath/hs1/bigZips/hs1.2bit",
         "twoBitBptURL": "https://hgdownload.soe.ucsc.edu/goldenPath/hs1/bigZips/hs1.2bit.bpt",
@@ -182,4 +198,3 @@ const updates = {
 }
 
 export {updateReference}
-

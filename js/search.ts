@@ -1,6 +1,16 @@
 import {igvxhr, StringUtils} from "../node_modules/igv-utils/src/index.js"
-import {HGVS} from "./genome/hgvs.js"
-import {searchFeatures, searchWebService} from "./searchFeatures.js"
+import {HGVS} from "./genome/hgvs"
+import {searchFeatures, searchWebService} from "./searchFeatures"
+
+interface LocusObject {
+    chr: string
+    start?: number
+    end?: number
+    name?: string
+    locusSearchString?: string
+    gene?: string
+    snp?: string
+}
 
 /**
  * Return an object representing the locus of the given string.  Object is of the form
@@ -16,17 +26,17 @@ import {searchFeatures, searchWebService} from "./searchFeatures.js"
  * @param string
  * @returns {Promise<*>}
  */
-async function search(browser, string) {
+async function search(browser: any, string: string): Promise<LocusObject[] | undefined> {
 
     if (undefined === string || '' === string.trim()) {
         return
     }
 
-    const loci = string.split(' ')
+    const loci: string[] = string.split(' ')
 
-    let list = []
+    let list: LocusObject[] = []
 
-    const searchForLocus = async (locus) => {
+    const searchForLocus = async (locus: string): Promise<LocusObject | undefined> => {
 
         if (HGVS.isValidHGVS(locus)) {
             const hgvsResult = await HGVS.search(locus, browser)
@@ -44,8 +54,8 @@ async function search(browser, string) {
             }
         }
 
-        let locusObject
-        let chromosome
+        let locusObject: LocusObject | undefined
+        let chromosome: any
         if (locus.includes(":")) {
             locusObject = parseLocusString(locus, browser.isSoftclipped())
             if (locusObject) {
@@ -101,7 +111,7 @@ async function search(browser, string) {
 
     // If nothing is found, consider possibility that loci name itself has spaces
     if (list.length === 0) {
-        const locusObject = await searchForLocus(string.replaceAll(' ', '+'))
+        const locusObject = await searchForLocus(string.replace(/ /g, '+'))
         if (locusObject) {
             list.push(locusObject)
         }
@@ -117,16 +127,16 @@ async function search(browser, string) {
  * @param isSoftclipped
  * @returns {{start: number, end: number, chr: *}|undefined|{start: number, chr: *}}
  */
-function parseLocusString(locus, isSoftclipped = false) {
+function parseLocusString(locus: string, isSoftclipped: boolean = false): LocusObject | undefined {
 
     // Check for tab delimited locus string
-    const tabTokens = locus.split('\t')
+    const tabTokens: string[] = locus.split('\t')
     if (tabTokens.length > 2) {
         // Possibly a tab-delimited locus
         try {
-            const chr = tabTokens[0]//  browser.genome.getChromosomeName(tabTokens[0])
-            const start = parseInt(tabTokens[1].replace(/,/g, ''), 10) - 1
-            const end = parseInt(tabTokens[2].replace(/,/g, ''), 10)
+            const chr: string = tabTokens[0]//  browser.genome.getChromosomeName(tabTokens[0])
+            const start: number = parseInt(tabTokens[1].replace(/,/g, ''), 10) - 1
+            const end: number = parseInt(tabTokens[2].replace(/,/g, ''), 10)
             if (!isNaN(start) && !isNaN(end)) {
                 return {chr, start, end}
             }
@@ -135,18 +145,18 @@ function parseLocusString(locus, isSoftclipped = false) {
         }
     }
 
-    const a = locus.split(':')
-    const locusObject = {chr: a[0]}
+    const a: string[] = locus.split(':')
+    const locusObject: LocusObject = {chr: a[0]}
     if (a.length > 1) {
 
-        let b = a[1].split('-')
+        let b: string[] = a[1].split('-')
         if (b.length > 2) {
             // Allow for negative coordinates, which is possible if showing alignment soft clips
             if (a[1].startsWith('-')) {
-                const i = a[1].indexOf('-', 1)
+                const i: number = a[1].indexOf('-', 1)
                 if (i > 0) {
-                    const t1 = a[1].substring(0, i)
-                    const t2 = a[1].substring(i + 1)
+                    const t1: string = a[1].substring(0, i)
+                    const t2: string = a[1].substring(i + 1)
                     b = [t1, t2]
                 }
             } else {
@@ -154,9 +164,9 @@ function parseLocusString(locus, isSoftclipped = false) {
             }
         }
 
-        let numeric
+        let numeric: string
         numeric = b[0].replace(/,/g, '')
-        if (isNaN(numeric)) {
+        if (isNaN(numeric as any)) {
             return undefined
         }
 
@@ -171,17 +181,18 @@ function parseLocusString(locus, isSoftclipped = false) {
 
         if (2 === b.length) {
             numeric = b[1].replace(/,/g, '')
-            if (isNaN(numeric)) {
+            if (isNaN(numeric as any)) {
                 return undefined
             } else {
                 locusObject.end = parseInt(numeric, 10)
             }
 
+            // BUG: `extent` is not defined here -- should be `locusObject`
             // Allow negative coordinates only if browser is softclipped, i.e. there is at least alignment track with softclipping on
-            if (locusObject.start < 0 && !isSoftclipped) {
-                const delta = -extent.start
+            if (locusObject.start !== undefined && locusObject.start < 0 && !isSoftclipped) {
+                const delta: number = -locusObject.start
                 locusObject.start += delta
-                locusObject.end += delta
+                locusObject.end! += delta
             }
         }
     }
@@ -195,5 +206,3 @@ function parseLocusString(locus, isSoftclipped = false) {
 export {parseLocusString, searchWebService, searchFeatures}
 
 export default search
-
-

@@ -136,3 +136,42 @@ The `get chromosomeNames()` accessor computed `this.#chromosomeNames` but never 
 
 ### `js/genome/chromSizes.ts:7` — unused `reservedProperties` constant [FIXED]
 A `Set` of reserved property names was defined at module scope but never referenced. Removed.
+
+---
+
+## Phase 3 Bugs
+
+### `js/bigwig/bbDecoders.ts:56` — variable shadowing bug in exon frames [FIXED]
+Inner `for` loop reused `let i` variable from outer loop, shadowing the outer iteration variable. This meant the outer `i` (iterating autoSql fields) was overwritten by the inner exon iteration. Renamed inner variable to `j`.
+
+### `js/bigwig/chromTree.ts:96` — incorrect `idToName` cache population [FIXED]
+`searchForName()` had `this.idToName.set(id, itemId)` which stored a number as the value in a `Map<number, string>`. Should have been `this.idToName.set(itemId, key)` to correctly map chromosome ID → name. The cache was being populated with incorrect entries.
+
+### `js/genome/cachedSequence.ts` — `#trimCache` called `interval.contains(i)` with wrong args [FIXED]
+`GenomicInterval.contains()` expects 3 arguments `(chr, start, end)` but was being passed a single `SequenceInterval` object. The `start` and `end` params would be `undefined`, so the comparison always failed (cache never trimmed subsumed intervals). Fixed to use `interval.containsRange(i)`.
+
+### `js/search.ts:182` — `extent` is undefined (ReferenceError) [FIXED]
+`const delta = -extent.start` referenced an undeclared variable `extent`. Would throw `ReferenceError` at runtime if the code path was reached (negative coordinates with softclipping off). Fixed to `const delta = -locusObject.start`.
+
+### `js/search.ts` — `String.replaceAll` not in ES2020 target [FIXED]
+`string.replaceAll(' ', '+')` is not available in `ES2020` lib target. Changed to `string.replace(/ /g, '+')`.
+
+### `js/genome/genome.ts` — `computeCumulativeOffsets` used `.call(this)` with private fields [FIXED]
+A nested function used `.call(this, ...)` to access private `#wgChromosomeNames`. This is invalid in TypeScript (private fields are lexically scoped). Converted to a private class method `#computeCumulativeOffsets()`.
+
+### `js/genome/genome.ts` — `var` in `getGenomeCoordinate` [FIXED]
+Changed `var offset` to `const offset`.
+
+## Phase 3 Recommendations (not yet fixed)
+
+### `js/genome/indexedFasta.ts` — `desPos` variable assigned but never read
+In `readSequence()`, a variable `desPos` is incremented alongside `srcPos` but never used. Appears to be dead code from an older implementation.
+
+### `js/genome/indexedFasta.ts` — uses deprecated `String.prototype.substr()`
+Two instances of `.substr()` should be replaced with `.substring()`.
+
+### `js/bigwig/bwReader.ts` — unused variables `extensionSize` and `fieldId` in `loadExtendedHeader`
+Values read from binary parser but never used. Intentional to advance parser position, but could be replaced with explicit parser offset advancement.
+
+### `js/genome/genome.ts` — `isDigit()` function appears unused
+Defined but not called anywhere in the file. May be dead code.

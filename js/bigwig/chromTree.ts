@@ -1,12 +1,25 @@
-import BPTree from "./bpTree.js"
+import BPTree from "./bpTree"
+import type {BPTreeLeafItemValueChrom} from "./bpTree"
 
+interface RunningTotal {
+    total: number
+    count: number
+}
+
+interface Loader {
+    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+}
 
 export default class ChromTree {
 
-    nameToId = new Map()
-    idToName = new Map()
+    nameToId: Map<string, number> = new Map()
+    idToName: Map<number, string> = new Map()
+    path: string
+    config: object
+    startOffset: number
+    bpTree: BPTree
 
-    constructor(path, config, startOffset, loader) {
+    constructor(path: string, config: object, startOffset: number, loader?: Loader) {
         this.path = path
         this.config = config
         this.startOffset = startOffset
@@ -14,34 +27,34 @@ export default class ChromTree {
         this.bpTree = new BPTree(path, config, startOffset, 'BPChromTree', loader)
     }
 
-    async init() {
+    async init(): Promise<BPTree> {
         return this.bpTree.init()
     }
 
-    getItemCount() {
+    getItemCount(): number {
         return this.bpTree.getItemCount()
     }
 
     /**
      * Return the chromosome ID for the given name. This is the internal chromosome ID for the parent BB file only.
-     * @param {string} chr - The chromosome name.
-     * @returns {number|null} - The chromosome ID or null if not found.
+     * @param chr - The chromosome name.
+     * @returns The chromosome ID or undefined if not found.
      */
-    async getIdForName(chr) {
+    async getIdForName(chr: string): Promise<number | undefined> {
         if (this.nameToId.has(chr)) {
             return this.nameToId.get(chr)
         } else {
             try {
                 const result = await this.bpTree.search(chr)
                 if (result) {
-                    const id = result.id
+                    const id = (result as BPTreeLeafItemValueChrom).id
                     this.nameToId.set(chr, id)
                     return id
                 } else {
-                    return
+                    return undefined
                 }
             } catch (error) {
-                throw new Error(error)
+                throw new Error(String(error))
             }
         }
     }
@@ -52,12 +65,12 @@ export default class ChromTree {
      * situations:
      * (1) decoding features from a bigbed search-by-name query
      * (2) decoding bigwig data from the whole genome view
-     * @param {number} id
-     * @return {string|null}
+     * @param id
+     * @return The chromosome name or null if not found.
      */
-    async getNameForId(id) {
+    async getNameForId(id: number): Promise<string | null> {
         if (this.idToName.has(id)) {
-            return this.idToName.get(id)
+            return this.idToName.get(id)!
         } else {
             const name = await this.searchForName(id)
             if (name !== null) {
@@ -70,36 +83,36 @@ export default class ChromTree {
 
     /**
      * Perform a reverse search by traversing the tree starting at the given offset. This is potentially expensive
-     * as it traverses the tree to find the name corresponding to the given ID.  It shoud not be used for large trees.
+     * as it traverses the tree to find the name corresponding to the given ID.  It should not be used for large trees.
      *
-     * @param {number} id - The ID to search for.
-     * @returns {string|null} - The name corresponding to the ID, or null if not found.
+     * @param id - The ID to search for.
+     * @returns The name corresponding to the ID, or null if not found.
      */
-    async searchForName(id) {
+    async searchForName(id: number): Promise<string | null> {
 
-        const reverseSearch = async (offset, id) => {
+        const reverseSearch = async (offset: number, id: number): Promise<string | null> => {
 
             const node = await this.bpTree.readTreeNode(offset)
 
-            let found = null
+            let found: string | null = null
 
             if (node.type === 1) {
                 // Leaf node
                 for (const item of node.items) {
                     const key = item.key
-                    const itemId = item.value.id
+                    const itemId = (item as { key: string; value: BPTreeLeafItemValueChrom }).value.id
                     if (itemId === id) {
                         found = key
                     }
                     // Cache the name and ID for future lookups
                     this.nameToId.set(key, itemId)
-                    this.idToName.set(id, itemId)
+                    this.idToName.set(itemId, key)  // BUG FIX: was `this.idToName.set(id, itemId)` - should map itemId -> key
                 }
                 return found
             } else {
                 // Non-leaf node
                 for (const item of node.items) {
-                    found = await reverseSearch.call(this, item.offset, id)
+                    found = await reverseSearch((item as { key: string; offset: number }).offset, id)
                     if (found !== null) {
                         break
                     }
@@ -109,9 +122,9 @@ export default class ChromTree {
         }
 
         try {
-            return reverseSearch.call(this, this.startOffset + 32, id)
+            return reverseSearch(this.startOffset + 32, id)
         } catch (error) {
-            throw new Error(error)
+            throw new Error(String(error))
         }
     }
 
@@ -119,11 +132,11 @@ export default class ChromTree {
      * Return an estimated length of the genome, which might be the actual length if the number of contigs is small.
      * This is only used for calculating a default feature visibility window.
      *
-     * @return {number}
+     * @return Estimated genome size, or -1 on error.
      */
-    async estimateGenomeSize() {
+    async estimateGenomeSize(): Promise<number> {
         try {
-            const runningTotal = {total: 0, count: 0}
+            const runningTotal: RunningTotal = {total: 0, count: 0}
             await this.accumulateSize(this.startOffset + 32, runningTotal, 10000)
             const itemCount = this.getItemCount()
             return (itemCount / runningTotal.count) * runningTotal.total
@@ -134,14 +147,14 @@ export default class ChromTree {
         }
     }
 
-    async accumulateSize(offset, runningTotal, maxCount) {
+    async accumulateSize(offset: number, runningTotal: RunningTotal, maxCount: number): Promise<RunningTotal> {
 
         const node = await this.bpTree.readTreeNode(offset)
 
         if (node.type === 1) {
             // Leaf node
             for (const item of node.items) {
-                const value = item.value
+                const value = (item as { key: string; value: BPTreeLeafItemValueChrom }).value
                 runningTotal.total += value.size
                 runningTotal.count += 1
             }
@@ -149,7 +162,7 @@ export default class ChromTree {
             // Non-leaf node.  Items are visited in random order to avoid biasing the estimate
             const shuffledItems = node.items.slice().sort(() => Math.random() - 0.5)
             for (const item of shuffledItems) {
-                await this.accumulateSize(item.offset, runningTotal, maxCount)
+                await this.accumulateSize((item as { key: string; offset: number }).offset, runningTotal, maxCount)
                 if (runningTotal.count > maxCount) {
                     break
                 }

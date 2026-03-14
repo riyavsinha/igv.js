@@ -1,7 +1,7 @@
 import "./utils/mockObjects.js"
 import {HGVS} from "../js/genome/hgvs.js"
 import {assert} from 'chai'
-import Genome from "../js/genome/genome.js"
+import Genome from "../js/genome/genome"
 import {getTrack} from "../js/trackFactory.js"
 
 const genomeConfig = {

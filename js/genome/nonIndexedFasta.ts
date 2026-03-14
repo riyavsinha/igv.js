@@ -1,26 +1,36 @@
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import Chromosome from "./chromosome"
-import {buildOptions, isDataURL} from "../util/igvUtils.js"
+import {buildOptions, isDataURL} from "../util/igvUtils"
 import SequenceInterval from "./sequenceInterval"
 
-const splitLines = StringUtils.splitLines
+const splitLines: (text: string) => string[] = StringUtils.splitLines
 
 const reservedProperties = new Set(['fastaURL', 'indexURL', 'cytobandURL', 'indexed'])
 
+interface FastaHeaderRecord {
+    chr: string
+    seq: string
+    offset: number
+    length: number | undefined
+}
+
 class NonIndexedFasta {
 
-    #chromosomeNames
-    chromosomes = new Map()
-    sequences = new Map()
+    #chromosomeNames: string[] | undefined
+    chromosomes: Map<string, Chromosome> = new Map()
+    sequences: Map<string, SequenceSlice[]> = new Map()
+    fastaURL: string
+    withCredentials: boolean | undefined
+    config: Record<string, any>
 
-    constructor(reference) {
+    constructor(reference: any) {
 
         this.fastaURL = reference.fastaURL
         this.withCredentials = reference.withCredentials
 
 
         // Build a track-like config object from the referenceObject
-        const config = {}
+        const config: Record<string, any> = {}
         for (let key in reference) {
             if (reference.hasOwnProperty(key) && !reservedProperties.has(key)) {
                 config[key] = reference[key]
@@ -30,26 +40,26 @@ class NonIndexedFasta {
     }
 
 
-    async init() {
+    async init(): Promise<void> {
         return this.loadAll()
     }
 
-    getSequenceRecord(chr) {
+    getSequenceRecord(chr: string): Chromosome | undefined {
         return this.chromosomes.get(chr)
     }
 
-    get chromosomeNames() {
+    get chromosomeNames(): string[] {
         if (!this.#chromosomeNames) {
             this.#chromosomeNames = Array.from(this.chromosomes.keys())
         }
         return this.#chromosomeNames
     }
 
-    getFirstChromosomeName() {
+    getFirstChromosomeName(): string {
         return this.chromosomeNames[0]
     }
 
-    async getSequence(chr, start, end) {
+    async getSequence(chr: string, start: number, end: number): Promise<string | undefined> {
 
         if (this.sequences.size === 0) {
             await this.loadAll()
@@ -59,9 +69,9 @@ class NonIndexedFasta {
             return undefined
         }
 
-        let seqSlice = this.sequences.get(chr).find(ss => ss.contains(start, end))
+        let seqSlice: SequenceSlice | undefined = this.sequences.get(chr)!.find(ss => ss.contains(start, end))
         if (!seqSlice) {
-            seqSlice = this.sequences.get(chr).find(ss => ss.overlaps(start, end))
+            seqSlice = this.sequences.get(chr)!.find(ss => ss.overlaps(start, end))
             if (!seqSlice) {
                 return undefined
             }
@@ -81,30 +91,30 @@ class NonIndexedFasta {
             return prefix
         }
 
-        const seq = seqSlice.sequence
-        const seqEnd = Math.min(end, seq.length)
+        const seq: string = seqSlice.sequence
+        const seqEnd: number = Math.min(end, seq.length)
         return prefix + seq.substring(start, seqEnd)
     }
 
-    async loadAll() {
+    async loadAll(): Promise<void> {
 
 
-        const pushChromosome = (current, order) => {
-            const length = current.length || (current.offset + current.seq.length)
+        const pushChromosome = (current: FastaHeaderRecord, order: number): void => {
+            const length: number = current.length || (current.offset + current.seq.length)
             if (!chrNameSet.has(current.chr)) {
                 this.sequences.set(current.chr, [])
                 this.chromosomes.set(current.chr, new Chromosome(current.chr, order, length))
                 chrNameSet.add(current.chr)
             } else {
-                const c = this.chromosomes.get(current.chr)
+                const c: Chromosome = this.chromosomes.get(current.chr)!
                 c.bpLength = Math.max(c.bpLength, length)
             }
-            this.sequences.get(current.chr).push(new SequenceSlice(current.offset, current.seq))
+            this.sequences.get(current.chr)!.push(new SequenceSlice(current.offset, current.seq))
         }
 
-        let data
+        let data: string
         if (isDataURL(this.fastaURL)) {
-            let bytes = BGZip.decodeDataURI(this.fastaURL)
+            let bytes: Uint8Array = BGZip.decodeDataURI(this.fastaURL)
             data = ""
             for (let b of bytes) {
                 data += String.fromCharCode(b)
@@ -113,36 +123,36 @@ class NonIndexedFasta {
             data = await igvxhr.load(this.fastaURL, buildOptions(this.config))
         }
 
-        const chrNameSet = new Set()
-        const lines = splitLines(data)
+        const chrNameSet: Set<string> = new Set()
+        const lines: string[] = splitLines(data)
         let order = 0
-        let current = {}
+        let current: Partial<FastaHeaderRecord> = {}
         for (let nextLine of lines) {
             if (nextLine.startsWith("#") || nextLine.length === 0) {
                 // skip
             } else if (nextLine.startsWith(">")) {
                 // Start the next sequence
                 if (current.seq && current.seq.length > 0) {
-                    pushChromosome(current, order++)
+                    pushChromosome(current as FastaHeaderRecord, order++)
                 }
                 current.seq = ""
 
-                const parts = nextLine.substr(1).split(/\s+/)
+                const parts: string[] = nextLine.substr(1).split(/\s+/)
 
 
                 // Check for @len= token, which is a non-standard extension supporting igv-reports.
                 if (nextLine.includes("@len=")) {
-                    const nameParts = parts[0].split(':')
+                    const nameParts: string[] = parts[0].split(':')
                     current.chr = nameParts[0]
                     if (nameParts.length > 1 && nameParts[1].indexOf('-') > 0) {
 
-                        const locusParts = nameParts[1].split('-')
+                        const locusParts: string[] = nameParts[1].split('-')
                         if (locusParts.length === 2 &&
                             /^[0-9]+$/.test(locusParts[0]) &&
                             /^[0-9]+$/.test(locusParts[1])) {
                         }
-                        const from = Number.parseInt(locusParts[0])
-                        const to = Number.parseInt(locusParts[1])
+                        const from: number = Number.parseInt(locusParts[0])
+                        const to: number = Number.parseInt(locusParts[1])
                         current.offset = from - 1
 
                         // Check for chromosome length token
@@ -171,7 +181,7 @@ class NonIndexedFasta {
 
         // Handle the last sequence
         if (current.seq && current.seq.length > 0) {
-            pushChromosome(current, order)
+            pushChromosome(current as FastaHeaderRecord, order)
         }
 
     }
@@ -184,15 +194,15 @@ class NonIndexedFasta {
      * @param end
      * @returns a SequenceInterval or undefined
      */
-    getSequenceInterval(chr, start, end) {
+    getSequenceInterval(chr: string, start: number, end: number): SequenceInterval | undefined {
 
-        const slices = this.sequences.get(chr)
+        const slices: SequenceSlice[] | undefined = this.sequences.get(chr)
         if (!slices) return undefined
 
         for (let sequenceSlice of slices) {
-            const seq = sequenceSlice.sequence
-            const seqStart = sequenceSlice.offset
-            const seqEnd = seqStart + seq.length
+            const seq: string = sequenceSlice.sequence
+            const seqStart: number = sequenceSlice.offset
+            const seqEnd: number = seqStart + seq.length
 
             if (seqStart <= start && seqEnd >= end) {
                 return new SequenceInterval(chr, seqStart, seqEnd, seq)
@@ -206,20 +216,23 @@ class NonIndexedFasta {
 
 class SequenceSlice {
 
-    constructor(offset, sequence) {
+    offset: number
+    sequence: string
+
+    constructor(offset: number, sequence: string) {
         this.offset = offset
         this.sequence = sequence
     }
 
-    contains(start, end) {
+    contains(start: number, end: number): boolean {
         return this.offset <= start && this.end >= end
     }
 
-    overlaps(start, end) {
+    overlaps(start: number, end: number): boolean {
         return this.offset < end && this.end > start
     }
 
-    get end() {
+    get end(): number {
         return this.offset + this.sequence.length
     }
 

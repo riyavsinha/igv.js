@@ -1,7 +1,7 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"
-import search, {parseLocusString, searchWebService} from "../js/search.js"
+import search, {parseLocusString, searchWebService} from "../js/search"
 import FeatureSource from "../js/feature/featureSource.js"
 
 const genome = createGenome()

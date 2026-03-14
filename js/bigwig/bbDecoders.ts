@@ -1,12 +1,52 @@
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
 
-function getDecoder(definedFieldCount, fieldCount, autoSql, format) {
+interface Exon {
+    start: number
+    end: number
+    utr?: boolean
+    cdStart?: number
+    cdEnd?: number
+    readingFrame?: number
+}
+
+interface Feature {
+    start: number
+    end: number
+    name?: string
+    score?: number
+    strand?: string
+    cdStart?: number
+    cdEnd?: number
+    color?: string
+    exons?: Exon[]
+    chr1?: string
+    start1?: number
+    end1?: number
+    chr2?: string
+    start2?: number
+    end2?: number
+    value?: number
+    [key: string]: unknown
+}
+
+interface AutoSqlField {
+    name: string
+}
+
+interface AutoSql {
+    table: string
+    fields: AutoSqlField[]
+}
+
+type FeatureDecoder = (feature: Feature, tokens: string[]) => void
+
+function getDecoder(definedFieldCount: number, fieldCount: number, autoSql: AutoSql | undefined, format: string): FeatureDecoder | undefined {
 //biggenepred
     if ("biginteract" === format || (autoSql && ('chromatinInteract' === autoSql.table || 'interact' === autoSql.table))) {
         return decodeInteract
     } else {
-        const standardFieldCount = definedFieldCount - 3
-        return function (feature, tokens) {
+        const standardFieldCount: number = definedFieldCount - 3
+        return function (feature: Feature, tokens: string[]): void {
 
             if (standardFieldCount > 0) {
                 feature.name = tokens[0]
@@ -25,41 +65,41 @@ function getDecoder(definedFieldCount, fieldCount, autoSql, format) {
             }
             if (standardFieldCount > 5) {
                 if (tokens[5] !== "." && tokens[5] !== "0" && tokens[5] !== "-1") {
-                    const c = IGVColor.createColorString(tokens[5])
+                    const c: string = IGVColor.createColorString(tokens[5])
                     feature.color = c.startsWith("rgb") ? c : undefined
                 }
             }
             if (standardFieldCount > 8) {
-                const exonCount = parseInt(tokens[6])
-                const exonSizes = tokens[7].split(',')
-                const exonStarts = tokens[8].split(',')
-                const exons = []
+                const exonCount: number = parseInt(tokens[6])
+                const exonSizes: string[] = tokens[7].split(',')
+                const exonStarts: string[] = tokens[8].split(',')
+                const exons: Exon[] = []
                 for (let i = 0; i < exonCount; i++) {
-                    const eStart = feature.start + parseInt(exonStarts[i])
-                    const eEnd = eStart + parseInt(exonSizes[i])
+                    const eStart: number = feature.start + parseInt(exonStarts[i])
+                    const eEnd: number = eStart + parseInt(exonSizes[i])
                     exons.push({start: eStart, end: eEnd})
                 }
-                findUTRs(exons, feature.cdStart, feature.cdEnd)
+                findUTRs(exons, feature.cdStart!, feature.cdEnd!)
                 feature.exons = exons
             }
 
             if (autoSql) {
                 // TODO -- these should be equal, validate?  fieldCount-definedFieldCount, as.fields.length, tokens.length-3
-                const extraStart = definedFieldCount
+                const extraStart: number = definedFieldCount
                 for (let i = extraStart; i < fieldCount; i++) {
                     if (i < autoSql.fields.length) {
 
-                        const name = autoSql.fields[i].name
+                        const name: string = autoSql.fields[i].name
 
                         if (name === "exonFrames") {
-                            const frameOffsets = tokens[i - 3].replace(/,$/, '').split(',')
-                            for (let i = 0; i < feature.exons.length; i++) {
-                                const exon = feature.exons[i]
-                                const fo = parseInt(frameOffsets[i])
-                                if (fo != -1) exon.readingFrame = fo
+                            const frameOffsets: string[] = tokens[i - 3].replace(/,$/, '').split(',')
+                            for (let j = 0; j < feature.exons!.length; j++) {
+                                const exon: Exon = feature.exons![j]
+                                const fo: number = parseInt(frameOffsets[j])
+                                if (fo !== -1) exon.readingFrame = fo
                             }
                         } else {
-                            const value = tokens[i - 3]
+                            const value: string = tokens[i - 3]
                             feature[name] = value
                         }
                     }
@@ -90,7 +130,7 @@ function getDecoder(definedFieldCount, fieldCount, autoSql, format) {
 //     string region2Name; "Identifier of upper/this region"
 //     string region2Strand; "Orientation of upper/this region: + or -.  Use . if not applicable"
 //     )
-    function decodeInteract(feature, tokens) {
+    function decodeInteract(feature: Feature, tokens: string[]): void {
 
         feature.chr1 = tokens[5]
         feature.start1 = Number.parseInt(tokens[6])
@@ -104,17 +144,15 @@ function getDecoder(definedFieldCount, fieldCount, autoSql, format) {
         feature.score = Number(tokens[1])
         feature.value = Number(tokens[2])
         feature.color = tokens[4] === '.' ? undefined : tokens[4] === "0" ? "rgb(0,0,0)" : tokens[4]
-
-        return feature
     }
 
 }
 
-function findUTRs(exons, cdStart, cdEnd) {
+function findUTRs(exons: Exon[], cdStart: number, cdEnd: number): void {
 
     for (let exon of exons) {
-        const end = exon.end
-        const start = exon.start
+        const end: number = exon.end
+        const start: number = exon.start
         if (end < cdStart || start > cdEnd) {
             exon.utr = true
         } else {

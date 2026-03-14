@@ -1,7 +1,7 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
-import Trix from "../js/bigwig/trix.js"
-import BWReader from "../js/bigwig/bwReader.js"
+import Trix from "../js/bigwig/trix"
+import BWReader from "../js/bigwig/bwReader"
 
 suite("ucsc utilities", function () {
 

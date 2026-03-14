@@ -1,5 +1,5 @@
 import TextFeatureSource from "./textFeatureSource.js"
-import BWSource from "../bigwig/bwSource.js"
+import BWSource from "../bigwig/bwSource"
 import TDFSource from "../tdf/tdfSource.js"
 import StaticFeatureSource from "./staticFeatureSource.js"
 import GenbankFeatureSource from "../gbk/genbankFeatureSource.js"

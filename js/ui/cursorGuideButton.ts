@@ -1,5 +1,5 @@
 import NavbarButton from "./navbarButton.js"
-import GenomeUtils from "../genome/genomeUtils.js"
+import GenomeUtils from "../genome/genomeUtils"
 import {cursorImage, cursorImageHover} from "./navbarIcons/cursor.js"
 import { buttonLabel } from "./navbarIcons/buttonLabel.js"
 

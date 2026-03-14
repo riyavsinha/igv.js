@@ -1,6 +1,6 @@
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import Chromosome from "./chromosome"
-import {loadSequence} from "./loadSequence.js"
+import {loadSequence} from "./loadSequence"
 import ChromAliasBB from "./chromAliasBB"
 import ChromAliasFile from "./chromAliasFile"
 import CytobandFileBB from "./cytobandFileBB"
@@ -8,14 +8,32 @@ import CytobandFile from "./cytobandFile"
 
 import {loadChromSizes} from "./chromSizes"
 import ChromAliasDefaults from "./chromAliasDefaults"
-import {updateReference} from "./updateReference.js"
-import BWSource from "../bigwig/bwSource.js"
+import {updateReference} from "./updateReference"
+import BWSource from "../bigwig/bwSource"
+import {Cytoband} from "./cytoband"
 
-const ucsdIDMap = new Map([
+const ucsdIDMap: Map<string, string> = new Map([
     ["1kg_ref", "hg18"],
     ["1kg_v37", "hg19"],
     ["b37", "hg19"]
 ])
+
+/**
+ * Common interface for chromosome alias sources (ChromAliasBB, ChromAliasFile, ChromAliasDefaults).
+ */
+interface ChromAliasSource {
+    getChromosomeName(alias: string, keys?: IterableIterator<string>): string
+    getChromosomeAlias(chr: string, nameSet: string): string
+    search(alias: string): Record<string, string> | undefined | Promise<Record<string, string> | undefined>
+    preload(chrNames?: string[]): Promise<void> | void
+}
+
+/**
+ * Common interface for cytoband sources (CytobandFile, CytobandFileBB).
+ */
+interface CytobandSource {
+    getCytobands(chr: string): Promise<Cytoband[] | undefined>
+}
 
 /**
  * The Genome class represents an assembly and consists of the following elements
@@ -27,10 +45,28 @@ const ucsdIDMap = new Map([
 
 class Genome {
 
-    #wgChromosomeNames
-    #aliasRecordCache = new Map()
+    #wgChromosomeNames: string[] | undefined
+    #aliasRecordCache: Map<string, Record<string, string> | undefined> = new Map()
 
-    static async createGenome(options, browser) {
+    config: any
+    browser: any
+    id: string
+    ucscID: string
+    blatDB: string
+    name: string | undefined
+    nameSet: string | undefined
+    sequence: any
+    cytobandSource: CytobandSource | undefined
+    chromosomes!: Map<string, Chromosome>
+    chromosomeNames: string[] | undefined
+    chromAlias: ChromAliasSource | undefined
+    wholeGenomeView: boolean | undefined
+    cumulativeOffsets: Record<string, number> | undefined
+    bpLength: number | undefined
+    maneFeatureSource: BWSource | undefined
+    rsDBFeatureSource: BWSource | undefined
+
+    static async createGenome(options: any, browser: any): Promise<Genome> {
 
         updateReference(options)
         const genome = new Genome(options, browser)
@@ -38,7 +74,7 @@ class Genome {
         return genome
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         this.config = config
         this.browser = browser
         this.id = config.id || generateGenomeID(config)
@@ -49,7 +85,7 @@ class Genome {
     }
 
 
-    async init() {
+    async init(): Promise<void> {
 
         const config = this.config
 
@@ -97,35 +133,35 @@ class Genome {
                 if (Array.isArray(config.chromosomeOrder)) {
                     this.#wgChromosomeNames = config.chromosomeOrder
                 } else {
-                    this.#wgChromosomeNames = config.chromosomeOrder.split(',').map(nm => nm.trim())
+                    this.#wgChromosomeNames = config.chromosomeOrder.split(',').map((nm: string) => nm.trim())
                 }
                 // Trim to remove non-existent chromosomes
-                await this.chromAlias.preload(this.#wgChromosomeNames)
+                await this.chromAlias!.preload(this.#wgChromosomeNames!)
                 this.#wgChromosomeNames =
-                    this.#wgChromosomeNames.map(c => this.getChromosomeName(c)).filter(c => this.chromosomes.has(c))
+                    this.#wgChromosomeNames!.map((c: string) => this.getChromosomeName(c)).filter((c: string) => this.chromosomes.has(c))
             } else {
                 this.#wgChromosomeNames = trimSmallChromosomes(this.chromosomes)
-                await this.chromAlias.preload(this.#wgChromosomeNames)
+                await this.chromAlias!.preload(this.#wgChromosomeNames)
             }
         }
 
         // Optionally create the psuedo chromosome "all" to support whole genome view
-        this.wholeGenomeView = config.wholeGenomeView !== false && this.#wgChromosomeNames && this.chromosomes.size > 1
+        this.wholeGenomeView = config.wholeGenomeView !== false && !!this.#wgChromosomeNames && this.chromosomes.size > 1
         if (this.wholeGenomeView) {
-            const l = this.#wgChromosomeNames.reduce((accumulator, currentValue) => accumulator += this.chromosomes.get(currentValue).bpLength, 0)
+            const l = this.#wgChromosomeNames!.reduce((accumulator: number, currentValue: string) => accumulator += this.chromosomes.get(currentValue)!.bpLength, 0)
             this.chromosomes.set("all", new Chromosome("all", 0, l))
         }
     }
 
-    get description() {
+    get description(): string {
         return this.config.description || `${this.id}\n${this.name}`
     }
 
-    get infoURL() {
+    get infoURL(): string | undefined {
         return this.config.infoURL
     }
 
-    showWholeGenomeView() {
+    showWholeGenomeView(): boolean | undefined {
         return this.wholeGenomeView
     }
 
@@ -135,29 +171,29 @@ class Genome {
      *
      * @returns {any}
      */
-    toJSON() {
+    toJSON(): any {
         return Object.assign({}, this.config, {tracks: undefined})
     }
 
-    get initialLocus() {
+    get initialLocus(): string | undefined {
         return this.config.locus ? this.config.locus : this.getHomeChromosomeName()
     }
 
-    getHomeChromosomeName() {
+    getHomeChromosomeName(): string | undefined {
         if (this.showWholeGenomeView() && this.chromosomes.has("all")) {
             return "all"
         } else if (this.chromosomeNames) {
             return this.chromosomeNames[0]
         } else {
-
+            return undefined
         }
     }
 
-    getChromosomeName(chr) {
+    getChromosomeName(chr: string): string {
         return this.chromAlias ? this.chromAlias.getChromosomeName(chr, this.chromosomes.keys()) : chr
     }
 
-    getChromosomeDisplayName(str) {
+    getChromosomeDisplayName(str: string): string {
         if (this.nameSet && this.chromAlias) {
             return this.chromAlias.getChromosomeAlias(str, this.nameSet) || str
         } else {
@@ -165,14 +201,14 @@ class Genome {
         }
     }
 
-    getChromosome(chr) {
+    getChromosome(chr: string): Chromosome | undefined {
         if (this.chromAlias) {
             chr = this.chromAlias.getChromosomeName(chr)
         }
         return this.chromosomes.get(chr)
     }
 
-    async loadChromosome(chr) {
+    async loadChromosome(chr: string): Promise<Chromosome | undefined> {
 
         const chromAliasRecord = await this.getAliasRecord(chr)
         if (chromAliasRecord) {
@@ -180,19 +216,19 @@ class Genome {
         }
 
         if (!this.chromosomes.has(chr)) {
-            let chromosome
+            let chromosome: Chromosome | undefined
             const sequenceRecord = await this.sequence.getSequenceRecord(chr)
             if (sequenceRecord) {
                 chromosome = new Chromosome(chr, 0, sequenceRecord.bpLength)
             }
 
-            this.chromosomes.set(chr, chromosome)  // <= chromosome might be undefined, setting it prevents future attempts
+            this.chromosomes.set(chr, chromosome!)  // <= chromosome might be undefined, setting it prevents future attempts
         }
 
         return this.chromosomes.get(chr)
     }
 
-    async getAliasRecord(chr) {
+    async getAliasRecord(chr: string): Promise<Record<string, string> | undefined> {
         if (this.#aliasRecordCache.has(chr)) {
             return this.#aliasRecordCache.get(chr)
         }
@@ -221,7 +257,7 @@ class Genome {
         }
     }
 
-    async getCytobands(chr) {
+    async getCytobands(chr: string): Promise<Cytoband[] | undefined> {
         if (this.cytobandSource) {
             const chrName = this.getChromosomeName(chr)
             const cytos = await this.cytobandSource.getCytobands(chrName)
@@ -229,15 +265,15 @@ class Genome {
         }
     }
 
-    getChromosomes() {
+    getChromosomes(): Map<string, Chromosome> {
         return this.chromosomes
     }
 
-    get wgChromosomeNames() {
+    get wgChromosomeNames(): string[] | undefined {
         return this.#wgChromosomeNames ? this.#wgChromosomeNames.slice() : undefined
     }
 
-    get showChromosomeWidget() {
+    get showChromosomeWidget(): boolean | undefined {
         return this.config.showChromosomeWidget
     }
 
@@ -245,9 +281,9 @@ class Genome {
      * Return the genome coordinate in kb for the give chromosome and position.
      * NOTE: This might return undefined if the chr is filtered from whole genome view.
      */
-    getGenomeCoordinate(chr, bp) {
+    getGenomeCoordinate(chr: string, bp: number): number | undefined {
 
-        var offset = this.getCumulativeOffset(chr)
+        const offset = this.getCumulativeOffset(chr)
         if (offset === undefined) return undefined
 
         return offset + bp
@@ -256,15 +292,15 @@ class Genome {
     /**
      * Return the chromosome and coordinate in bp for the given genome coordinate
      */
-    getChromosomeCoordinate(genomeCoordinate) {
+    getChromosomeCoordinate(genomeCoordinate: number): {chr: string | undefined, position: number} {
 
         if (this.cumulativeOffsets === undefined) {
-            this.cumulativeOffsets = computeCumulativeOffsets.call(this)
+            this.cumulativeOffsets = this.#computeCumulativeOffsets()
         }
 
-        let lastChr = undefined
+        let lastChr: string | undefined = undefined
         let lastCoord = 0
-        for (let name of this.#wgChromosomeNames) {
+        for (let name of this.#wgChromosomeNames!) {
 
             const cumulativeOffset = this.cumulativeOffsets[name]
             if (cumulativeOffset > genomeCoordinate) {
@@ -276,55 +312,58 @@ class Genome {
         }
 
         // If we get here off the end
-        return {chr: this.#wgChromosomeNames[this.#wgChromosomeNames.length - 1], position: 0}
+        return {chr: this.#wgChromosomeNames![this.#wgChromosomeNames!.length - 1], position: 0}
 
-    };
+    }
 
 
     /**
      * Return the offset in genome coordinates (kb) of the start of the given chromosome
      * NOTE:  This might return undefined if the chromosome is filtered from whole genome view.
      */
-    getCumulativeOffset(chr) {
+    getCumulativeOffset(chr: string): number | undefined {
 
         if (this.cumulativeOffsets === undefined) {
-            this.cumulativeOffsets = computeCumulativeOffsets.call(this)
+            this.cumulativeOffsets = this.#computeCumulativeOffsets()
         }
 
         const queryChr = this.getChromosomeName(chr)
         return this.cumulativeOffsets[queryChr]
+    }
 
-        function computeCumulativeOffsets() {
+    /**
+     * Compute cumulative offsets for each chromosome in the whole genome view.
+     */
+    #computeCumulativeOffsets(): Record<string, number> {
 
-            let acc = {}
-            let offset = 0
-            for (let name of this.#wgChromosomeNames) {
-                acc[name] = Math.floor(offset)
-                const chromosome = this.getChromosome(name)
-                offset += chromosome.bpLength
-            }
-
-            return acc
+        const acc: Record<string, number> = {}
+        let offset = 0
+        for (let name of this.#wgChromosomeNames!) {
+            acc[name] = Math.floor(offset)
+            const chromosome = this.getChromosome(name)
+            offset += chromosome!.bpLength
         }
+
+        return acc
     }
 
     /**
      * Return the nominal genome length, this is the length of the main chromosomes (no scaffolds, etc).
      */
-    getGenomeLength() {
+    getGenomeLength(): number {
 
         if (!this.bpLength) {
             let bpLength = 0
-            for (let cname of this.#wgChromosomeNames) {
+            for (let cname of this.#wgChromosomeNames!) {
                 let c = this.chromosomes.get(cname)
-                bpLength += c.bpLength
+                bpLength += c!.bpLength
             }
             this.bpLength = bpLength
         }
         return this.bpLength
     }
 
-    async getSequence(chr, start, end) {
+    async getSequence(chr: string, start: number, end: number): Promise<string | undefined> {
         chr = this.getChromosomeName(chr)
         return this.sequence.getSequence(chr, start, end)
     }
@@ -337,7 +376,7 @@ class Genome {
      * @param start
      * @param end
      */
-    getSequenceInterval(chr, start, end) {
+    getSequenceInterval(chr: string, start: number, end: number): any {
         if (typeof this.sequence.getSequenceInterval === 'function') {
             return this.sequence.getSequenceInterval(chr, start, end)
         } else {
@@ -345,7 +384,7 @@ class Genome {
         }
     }
 
-    getHubURLs() {
+    getHubURLs(): string[] | undefined {
         return this.config.hubs
     }
 
@@ -355,7 +394,7 @@ class Genome {
      * @param {string} name - The name of the Mane transcript to search for.
      * @return {Promise<Object|null>} A Promise resolving to the Mane transcript object if found, or null otherwise.
      */
-    async getManeTranscript(name) {
+    async getManeTranscript(name: string): Promise<any | null> {
 
         if (!this.maneFeatureSource && this.config.maneBbURL) {
             this.loadManeFeatureSource()
@@ -385,7 +424,7 @@ class Genome {
      * @param position Genomic position (0-based coordinate) to check for overlap with a Mane transcript.
      * @return {Promise<*|null>} The feature representing the Mane transcript overlapping the specified position, or null if none is found.
      */
-    async getManeTranscriptAt(chr, position) {
+    async getManeTranscriptAt(chr: string, position: number): Promise<any | null> {
         if (!this.maneFeatureSource && this.config.maneBbURL) {
             this.loadManeFeatureSource()
         }
@@ -393,7 +432,7 @@ class Genome {
             try {
                 const start = position
                 const end = position + 1
-                const features = await this.maneFeatureSource.getFeatures({chr, start, end})
+                const features = await this.maneFeatureSource.getFeatures({chr, start, end} as any)
                 if (features) {
                     for (const feature of features) {
                         if (feature.start <= position && feature.end >= position) {
@@ -408,9 +447,9 @@ class Genome {
         return null
     }
 
-    loadManeFeatureSource() {
+    loadManeFeatureSource(): void {
         if (this.config.maneBbURL != null) {
-            const bbConfig = {url: this.config.maneBbURL}
+            const bbConfig: any = {url: this.config.maneBbURL}
             if (this.config.maneTrixURL) {
                 bbConfig.trixURL = this.config.maneTrixURL
             }
@@ -422,14 +461,14 @@ class Genome {
 /**
  * Trim small sequences (chromosomes) and return the list of trimmed chromosome names.
  * The results are used to construct the whole genome view and optionally chromosome pulldown
- * *
- * @param config - the "reference" configuration object
- * @returns {string|*|*[]|string[]}
+ *
+ * @param chromosomes - Map of chromosome name to Chromosome object
+ * @returns trimmed list of chromosome names
  */
-function trimSmallChromosomes(chromosomes) {
+function trimSmallChromosomes(chromosomes: Map<string, Chromosome>): string[] {
 
-    const wgChromosomeNames = []
-    let runningAverage
+    const wgChromosomeNames: string[] = []
+    let runningAverage: number | undefined
     let i = 1
     for (let c of chromosomes.values()) {
         if (!runningAverage) {
@@ -447,11 +486,11 @@ function trimSmallChromosomes(chromosomes) {
     return wgChromosomeNames
 }
 
-function isDigit(val) {
+function isDigit(val: string): boolean {
     return /^\d+$/.test(val)
 }
 
-function generateGenomeID(config) {
+function generateGenomeID(config: any): string {
     if (config.id !== undefined) {
         return config.id
     } else if (config.fastaURL && StringUtils.isString(config.fastaURL) && !config.fastaURL.startsWith("data:")) {

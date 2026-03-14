@@ -2,7 +2,7 @@ import FeatureSource from '../feature/featureSource.js'
 import TrackBase from "../trackBase.js"
 import IGVGraphics from "../igv-canvas.js"
 import {IGVMath} from "../../node_modules/igv-utils/src/index.js"
-import {searchFeatures} from "../search.js"
+import {searchFeatures} from "../search"
 
 class QTLTrack extends TrackBase {
 

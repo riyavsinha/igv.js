@@ -1,18 +1,57 @@
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
-import BinaryParser from "../binary.js"
-import {buildOptions} from "../util/igvUtils.js"
+import BinaryParser from "../binary"
+import {buildOptions} from "../util/igvUtils"
 
-const RPTREE_HEADER_SIZE = 48
-const RPTREE_NODE_LEAF_ITEM_SIZE = 32   // leaf item size
-const RPTREE_NODE_CHILD_ITEM_SIZE = 24  // child item size
+const RPTREE_HEADER_SIZE: number = 48
+const RPTREE_NODE_LEAF_ITEM_SIZE: number = 32   // leaf item size
+const RPTREE_NODE_CHILD_ITEM_SIZE: number = 24  // child item size
+
+interface RPTreeHeader {
+    magic: number
+    blockSize: number
+    itemCount: number
+    startChromIx: number
+    startBase: number
+    endChromIx: number
+    endBase: number
+    endFileOffset: number
+    itemsPerSlot: number
+    reserved: number
+    rootNodeOffset: number
+}
+
+interface RPTreeItem {
+    isLeaf: boolean
+    startChrom: number
+    startBase: number
+    endChrom: number
+    endBase: number
+    childOffset: number
+    dataSize?: number
+    dataOffset?: number
+}
+
+interface RPTreeNode {
+    type: number
+    items: RPTreeItem[]
+}
+
+interface Loader {
+    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+}
 
 export default class RPTree {
 
-    static magic = 610839776
-    littleEndian = true
-    nodeCache = new Map()
+    static magic: number = 610839776
+    littleEndian: boolean = true
+    nodeCache: Map<number, RPTreeNode> = new Map()
+    path: string
+    config: object
+    startOffset: number
+    loader: Loader
+    header!: RPTreeHeader
 
-    constructor(path, config, startOffset, loader) {
+    constructor(path: string, config: object, startOffset: number, loader?: Loader) {
 
         this.path = path
         this.config = config
@@ -21,7 +60,7 @@ export default class RPTree {
     }
 
 
-    async init() {
+    async init(): Promise<RPTree> {
         const binaryParser = await this.#getParserFor(this.startOffset, RPTREE_HEADER_SIZE)
         let magic = binaryParser.getInt()
         if (magic !== RPTree.magic) {
@@ -60,16 +99,16 @@ export default class RPTree {
         return this
     }
 
-    async #getParserFor(start, size) {
+    async #getParserFor(start: number, size: number): Promise<BinaryParser> {
         const data = await this.loader.loadArrayBuffer(this.path, buildOptions(this.config, {range: {start, size}}))
         return new BinaryParser(new DataView(data), this.littleEndian)
     }
 
 
-    async findLeafItemsOverlapping(chrIdx1, startBase, chrIdx2, endBase) {
+    async findLeafItemsOverlapping(chrIdx1: number, startBase: number, chrIdx2: number, endBase: number): Promise<RPTreeItem[]> {
 
-        const leafItems = []
-        const walkTreeNode = async (offset) => {
+        const leafItems: RPTreeItem[] = []
+        const walkTreeNode = async (offset: number): Promise<void> => {
             const node = await this.readNode(offset)
             for (let item of node.items) {
                 if (overlaps(item, chrIdx1, startBase, chrIdx2, endBase)) {
@@ -87,11 +126,11 @@ export default class RPTree {
     }
 
 
-    async readNode(offset) {
+    async readNode(offset: number): Promise<RPTreeNode> {
 
         const nodeKey = offset
         if (this.nodeCache.has(nodeKey)) {
-            return this.nodeCache.get(nodeKey)
+            return this.nodeCache.get(nodeKey)!
         }
 
         let binaryParser = await this.#getParserFor(offset, 4)
@@ -102,9 +141,9 @@ export default class RPTree {
         let bytesRequired = count * (isLeaf ? RPTREE_NODE_LEAF_ITEM_SIZE : RPTREE_NODE_CHILD_ITEM_SIZE)
         binaryParser = await this.#getParserFor(offset + 4, bytesRequired)
 
-        const items = []
+        const items: RPTreeItem[] = []
         for (let i = 0; i < count; i++) {
-            let item = {
+            let item: RPTreeItem = {
                 isLeaf: isLeaf,
                 startChrom: binaryParser.getInt(),
                 startBase: binaryParser.getInt(),
@@ -119,7 +158,7 @@ export default class RPTree {
             items.push(item)
         }
 
-        const node = {type, items}
+        const node: RPTreeNode = {type, items}
         this.nodeCache.set(nodeKey, node)
         return node
     }
@@ -130,7 +169,7 @@ export default class RPTree {
  * Return true if {chrIdx1:startBase-chrIdx2:endBase} overlaps item's interval
  * @returns {boolean}
  */
-function overlaps(item, chrIdx1, startBase, chrIdx2, endBase) {
+function overlaps(item: RPTreeItem, chrIdx1: number, startBase: number, chrIdx2: number, endBase: number): boolean {
 
     if (!item) {
         console.log("null item for " + chrIdx1 + " " + startBase + " " + endBase)

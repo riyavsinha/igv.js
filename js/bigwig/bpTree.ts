@@ -1,6 +1,52 @@
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
-import {buildOptions} from "../util/igvUtils.js"
-import BinaryParser from "../binary.js"
+import {buildOptions} from "../util/igvUtils"
+import BinaryParser from "../binary"
+
+interface BPTreeHeader {
+    magic: number
+    blockSize: number
+    keySize: number
+    valSize: number
+    itemCount: number
+    reserved: number
+    nodeOffset: number
+}
+
+export interface BPTreeLeafItemValueChrom {
+    id: number
+    size: number
+}
+
+interface BPTreeLeafItemValueIndex {
+    offset: number
+    length?: number
+}
+
+type BPTreeLeafItemValue = BPTreeLeafItemValueChrom | BPTreeLeafItemValueIndex
+
+interface BPTreeLeafItem {
+    key: string
+    value: BPTreeLeafItemValue
+}
+
+interface BPTreeNonLeafItem {
+    key: string
+    offset: number
+}
+
+type BPTreeItem = BPTreeLeafItem | BPTreeNonLeafItem
+
+interface BPTreeNode {
+    type: number
+    count: number
+    items: BPTreeItem[]
+}
+
+type BPTreeType = 'BPTree' | 'BPChromTree'
+
+interface Loader {
+    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+}
 
 /**
  * A UCSC BigBed B+ tree, used to support searching the "extra indexes".
@@ -10,17 +56,22 @@ import BinaryParser from "../binary.js"
  */
 export default class BPTree {
 
-    static magic = 2026540177
-    littleEndian = true
-    type = 'BPTree'          // Either BPTree or BPChromTree
-    nodeCache = new Map()
+    static magic: number = 2026540177
+    littleEndian: boolean = true
+    type: BPTreeType = 'BPTree'          // Either BPTree or BPChromTree
+    nodeCache: Map<number, BPTreeNode> = new Map()
+    path: string
+    config: object
+    startOffset: number
+    loader: Loader
+    header!: BPTreeHeader
 
-    static async loadBpTree(path, config, startOffset, type, loader) {
+    static async loadBpTree(path: string, config: object, startOffset: number, type: BPTreeType | undefined, loader?: Loader): Promise<BPTree> {
         const bpTree = new BPTree(path, config, startOffset, type, loader)
         return bpTree.init()
     }
 
-    constructor(path, config, startOffset, type, loader) {
+    constructor(path: string, config: object, startOffset: number, type?: BPTreeType, loader?: Loader) {
         this.path = path
         this.config = config
         this.startOffset = startOffset
@@ -30,7 +81,7 @@ export default class BPTree {
         this.loader = loader || igvxhr
     }
 
-    async init() {
+    async init(): Promise<BPTree> {
         const binaryParser = await this.#getParserFor(this.startOffset, 32)
         let magic = binaryParser.getInt()
         if(magic !== BPTree.magic) {
@@ -53,20 +104,20 @@ export default class BPTree {
         return this
     }
 
-    getItemCount() {
+    getItemCount(): number {
         if(!this.header) {
             throw Error("Header not initialized")
         }
         return this.header.itemCount
     }
 
-    async search(term) {
+    async search(term: string): Promise<BPTreeLeafItemValue | undefined> {
 
         if(!this.header) {
             await this.init();
         }
 
-        const walkTreeNode = async (offset) => {
+        const walkTreeNode = async (offset: number): Promise<BPTreeLeafItemValue | undefined> => {
 
             const node = await this.readTreeNode(offset)
 
@@ -74,21 +125,21 @@ export default class BPTree {
                 // Leaf node
                 for (let item of node.items) {
                     if (term === item.key) {
-                        return item.value
+                        return (item as BPTreeLeafItem).value
                     }
                 }
             } else {
                 // Non leaf node
 
                 // Read and discard the first key.
-                let childOffset = node.items[0].offset
+                let childOffset = (node.items[0] as BPTreeNonLeafItem).offset
 
                 for (let i = 1; i < node.items.length; i++) {
                     const key = node.items[i].key
                     if (term.localeCompare(key) < 0) {
                         break
                     }
-                    childOffset = node.items[i].offset
+                    childOffset = (node.items[i] as BPTreeNonLeafItem).offset
                 }
 
                 return walkTreeNode(childOffset)
@@ -99,16 +150,16 @@ export default class BPTree {
         return walkTreeNode(this.header.nodeOffset)
     }
 
-    async readTreeNode (offset)  {
+    async readTreeNode(offset: number): Promise<BPTreeNode> {
 
         if (this.nodeCache.has(offset)) {
-            return this.nodeCache.get(offset)
+            return this.nodeCache.get(offset)!
         } else {
             let binaryParser = await this.#getParserFor(offset, 4)
             const type = binaryParser.getByte()
             const reserved = binaryParser.getByte()
             const count = binaryParser.getUShort()
-            const items = []
+            const items: BPTreeItem[] = []
 
             const {keySize, valSize} = this.header
 
@@ -118,7 +169,7 @@ export default class BPTree {
                 binaryParser = await this.#getParserFor(offset + 4, size)
                 for (let i = 0; i < count; i++) {
                     const key = binaryParser.getFixedLengthString(keySize)
-                    let value
+                    let value: BPTreeLeafItemValue
                     if(this.type === 'BPChromTree') {
                         const id = binaryParser.getInt()
                         const size = binaryParser.getInt()
@@ -146,19 +197,15 @@ export default class BPTree {
                 }
             }
 
-            const node = {type, count, items}
+            const node: BPTreeNode = {type, count, items}
             this.nodeCache.set(offset, node)
             return node
         }
     }
 
-    async #getParserFor(start, size) {
-        try {
-            const data = await this.loader.loadArrayBuffer(this.path, buildOptions(this.config, {range: {start, size}}))
-            return new BinaryParser(new DataView(data), this.littleEndian)
-        } catch (e) {
-            console.error(e)
-        }
+    async #getParserFor(start: number, size: number): Promise<BinaryParser> {
+        const data = await this.loader.loadArrayBuffer(this.path, buildOptions(this.config, {range: {start, size}}))
+        return new BinaryParser(new DataView(data), this.littleEndian)
     }
 
 }

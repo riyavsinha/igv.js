@@ -3,49 +3,61 @@
  */
 
 import SequenceInterval from "./sequenceInterval"
+import Chromosome from "./chromosome"
+
+interface SequenceReader {
+    chromosomes?: Map<string, Chromosome>
+    chromosomeNames?: string[]
+    init(): Promise<any>
+    readSequence(chr: string, start: number, end: number): Promise<string | null>
+    getSequenceRecord?(chr: string): any
+    getFirstChromosomeName?(): string
+}
 
 class CachedSequence {
 
-    static #minQuerySize = 1e5
-    #currentQuery
-    #cachedIntervals = []
-    #maxIntervals = 10   // TODO - this should be >= the number of viewports for multi-locus view
+    static #minQuerySize: number = 1e5
+    #currentQuery: [SequenceInterval, Promise<SequenceInterval>] | undefined
+    #cachedIntervals: SequenceInterval[] = []
+    #maxIntervals: number = 10   // TODO - this should be >= the number of viewports for multi-locus view
+    sequenceReader: SequenceReader
+    browser: any
 
-    constructor(sequenceReader, browser) {
+    constructor(sequenceReader: SequenceReader, browser?: any) {
         this.sequenceReader = sequenceReader
         this.browser = browser
     }
 
-    get chromosomes() {
+    get chromosomes(): Map<string, Chromosome> | undefined {
         return this.sequenceReader.chromosomes
     }
 
-    async getSequenceRecord(chr) {
-        return this.sequenceReader.getSequenceRecord(chr)
+    async getSequenceRecord(chr: string): Promise<any> {
+        return this.sequenceReader.getSequenceRecord ? this.sequenceReader.getSequenceRecord(chr) : undefined
     }
 
-    async getSequence(chr, start, end) {
+    async getSequence(chr: string, start: number, end: number): Promise<string | null | undefined> {
 
-        let interval = this.#cachedIntervals.find(i => i.contains(chr, start, end))
+        let interval: SequenceInterval | undefined = this.#cachedIntervals.find(i => i.contains(chr, start, end))
         if (!interval) {
-            interval =  await this.#queryForSequence(chr, start, end)
+            interval = await this.#queryForSequence(chr, start, end)
             this.#trimCache(interval)
             this.#cachedIntervals.push(interval)
         }
 
         if (interval) {
-            const offset = start - interval.start
-            const n = end - start
-            const seq = interval.features ? interval.features.substring(offset, offset + n) : null
+            const offset: number = start - interval.start
+            const n: number = end - start
+            const seq: string | null = interval.features ? interval.features.substring(offset, offset + n) : null
             return seq
         } else {
             return undefined
         }
     }
 
-    #trimCache(interval) {
+    #trimCache(interval: SequenceInterval): void {
         // Filter out redundant (subsumed) cached intervals
-        this.#cachedIntervals = this.#cachedIntervals.filter(i => !interval.contains(i))
+        this.#cachedIntervals = this.#cachedIntervals.filter(i => !interval.containsRange(i))
         if (this.#cachedIntervals.length === this.#maxIntervals) {
             this.#cachedIntervals.shift()
         }
@@ -53,7 +65,7 @@ class CachedSequence {
         // Filter out out-of-view cached intervals.  Don't try this if there are too many frames, inefficient
         if (this.browser && this.browser.referenceFrameList.length < 100) {
             this.#cachedIntervals = this.#cachedIntervals.filter(i => {
-                const b = undefined !== this.browser.referenceFrameList.find(frame => frame.overlaps(i))
+                const b: boolean = undefined !== this.browser.referenceFrameList.find((frame: any) => frame.overlaps(i))
                 if(!b) {
                    // console.log("Filtering " + i.locusString)
                 }
@@ -70,7 +82,7 @@ class CachedSequence {
      * @param end
      * @returns a SequenceInterval or undefined
      */
-    getSequenceInterval(chr, start, end) {
+    getSequenceInterval(chr: string, start: number, end: number): SequenceInterval | undefined {
         return this.#cachedIntervals.find(i => i.contains(chr, start, end))
     }
 
@@ -80,24 +92,25 @@ class CachedSequence {
      * @param chr
      * @param start
      * @param end
-     * @returns {Promise<sequence>}
+     * @returns {Promise<SequenceInterval>}
      */
-    async #queryForSequence(chr, start, end) {
+    async #queryForSequence(chr: string, start: number, end: number): Promise<SequenceInterval> {
         // Expand query, to minimum of 100kb
-        let qstart = start
-        let qend = end
+        let qstart: number = start
+        let qend: number = end
         if ((end - start) < CachedSequence.#minQuerySize) {
-            const w = (end - start)
-            const center = Math.round(start + w / 2)
+            const w: number = (end - start)
+            const center: number = Math.round(start + w / 2)
             qstart = Math.max(0, center - CachedSequence.#minQuerySize/2)
             qend = qstart + CachedSequence.#minQuerySize
         }
-        const interval = new SequenceInterval(chr, qstart, qend)
+        // Note: SequenceInterval.features will be populated asynchronously below
+        const interval: SequenceInterval = new SequenceInterval(chr, qstart, qend, null)
 
         if (this.#currentQuery && this.#currentQuery[0].contains(chr, start, end)) {
             return this.#currentQuery[1]
         } else {
-            const queryPromise = new Promise(async (resolve, reject) => {
+            const queryPromise: Promise<SequenceInterval> = new Promise(async (resolve, reject) => {
                 interval.features = await this.sequenceReader.readSequence(chr, qstart, qend)
                 resolve(interval)
             })
@@ -107,24 +120,22 @@ class CachedSequence {
     }
 
 
-    async init() {
+    async init(): Promise<any> {
         return this.sequenceReader.init()
     }
 
-    get chromosomeNames() {
+    get chromosomeNames(): string[] | undefined {
         return this.sequenceReader.chromosomeNames
     }
 
-    getFirstChromosomeName() {
+    getFirstChromosomeName(): string | undefined {
         return typeof this.sequenceReader.getFirstChromosomeName === 'function' ? this.sequenceReader.getFirstChromosomeName() : undefined
     }
 
-    #isIntervalInView(interval) {
+    #isIntervalInView(interval: SequenceInterval): void {
         this.browser.referenceFrameList
     }
 }
 
 
 export default CachedSequence
-
-
