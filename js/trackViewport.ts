@@ -226,8 +226,8 @@ class TrackViewport extends Viewport {
             if (h < 30) {
                 labelElement.style.margin = '0'
                 labelElement.style.top = "50%"
-                labelElement.style.transform = "translateY(-50%)"
-                labelElement.style["-ms-transform"] = "translateY(-50%)"
+                labelElement.style.transform = "translateY(-50%)";
+                (labelElement.style as any)["-ms-transform"] = "translateY(-50%)"
             } else {
                 labelElement.style.removeProperty("margin")
                 labelElement.style.removeProperty("top")

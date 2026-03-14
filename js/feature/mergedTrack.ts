@@ -11,12 +11,12 @@ class MergedTrack extends TrackBase {
     [key: string]: any
 
     static defaults = {
-        autoscale: undefined,
+        autoscale: undefined as any,
         alpha: 0.5,
         height: 50
     }
 
-    constructor(config, browser, tracks) {
+    constructor(config: any, browser: any, tracks?: any[]) {
         super(config, browser)
         this.type = "merged"
         this.paintAxis = paintAxis
@@ -47,7 +47,7 @@ class MergedTrack extends TrackBase {
                 }
             }
             // Default to autoscale unless scale if range or autoscale is not otherwise defined
-            const allTracksSpecified = this.config.tracks.every(config => config.autoscale !== undefined || config.max !== undefined)
+            const allTracksSpecified = this.config.tracks.every((config: any) => config.autoscale !== undefined || config.max !== undefined)
             if (!allTracksSpecified) {
                 this.config.autoscale = this.config.max === undefined
             }
@@ -75,7 +75,7 @@ class MergedTrack extends TrackBase {
             for (let t of this.tracks) t.logScale = this.config.logScale
         }
 
-        this.resolutionAware = this.tracks.some(t => t.resolutionAware)
+        this.resolutionAware = this.tracks.some((t: any) => t.resolutionAware)
     }
 
     set flipAxis(b) {
@@ -86,7 +86,7 @@ class MergedTrack extends TrackBase {
     }
 
     get flipAxis() {
-        return numericTracks(this.tracks).every(t => t.flipAxis)
+        return numericTracks(this.tracks).every((t: any) => t.flipAxis)
     }
 
     set logScale(b) {
@@ -97,7 +97,7 @@ class MergedTrack extends TrackBase {
     }
 
     get logScale() {
-        return numericTracks(this.tracks).every(t => t.logScale)
+        return numericTracks(this.tracks).every((t: any) => t.logScale)
     }
 
     get height() {
@@ -137,7 +137,7 @@ class MergedTrack extends TrackBase {
     get autoscaleGroup() {
         if(this.tracks && this.tracks.length > 0) {
             const g = this.tracks[0].autoscaleGroup
-            return (this.tracks.some(t => g !== t.autoscaleGroup)) ? undefined : g
+            return (this.tracks.some((t: any) => g !== t.autoscaleGroup)) ? undefined : g
         }
     }
 
@@ -149,7 +149,7 @@ class MergedTrack extends TrackBase {
      * @param max
      */
 
-    setDataRange({min, max}) {
+    setDataRange({min, max}: {min: number, max: number}) {
         this.autoscale = false
         for (const track of numericTracks(this.tracks)) {
             track.dataRange = {min, max}
@@ -176,7 +176,7 @@ class MergedTrack extends TrackBase {
             const num = numericTracks(this.tracks)
             if (num.length > 0) {
                 const firstRange = num[0].dataRange
-                if (num.every(t => t.dataRange && t.dataRange.min === firstRange.min && t.dataRange.max === firstRange.max)) {
+                if (num.every((t: any) => t.dataRange && t.dataRange.min === firstRange.min && t.dataRange.max === firstRange.max)) {
                     return firstRange
                 }
             }
@@ -213,21 +213,21 @@ class MergedTrack extends TrackBase {
      * Returns a MergedFeatureCollection containing an array of features for the specified range, 1 for each track.
      * In addition it contains track names in the same order.
      */
-    async getFeatures(chr, bpStart, bpEnd, bpPerPixel) {
+    async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) {
 
-        const promises = this.tracks.map((t) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
+        const promises = this.tracks.map((t: any) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
         const featureArrays = await Promise.all(promises)
 
         if (featureArrays.every((arr) => arr.length === 0)){
             return new MergedFeatureCollection([], [])
         }
         else {
-            const trackNames = this.tracks.map((t) => t.name)
+            const trackNames = this.tracks.map((t: any) => t.name)
             return new MergedFeatureCollection(featureArrays, trackNames)
         }
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const mergedFeatures = options.features    // A MergedFeatureCollection
 
@@ -243,7 +243,7 @@ class MergedTrack extends TrackBase {
         }
     }
 
-    popupData(clickState) {
+    popupData(clickState: any) {
 
         const clickedFeaturesArray = this.clickedFeatures(clickState)
 
@@ -278,7 +278,7 @@ class MergedTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
 
         // We use the cached features rather than method to avoid async load.  If the
@@ -308,7 +308,7 @@ class MergedTrack extends TrackBase {
     }
 
     get supportsWholeGenome() {
-        return this.tracks.every(track => track.supportsWholeGenome)
+        return this.tracks.every((track: any) => track.supportsWholeGenome)
     }
 
     /**
@@ -324,7 +324,7 @@ class MergedTrack extends TrackBase {
         return state
     }
 
-    updateScales(visibleViewports) {
+    updateScales(visibleViewports: any[]) {
 
         let scaleChange
 
@@ -387,8 +387,8 @@ class MergedTrack extends TrackBase {
         const element = DOMUtils.div()
         element.innerText = 'Set transparency'
 
-        function dialogPresentationHandler(e) {
-            const callback = alpha => {
+        function dialogPresentationHandler(e: any) {
+            const callback = (alpha: number) => {
                 this.alpha = Math.max(0.001, alpha)
                 this.repaintViews()
             }
@@ -414,7 +414,7 @@ class MergedTrack extends TrackBase {
         let element = document.createElement('div');
         element.textContent = 'Separate tracks';
 
-        async function click(e) {
+        async function click(e: any) {
 
             // Capture state which will be nulled when track is removed
             const groupAutoscale = this.autoscale
@@ -453,7 +453,7 @@ class MergedFeatureCollection {
         this.trackNames = trackNames
     }
 
-    getMax(start, end) {
+    getMax(start: number, end: number) {
         let max = -Number.MAX_VALUE
 
         for (let a of this.featureArrays) {
@@ -477,7 +477,7 @@ class MergedFeatureCollection {
     }
 
     // Covers cases in which a track has negative values.
-    getMin(start, end) {
+    getMin(start: number, end: number) {
         let min = 0
         for (let a of this.featureArrays) {
             if (Array.isArray(a)) {
@@ -504,8 +504,8 @@ class MergedFeatureCollection {
  * @param tracks
  * @returns {*}
  */
-const numericTracks = (tracks) => {
-    return tracks ? tracks.filter(track => undefined !== track.dataRange || undefined !== track.autoscale || undefined !== track.autoscaleGroup) : []
+const numericTracks = (tracks: any[]) => {
+    return tracks ? tracks.filter((track: any) => undefined !== track.dataRange || undefined !== track.autoscale || undefined !== track.autoscaleGroup) : []
 }
 
 

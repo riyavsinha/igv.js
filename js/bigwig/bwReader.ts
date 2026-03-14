@@ -327,7 +327,7 @@ class BWReader {
             this.header.extraIndexOffsets.length > 0) {
             this._searchTrees = []
             for (let offset of this.header.extraIndexOffsets) {
-                const type = undefined
+                const type: undefined = undefined
                 const bpTree: BPTree = await BPTree.loadBpTree(this.path, this.config, offset, type, this.loader)
                 this._searchTrees.push(bpTree)
             }

@@ -59,7 +59,7 @@ class FitingMethod {
          * @returns {number} - Value of distribution at x.
          */
         // console.log('Model Parameters', a, x0, sigma)
-        return (x) => a * Math.exp(-Math.pow(x - x0, 2) / (2 * Math.pow(sigma, 2))) / (Math.sqrt(2 * Math.PI) * sigma);
+        return (x: number) => a * Math.exp(-Math.pow(x - x0, 2) / (2 * Math.pow(sigma, 2))) / (Math.sqrt(2 * Math.PI) * sigma);
     }
 
     get_initial_model_values(x: number[], y: number[]): number[] {
@@ -90,7 +90,7 @@ class FitingMethod {
         return [area, mean, sigma];
     }
 
-    normal_fit(x: number[], y: number[]): any {
+    normal_fit(x: number[], y: number[]): { parameterValues: number[] } {
         /**
          * Fit a normal distribution to the histogram using levenberg-marquardt algorithm.
          * x: The x values of the data.
@@ -151,7 +151,7 @@ class FetchGCInfo {
      * @returns {Object} The GC values.
      */
     async getBinGC(){
-        const gcData = {};
+        const gcData: Record<string, any[]> = {};
 
         // If no appropriate GC bin size is found, return an empty object
         if (!this.gcBin) {
@@ -166,14 +166,14 @@ class FetchGCInfo {
             const gcInfoJson = await igvxhr.loadJson(gcInfoURL, {timeout: 5000})
 
             // Find the reference genome data within the JSON file
-            const gcRef = gcInfoJson.find(item => item.id === this.refGenome);
+            const gcRef = gcInfoJson.find((item: { id: string, Bins: { BinSize: number, fileURL: string }[] }) => item.id === this.refGenome);
             if (!gcRef){
                 console.warn("GC data not found for ", this.refGenome);
                 return gcData;
             }
-            
+
             // Find the matching bin size data
-            const matchingInfo = gcRef.Bins.find(bin => bin.BinSize === this.gcBin);
+            const matchingInfo = gcRef.Bins.find((bin: { BinSize: number, fileURL: string }) => bin.BinSize === this.gcBin);
             if (!matchingInfo) {
                 console.warn("GC data not found for ", this.refGenome, " Bin : ", this.gcBin);
                 return gcData;
@@ -187,7 +187,7 @@ class FetchGCInfo {
             const data = await igvxhr.load(gcURL, {});
 
             // Parse the GC data file and populate the gcData object
-            data.split("\n").forEach((row) => {
+            data.split("\n").forEach((row: string) => {
                 if (row.trim() !== "") {
                 const [refName, start, gcContent, gcCount, atCount] = row.split("\t");
                 if (!gcData[refName]) {
@@ -215,10 +215,10 @@ class FetchGCInfo {
 
 
 class baseCNVpytorVCF extends FetchGCInfo {
-    wigFeatures: any
+    wigFeatures: Record<string, any[]>
     globalMean: number = 0
     globalStd: number = 0
-    gcData: any = {}
+    gcData: Record<string, any[]> = {}
     gcFlag: boolean = false
     binScoreField: string = 'binScore'
 
@@ -229,7 +229,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {*} binSize
      * @param {*} refGenome
      */
-    constructor(wigFeatures: any, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
         super(binSize, refGenome)
         this.wigFeatures = wigFeatures
         this.binSize = binSize
@@ -245,8 +245,8 @@ class baseCNVpytorVCF extends FetchGCInfo {
         
         // Extract all binScore values into a single array
         const binScores = Object.values(this.wigFeatures).reduce(
-            (binResult: any, bin: any) => { return binResult.concat(bin.filter((a: any) => a.binScore > 0).map((a: any) => a.binScore)) }, []
-        ) as number[]
+            (binResult: number[], bin: any[]) => { return binResult.concat(bin.filter((a: any) => a.binScore > 0).map((a: any) => a.binScore)) }, [] as number[]
+        )
 
         let data_fitter = new FitingMethod(binScores)
 
@@ -273,7 +273,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
     getGcCorrectionSignal(rdGlobalMean: number): void {
         let gcRDMean = this.getGcCorrection(rdGlobalMean)
         Object.keys(this.wigFeatures).forEach(chr => {
-            this.wigFeatures[chr].forEach(bin => {
+            this.wigFeatures[chr].forEach((bin: any) => {
                     if (bin.binScore){
                         bin.gcCorrectedBinScore = Math.round(gcRDMean[bin.gc] * bin.binScore)
                     }else{
@@ -289,12 +289,12 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {number} rdGlobalMean - The global mean for read depth.
      * @returns {Object} An object containing the GC correction values indexed by GC percentage.
      */
-    getGcCorrection(rdGlobalMean: number): any {
+    getGcCorrection(rdGlobalMean: number): Record<string, number> {
 
-        const gcRDMean: any = {}
+        const gcRDMean: Record<string, number> = {}
         if(this.gcFlag){
             let gcBin = this.getGCbinSize() as number
-            const gcRD: any = {};
+            const gcRD: Record<string, number[]> = {};
 
             let gcBinFactor = parseInt((this.binSize/gcBin).toString())
             for (let chr in this.wigFeatures){
@@ -328,7 +328,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
                 let gcRDBins = gcRD[gc_value]
                 let gcMean 
                 if(gcRDBins.length < 4){
-                    gcMean = gcRDBins.reduce((sum, val) => sum + val, 0) / gcRDBins.length;
+                    gcMean = gcRDBins.reduce((sum: number, val: number) => sum + val, 0) / gcRDBins.length;
                 }else{
                     let data_fitter = new FitingMethod(gcRD[gc_value])
 
@@ -354,8 +354,8 @@ class baseCNVpytorVCF extends FetchGCInfo {
         const results: any[] = []
         for (const [chr, wig] of Object.entries(this.wigFeatures)) {
 
-            for(let sample of wig as any[]){
-                var new_sample: any = { ...sample }
+            for(let sample of wig as Record<string, any>[]){
+                var new_sample: Record<string, any> = { ...sample }
                 if (scaling_factor != 1) {
                     new_sample.value = sample[feature_column] / scaling_factor * 2
                 }

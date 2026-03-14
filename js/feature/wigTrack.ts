@@ -21,19 +21,19 @@ class WigTrack extends TrackBase {
         logScale: false,
         windowFunction: 'mean',
         graphType: 'bar',
-        normalize: undefined,
-        scaleFactor: undefined,
+        normalize: undefined as any,
+        scaleFactor: undefined as any,
         overflowColor: `rgb(255, 32, 255)`,
         baselineColor: 'lightGray',
         summarize: true,
-        visibilityWindow: undefined
+        visibilityWindow: undefined as any
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any) {
 
         super.init(config)
 
@@ -99,7 +99,7 @@ class WigTrack extends TrackBase {
         return this._colorScale
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
 
         const windowFunction = this.windowFunction
 
@@ -230,18 +230,18 @@ class WigTrack extends TrackBase {
     }
 
     // TODO: refactor to igvUtils.js
-    getScaleFactor(min, max, height, logScale) {
+    getScaleFactor(min: number, max: number, height: number, logScale: boolean) {
         const minValue = (logScale === true) ? ((min < 0) ? -Math.log10(Math.abs(min) + 1) : Math.log10(Math.abs(min) + 1)) : min
         const maxValue = (logScale === true) ? Math.log10(Math.abs(max) + 1) : max
         const scale = height / (maxValue - minValue)
         return scale
     }
 
-    computeYPixelValue(yValue, yScaleFactor) {
+    computeYPixelValue(yValue: number, yScaleFactor: number) {
         return (this.flipAxis ? (yValue - this.dataRange.min) : (this.dataRange.max - yValue)) * yScaleFactor
     }
 
-    computeYPixelValueInLogScale(yValue, yScaleFactor) {
+    computeYPixelValueInLogScale(yValue: number, yScaleFactor: number) {
         let maxValue = this.dataRange.max
         let minValue = this.dataRange.min
         minValue = (minValue < 0) ? -Math.log10(Math.abs(minValue) + 1) : Math.log10(Math.abs(minValue) + 1)
@@ -251,7 +251,7 @@ class WigTrack extends TrackBase {
         return ((this.flipAxis ? (yValue - minValue) : (maxValue - yValue)) * yScaleFactor)
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const features = options.features
         const ctx = options.context
@@ -262,7 +262,7 @@ class WigTrack extends TrackBase {
         const bpEnd = bpStart + pixelWidth * bpPerPixel + 1
 
         const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, pixelHeight, this.logScale)
-        const yScale = (yValue) => this.logScale
+        const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
 
@@ -369,7 +369,7 @@ class WigTrack extends TrackBase {
         }
     }
 
-    renderDynSeq(ctx, feature, x, width, y, y0, pixelHeight) {
+    renderDynSeq(ctx: CanvasRenderingContext2D, feature: any, x: number, width: number, y: number, y0: number, pixelHeight: number) {
         // Use pre-cached sequence data from the feature
         const sequence = feature.sequence
         
@@ -408,7 +408,7 @@ class WigTrack extends TrackBase {
         }
     }
 
-    drawLetterGlyph(ctx, base, x, y, width, height, color, flipVertical = false) {
+    drawLetterGlyph(ctx: CanvasRenderingContext2D, base: string, x: number, y: number, width: number, height: number, color: string, flipVertical = false) {
         // Define letter path data as SVG path strings (100x100 coordinate system)
         const letterPaths = {
             'A': {
@@ -429,7 +429,7 @@ class WigTrack extends TrackBase {
             }
         }
 
-        const pathData = letterPaths[base] || letterPaths['N']
+        const pathData = (letterPaths as Record<string, any>)[base] || letterPaths['N']
         
         ctx.save()
         ctx.fillStyle = color
@@ -453,7 +453,7 @@ class WigTrack extends TrackBase {
         ctx.restore()
     }
 
-    drawSVGPath(ctx, pathString, x, y, width, height) {
+    drawSVGPath(ctx: CanvasRenderingContext2D, pathString: string, x: number, y: number, width: number, height: number) {
         // Parse SVG path string and draw it scaled to the given dimensions
         // Path is defined in 100x100 coordinate system
         const scaleX = width / 100
@@ -491,7 +491,7 @@ class WigTrack extends TrackBase {
         ctx.fill()
     }
 
-    popupData(clickState, features) {
+    popupData(clickState: any, features?: any[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
 
@@ -501,7 +501,7 @@ class WigTrack extends TrackBase {
             const popupData = []
 
             // Sort features based on distance from click
-            features.sort(function (a, b) {
+            features.sort(function (a: any, b: any) {
                 const distA = Math.abs((a.start + a.end) / 2 - genomicLocation)
                 const distB = Math.abs((b.start + b.end) / 2 - genomicLocation)
                 return distA - distB
@@ -511,7 +511,7 @@ class WigTrack extends TrackBase {
             const displayFeatures = features.length > 10 ? features.slice(0, 10) : features
 
             // Resort in ascending order
-            displayFeatures.sort(function (a, b) {
+            displayFeatures.sort(function (a: any, b: any) {
                 return a.start - b.start
             })
 
@@ -547,7 +547,7 @@ class WigTrack extends TrackBase {
      * @returns {string}
      */
 
-    getColorForFeature(f) {
+    getColorForFeature(f: any) {
         let c = (f.value < 0 && this.altColor) ? this.altColor : this.color || WigTrack.defaultColor
         return (typeof c === "function") ? c(f.value) : c
     }

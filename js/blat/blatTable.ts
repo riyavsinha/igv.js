@@ -125,8 +125,8 @@ class BlatTable extends RegionTableBase {
         const loci = []
         for (const row of selectedRows) {
 
-            const record = []
-            row.querySelectorAll('div').forEach(el => record.push(el.innerText))
+            const record: string[] = []
+            row.querySelectorAll('div').forEach((el: any) => record.push(el.innerText))
 
             const [ chr, start, end ] = record
             loci.push(`${ chr }:${ start }-${ end }`)

@@ -332,7 +332,7 @@ class ROIManager {
             {
                 name: 'user defined',
                 isUserDefined: true,
-                features: []
+                features: [] as any[]
             }
         const userDefinedROISet = new ROISet(config, this.browser.genome)
         this.roiSets.push(userDefinedROISet)

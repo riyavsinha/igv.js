@@ -35,10 +35,10 @@ class CNVpytorVCF {
     /**
      * Read rd and BAF information from the vcf file and call accoring to the caller
      */
-    async read_rd_baf(caller: string = 'ReadDepth'): Promise<any[]> {
+    async read_rd_baf(caller: string = 'ReadDepth'): Promise<[any[], any[]]> {
         
         // Step1: Parse data from the vcf file; for a fixed rowBinSize
-        var wigFeatures = {}
+        var wigFeatures: Record<string, any[]> = {}
         for (let i = this.allVariants.length-1; i >= 0; i--){
             var featureBin;
             // assign and free space for the all_variants
@@ -127,11 +127,11 @@ class CNVpytorVCF {
         return [finalFeatureSet, baf]
     }
 
-    format_BAF_likelihood(wigFeatures: any): any[] {
-        const results: any[] = []
+    format_BAF_likelihood(wigFeatures: Record<string, any[]>): Record<string, any>[] {
+        const results: Record<string, any>[] = []
 
         for (const [chr, wig] of Object.entries(wigFeatures)) {
-            for(let sample of wig as any[]) {
+            for(let sample of wig) {
                 var new_sample = { ...sample }
                 if (sample.value != 0.5) {
                     new_sample.value = 1 - sample.value
@@ -142,7 +142,7 @@ class CNVpytorVCF {
         return results
     }
 
-    get_max_min_score(sample: any): any {
+    get_max_min_score(sample: Record<string, any>): Record<string, any> {
 
         if (sample.likelihood_score.length > 0) {
             const max = Math.max(...sample.likelihood_score);
@@ -170,9 +170,9 @@ class CNVpytorVCF {
      * @param {*} wigFeatures - wig features after processing the varaints
      * @returns 
      */
-    adjust_bin_size(wigFeatures: any, delete_likelihood_scores: boolean = false): any {
+    adjust_bin_size(wigFeatures: Record<string, any[]>, delete_likelihood_scores: boolean = false): Record<string, any[]> {
         
-        var avgbin = {}
+        var avgbin: Record<string, any[]> = {}
         const scale = this.binSize/150
         for (let chr of this.chromosomes) {
             if (!avgbin[chr]) { avgbin[chr] = [] }

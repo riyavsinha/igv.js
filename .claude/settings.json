@@ -53,7 +53,8 @@
       "Bash(npm ls --depth=0)",
       "Bash(head -1 /Users/riyavsinha/projects/igv.js/test/*.js)",
       "WebFetch(domain:gist.github.com)",
-      "Bash(/tmp/test_ts8.ts:*)"
+      "Bash(/tmp/test_ts8.ts:*)",
+      "Read(//Users/riyavsinha/projects/igv.js/**)"
     ],
     "additionalDirectories": [
       "/Users/riyavsinha/projects/igv.js",

@@ -21,12 +21,12 @@ class SpliceJunctionTrack extends TrackBase {
         height: 100
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
 
-    init(config) {
+    init(config: any) {
 
         super.init(config)
 
@@ -70,7 +70,7 @@ class SpliceJunctionTrack extends TrackBase {
         return false
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
         return this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
     };
@@ -83,11 +83,11 @@ class SpliceJunctionTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features) {
+    computePixelHeight(features: any[]) {
         return this.height
     };
 
-    draw(options) {
+    draw(options: any) {
 
         const featureList = options.features
         const ctx = options.context
@@ -137,7 +137,7 @@ class SpliceJunctionTrack extends TrackBase {
      * @param pixelHeight  pixel height of the current canvas
      * @param ctx  the canvas 2d context
      */
-    renderJunction(feature, bpStart, xScale, pixelHeight, ctx, junctionRenderingContext) {
+    renderJunction(feature: any, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D, junctionRenderingContext: any) {
         // cache whether this junction is rendered or filtered out. Use later to exclude non-rendered junctions from click detection.
         feature.isVisible = false
 
@@ -276,7 +276,7 @@ class SpliceJunctionTrack extends TrackBase {
             color = '#AAAAAA'
         }
 
-        let label = ""
+        let label: any = ""
         if (feature.attributes.label) {
             label = feature.attributes.label.replace(/_/g, " ")
         } else if (this.config.labelWith === undefined || this.config.labelWith === 'uniqueReadCount') {
@@ -334,7 +334,7 @@ class SpliceJunctionTrack extends TrackBase {
         ctx.strokeStyle = color
         ctx.stroke()
 
-        const drawArrowhead = (ctx, x, y, size) => {
+        const drawArrowhead = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
             //TODO draw better arrow heads: https://stackoverflow.com/questions/21052972/curved-thick-arrows-on-canvas
             ctx.beginPath()
             ctx.moveTo(x, y)
@@ -359,7 +359,7 @@ class SpliceJunctionTrack extends TrackBase {
         ctx.fillText(label, junctionMiddlePx - ctx.measureText(label).width / 2, (7 * topY + cy) / 8)
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         const allFeatures = super.clickedFeatures(clickState)
 
@@ -371,7 +371,7 @@ class SpliceJunctionTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState, features) {
+    popupData(clickState: any, features?: any[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation

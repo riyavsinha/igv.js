@@ -152,7 +152,7 @@ class ResponsiveNavbar {
 
         if (config.customButtons) {
             for (let b of config.customButtons) {
-                new CustomButton(toggleButtonContainer, browser, b);
+                new (CustomButton as any)(toggleButtonContainer, browser, b);
             }
         }
 

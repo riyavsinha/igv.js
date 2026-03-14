@@ -185,7 +185,7 @@ class GWASTrack extends TrackBase {
 
         if (features === undefined) features = clickState.viewport.cachedFeatures
 
-        let data = []
+        let data: any[] = []
         const track = clickState.viewport.trackView.track
 
         if (features) {

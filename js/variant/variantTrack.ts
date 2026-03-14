@@ -43,19 +43,19 @@ class VariantTrack extends TrackBase {
         hetvarColor: "rgb(34,12,253)",
         refColor: "rgb(0,0,220)",
         altColor: "rgb(255,0,0)",
-        visibilityWindow: undefined,
-        labelDisplayMode: undefined,
+        visibilityWindow: undefined as any,
+        labelDisplayMode: undefined as any,
         type: "variant"
     }
 
     _sortDirections = new Map()
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
     // Note -- init gets called during base class construction.  Confusing
-    init(config) {
+    init(config: any) {
 
         super.init(config)
 
@@ -179,7 +179,7 @@ class VariantTrack extends TrackBase {
         return this.sampleKeys ? this.sampleKeys.length : 0
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
 
         if (this.header === undefined) {
             this.header = await this.getHeader()
@@ -242,7 +242,7 @@ class VariantTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features) {
+    computePixelHeight(features: any[]) {
 
         if (!features || 0 === features.length) return TOP_MARGIN
 
@@ -256,11 +256,11 @@ class VariantTrack extends TrackBase {
 
     }
 
-    variantRowCount(count) {
+    variantRowCount(count: number) {
         this.nVariantRows = count
     }
 
-    draw({context, pixelWidth, pixelHeight, bpPerPixel, bpStart, pixelTop, features}) {
+    draw({context, pixelWidth, pixelHeight, bpPerPixel, bpStart, pixelTop, features}: {context: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number, bpPerPixel: number, bpStart: number, pixelTop: number, features: any[]}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -411,7 +411,7 @@ class VariantTrack extends TrackBase {
         return this._altColorFiltered
     }
 
-    getColorForFeature(variant) {
+    getColorForFeature(variant: any) {
 
         const v = variant._f || variant
         let variantColor
@@ -439,7 +439,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    getVariantStrokecolor(variant) {
+    getVariantStrokecolor(variant: any) {
 
         const v = variant._f || variant
         let variantStrokeColor
@@ -452,7 +452,7 @@ class VariantTrack extends TrackBase {
         return variantStrokeColor
     }
 
-    callContextHook(variant, context, x, y, w, h) {
+    callContextHook(variant: any, context: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
         if (this._context_hook) {
             if (typeof this._context_hook === "function") {
                 const v = variant._f || variant
@@ -464,7 +464,7 @@ class VariantTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         let featureList = super.clickedFeatures(clickState)
 
@@ -504,7 +504,7 @@ class VariantTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState, featureList) {
+    popupData(clickState: any, featureList?: any[]) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation
@@ -605,7 +605,7 @@ class VariantTrack extends TrackBase {
                 menuItems.push('<hr/>')
                 const element = createElementWithString('<div class="igv-track-menu-category igv-track-menu-border-top">')
                 element.textContent = 'Color by:'
-                menuItems.push({name: undefined, element, click: undefined, init: undefined})
+                menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
                 for (let key of colorByItems.keys()) {
                     const selected = (this.colorBy === key)
                     menuItems.push(this.colorByCB({key, label: colorByItems.get(key)}, selected))
@@ -623,7 +623,7 @@ class VariantTrack extends TrackBase {
             menuItems.push("Sort by attribute:")
             for (const attribute of this.browser.sampleInfo.attributeNames) {
 
-                if (this.sampleKeys.some(s => {
+                if (this.sampleKeys.some((s: string) => {
                     const attrs = this.browser.sampleInfo.getAttributes(s)
                     return attrs && attrs[attribute]
                 })) {
@@ -666,7 +666,7 @@ class VariantTrack extends TrackBase {
 
         menuItems.push({element: createElementWithString('<div class="igv-track-menu-border-top">')})
         for (let displayMode of ["COLLAPSED", "SQUISHED", "EXPANDED"]) {
-            var lut =
+            var lut: {[key: string]: string} =
                 {
                     "COLLAPSED": "Collapse",
                     "SQUISHED": "Squish",
@@ -714,7 +714,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    contextMenuItemList(clickState) {
+    contextMenuItemList(clickState: any) {
 
         const list = []
 
@@ -731,7 +731,7 @@ class VariantTrack extends TrackBase {
             list.push(
                 {
                     label: 'Sort by genotype',
-                    click: (e) => {
+                    click: (e: Event) => {
 
                         const sort = {
                             direction,
@@ -771,7 +771,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    async sortSamplesByGenotype({chr, position, start, end, direction}, featureList) {
+    async sortSamplesByGenotype({chr, position, start, end, direction}: {chr: string, position: number, start: number, end: number, direction: string | number}, featureList: any[]) {
 
         if (start === undefined) start = position - 1
         if (end === undefined) end = position
@@ -796,7 +796,7 @@ class VariantTrack extends TrackBase {
         }
 
         // Now sort sample names by score
-        this.sampleKeys.sort(function (a, b) {
+        this.sampleKeys.sort(function (a: string, b: string) {
             let sa = scores.get(a) || 0
             let sb = scores.get(b) || 0
             return d2 * (sa - sb)
@@ -805,7 +805,7 @@ class VariantTrack extends TrackBase {
         this.trackView.repaintViews()
     }
 
-    sortByAttribute(attribute, sortDirection) {
+    sortByAttribute(attribute: string, sortDirection: number) {
 
         this.config.sort = {
             option: "ATTRIBUTE",
@@ -819,7 +819,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    sendChordsForViewport(viewport) {
+    sendChordsForViewport(viewport: any) {
         const refFrame = viewport.referenceFrame
         let inView
         if ("all" === refFrame.chr) {
@@ -841,7 +841,7 @@ class VariantTrack extends TrackBase {
      * @param showCheck
      * @returns {{init: undefined, name: undefined, click: clickHandler, element: (jQuery|HTMLElement|jQuery.fn.init)}}
      */
-    colorByCB(menuItem, showCheck) {
+    colorByCB(menuItem: {key: string, label: string}, showCheck: boolean) {
 
         const element = createCheckbox(menuItem.label, showCheck)
 
@@ -853,13 +853,13 @@ class VariantTrack extends TrackBase {
                 this.trackView.repaintViews()
             }
 
-            return {name: undefined, element, click: clickHandler, init: undefined}
+            return {name: undefined as any, element, click: clickHandler, init: undefined as any}
         } else {
-            function dialogPresentationHandler(ev) {
+            function dialogPresentationHandler(ev: Event) {
                 this.browser.inputDialog.present({
                     label: 'Info field',
                     value: '',
-                    callback: (infoField) => {
+                    callback: (infoField: string) => {
                         if (infoField) {
                             this.colorBy = infoField
                             this._colorByItems.set(infoField, infoField)
@@ -871,7 +871,7 @@ class VariantTrack extends TrackBase {
                 }, ev)
             }
 
-            return {name: undefined, element, dialog: dialogPresentationHandler, init: undefined}
+            return {name: undefined as any, element, dialog: dialogPresentationHandler, init: undefined as any}
         }
     }
 
@@ -890,7 +890,7 @@ class VariantTrack extends TrackBase {
      * @param key
      * @returns {any}
      */
-    getVariantColorTable(key) {
+    getVariantColorTable(key: string) {
 
         if (this.colorTables.has(key)) {
             return this.colorTables.get(key)
@@ -988,7 +988,7 @@ class VariantTrack extends TrackBase {
 }
 
 
-function expandGenotype(call, variant) {
+function expandGenotype(call: any, variant: any) {
 
     if (call.genotype) {
         let gt = ''

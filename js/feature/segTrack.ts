@@ -19,7 +19,7 @@ class SegTrack extends TrackBase {
         {
             type: 'seg',
             groupBy: NULL_GROUP,
-            isLog: undefined,
+            isLog: undefined as any,
             displayMode: "EXPANDED",
             height: 300,
             maxHeight: 500,
@@ -28,13 +28,13 @@ class SegTrack extends TrackBase {
         }
 
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
         this.groups = new Map()
     }
 
 
-    init(config) {
+    init(config: any) {
 
         super.init(config)
 
@@ -107,7 +107,7 @@ class SegTrack extends TrackBase {
             for (const attribute of this.browser.sampleInfo.attributeNames) {
 
                 const sampleNames = this.sampleKeys
-                if (sampleNames.some(s => {
+                if (sampleNames.some((s: any) => {
                     const attrs = this.browser.sampleInfo.getAttributes(s)
                     return attrs && attrs[attribute]
                 })) {
@@ -161,7 +161,7 @@ class SegTrack extends TrackBase {
 
             menuItems.push(
                 {
-                    element: createCheckbox(lut[displayMode], displayMode === this.displayMode),
+                    element: createCheckbox((lut as Record<string, string>)[displayMode], displayMode === this.displayMode),
                     click: function displayModeHandler() {
                         this.displayMode = displayMode
                         this.config.displayMode = displayMode
@@ -182,7 +182,7 @@ class SegTrack extends TrackBase {
 
     getSamples() {
         const groupIndeces = NULL_GROUP !== this.groupBy ?
-            this.sampleKeys.map(sample => this.getGroupIndex(sample)) : undefined
+            this.sampleKeys.map((sample: any) => this.getGroupIndex(sample)) : undefined
         return {
             names: this.sampleKeys || [],
             height: this.sampleHeight,
@@ -201,7 +201,7 @@ class SegTrack extends TrackBase {
      * @returns {boolean}
      */
     // @ts-expect-error - filter method conflicts with TrackBase accessor
-    filter(sampleKey) {
+    filter(sampleKey: any) {
         const filterObjects = this._trackFilterObjects || []
 
         if (filterObjects.length === 0) {
@@ -239,7 +239,7 @@ class SegTrack extends TrackBase {
         // Save current filters as part of track state
         if (this._trackFilterObjects && this._trackFilterObjects.length > 0) {
             // Convert filter objects to filter specs (remove computed scores)
-            const filterSpecs = this._trackFilterObjects.map(filterObj => {
+            const filterSpecs = this._trackFilterObjects.map((filterObj: any) => {
                 const {scores, ...filterSpec} = filterObj
                 return filterSpec
             })
@@ -249,7 +249,7 @@ class SegTrack extends TrackBase {
         return state
     }
 
-    async getFeatures(chr, start, end) {
+    async getFeatures(chr: string, start: number, end: number) {
         const features = await this.featureSource.getFeatures({chr, start, end})
         // New segments could conceivably add new samples
         this.updateSampleKeys(features)
@@ -269,7 +269,7 @@ class SegTrack extends TrackBase {
         return features
     }
 
-    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}) {
+    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: any[], bpPerPixel: number, bpStart: number}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -284,8 +284,8 @@ class SegTrack extends TrackBase {
             }
 
             // Create a map for fast id -> row lookup
-            const sampleRowIndeces = {}
-            this.sampleKeys.forEach(function (sample, index) {
+            const sampleRowIndeces: Record<string, number> = {}
+            this.sampleKeys.forEach(function (sample: string, index: number) {
                 sampleRowIndeces[sample] = index
             })
 
@@ -410,7 +410,7 @@ class SegTrack extends TrackBase {
     }
 
 
-    getGroupIndex(sampleKey) {
+    getGroupIndex(sampleKey: string) {
         const attributeValue = this.browser.sampleInfo.getAttributeValue(sampleKey, this.groupBy) || ""
         if (this.groups.has(attributeValue)) {
             return this.groups.get(attributeValue).index
@@ -419,7 +419,7 @@ class SegTrack extends TrackBase {
         }
     }
 
-    checkForLog(features) {
+    checkForLog(features: any[]) {
         if (this.isLog === undefined) {
             this.isLog = false
             for (let feature of features) {
@@ -440,7 +440,7 @@ class SegTrack extends TrackBase {
      * @param features
      * @returns {number}
      */
-    computePixelHeight(features) {
+    computePixelHeight(features: any[]) {
         if (!features) return 0
         const sampleHeight = ("SQUISHED" === this.displayMode) ? this.squishedRowHeight : this.expandedRowHeight
         return this.sampleKeys.length * sampleHeight + (this.groups.size > 1 ? (this.groups.size + 1) * GROUP_MARGIN_HEIGHT : 0)
@@ -449,7 +449,7 @@ class SegTrack extends TrackBase {
     /**
      * Sort samples by the average value over the genomic range in the direction indicated (1 = ascending, -1 descending)
      */
-    async sortByValue(sort, featureList) {
+    async sortByValue(sort: any, featureList?: any[]) {
 
         const chr = sort.chr
         const start = sort.position !== undefined ? sort.position - 1 : sort.start
@@ -457,9 +457,9 @@ class SegTrack extends TrackBase {
         const scores = await this.computeRegionScores({chr, start, end}, featureList)
         const d2 = (sort.direction === "ASC" ? 1 : -1)
 
-        this.sampleKeys.sort(function (a, b) {
-            let s1 = scores[a]
-            let s2 = scores[b]
+        this.sampleKeys.sort(function (a: any, b: any) {
+            let s1 = (scores as Record<string, any>)[a]
+            let s2 = (scores as Record<string, any>)[b]
             if (!s1) s1 = d2 * Number.MAX_VALUE
             if (!s2) s2 = d2 * Number.MAX_VALUE
             if (s1 === s2) return 0
@@ -477,7 +477,7 @@ class SegTrack extends TrackBase {
     }
 
 
-    async computeRegionScores(filterObject, featureList) {
+    async computeRegionScores(filterObject: any, featureList?: any[]) {
 
         const chr = filterObject.chr
         let start, end
@@ -496,7 +496,7 @@ class SegTrack extends TrackBase {
 
         this.updateSampleKeys(featureList)
 
-        const scores = {}
+        const scores: Record<string, any> = {}
         const bpLength = end - start + 1
 
         for (let segment of featureList) {
@@ -519,7 +519,7 @@ class SegTrack extends TrackBase {
         return scores
     }
 
-    sortByAttribute(attribute, sortDirection) {
+    sortByAttribute(attribute: string, sortDirection?: number) {
 
         sortDirection = sortDirection || this.sortDirections.get(attribute) || 1
 
@@ -539,7 +539,7 @@ class SegTrack extends TrackBase {
         this.trackView.repaintViews()
     }
 
-    groupByAttribute(attribute) {
+    groupByAttribute(attribute: string) {
 
         this.groupBy = attribute
 
@@ -597,7 +597,7 @@ class SegTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         const allFeatures = super.clickedFeatures(clickState)
         const y = clickState.y
@@ -608,14 +608,14 @@ class SegTrack extends TrackBase {
 
     }
 
-    hoverText(clickState) {
+    hoverText(clickState: any) {
         const features = this.clickedFeatures(clickState)
         if (features && features.length > 0) {
             return `${features[0].sample}: ${features[0].value}`
         }
     }
 
-    popupData(clickState, featureList) {
+    popupData(clickState: any, featureList?: any[]) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
 
@@ -642,11 +642,11 @@ class SegTrack extends TrackBase {
         return items
     }
 
-    contextMenuItemList(clickState) {
+    contextMenuItemList(clickState: any) {
 
         const {genomicLocation, referenceFrame, viewport, event} = clickState
 
-        const sortHandler = (sort) => {
+        const sortHandler = (sort: any) => {
             const features = viewport.cachedFeatures
             this.sortByValue(sort, features)
         }
@@ -683,7 +683,7 @@ class SegTrack extends TrackBase {
         return (this.config.indexed === false || !this.config.indexURL) && this.config.supportsWholeGenome !== false
     }
 
-    updateSampleKeys(featureList) {
+    updateSampleKeys(featureList: any[]) {
         if (this.explicitSamples) return
 
         let newSamplesFound = false

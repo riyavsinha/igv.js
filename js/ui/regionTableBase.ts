@@ -196,7 +196,7 @@ class RegionTableBase {
         this.tableDOM.remove()
 
         for (const key of Object.keys(this)) {
-            this[key] = undefined
+            (this as any)[key] = undefined
         }
 
         document.removeEventListener('click', this.boundDismissHandler)

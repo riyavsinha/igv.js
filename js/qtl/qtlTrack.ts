@@ -96,7 +96,7 @@ class QTLTrack extends TrackBase {
 
         referenceFrame.feature && referenceFrame.feature.match(/RS[0-9]+/)
 
-        const drawEqtls = (drawSelected) => {
+        const drawEqtls = (drawSelected: boolean) => {
 
             const radius = drawSelected ? 2 * this.dotSize : this.dotSize
             const bpStart = options.bpStart
@@ -241,18 +241,18 @@ class QTLTrack extends TrackBase {
         menuItems.push(...this.numericDataMenuItems())
         menuItems.push('<hr/>')
 
-        function dialogPresentationHandler(ev) {
+        function dialogPresentationHandler(ev: any) {
 
             this.browser.inputDialog.present({
                 label: 'Search for snp or phenotype',
                 value: '',
-                callback: async (term) => {
+                callback: async (term: any) => {
 
                     if (term) {
                         term = term.trim().toUpperCase()
 
                         // Find qtls from this track matching either snp or phenotype
-                        const matching = f => {
+                        const matching = (f: any) => {
                             return ((f.phenotype && f.phenotype.toUpperCase()) === term || (f.snp && f.snp.toUpperCase() === term)) &&
                                 -Math.log(f.pValue) / Math.LN10 > this.dataRange.min
                         }

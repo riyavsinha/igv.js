@@ -42,7 +42,7 @@ class CNVPytorTrack extends TrackBase {
     }
 
     get_signals() {
-        let signals = []
+        let signals: string[] = []
 
         if (this.signal_name == 'rd_snp') {
             signals = ["RD_Raw", "RD_Raw_gc_coor", this.cnv_caller, "BAF1", "BAF2"]
@@ -72,7 +72,8 @@ class CNVPytorTrack extends TrackBase {
         return signal_colors
     }
 
-    async postInit(): Promise<any> {
+    // @ts-expect-error TS2416 - postInit return type differs from base class
+    async postInit(): Promise<void[]> {
 
         if (this.config.format == 'vcf') {
 
@@ -125,8 +126,8 @@ class CNVPytorTrack extends TrackBase {
         } else {
             this.cnvpytor_obj = new HDF5IndexedReader(this.config, this.bin_size)
             // get chrom list that currently user viewing
-            let chroms = [ ...new Set(this.browser.referenceFrameList.map(val => val.chr))]
-            
+            let chroms: string[] = [ ...new Set(this.browser.referenceFrameList.map((val: { chr: string }) => val.chr)) as Set<string>]
+
             let aliasRecord = this.getAliasChromsList(chroms)
             this.wigFeatures_obj = await this.cnvpytor_obj.get_rd_signal(this.bin_size, aliasRecord)
 
@@ -159,7 +160,7 @@ class CNVPytorTrack extends TrackBase {
                     tconf.isMergedTrack = true
                     tconf.features = wig
                     tconf.name = signal_name
-                    tconf.color = this.signal_colors.filter(x => x.singal_name === signal_name).map(x => x.color)
+                    tconf.color = this.signal_colors.filter((x: { singal_name: string, color: string }) => x.singal_name === signal_name).map((x: { singal_name: string, color: string }) => x.color)
                     const t = await this.browser.createTrack(tconf)
                     if (t) {
                         t.autoscale = false     // Scaling done from merged track
@@ -195,13 +196,12 @@ class CNVPytorTrack extends TrackBase {
         return Promise.all(p)
     }
 
-    getAliasChromsList(chroms){
-        let aliasRecord = chroms.map(chr => {
+    getAliasChromsList(chroms: string[]): string[] {
+        const nested = chroms.map((chr: string) => {
             let records = this.browser.genome.chromAlias.aliasRecordCache.get(chr)
-            return Object.values(records)
+            return Object.values(records) as string[]
         })
-        aliasRecord = aliasRecord.flat()
-        return aliasRecord
+        return nested.flat()
     }
     
     set_available_callers() {
@@ -224,7 +224,7 @@ class CNVPytorTrack extends TrackBase {
                 }
                 this.header = header
             }
-            this.sampleKeys = this.callSets ? this.callSets.map(cs => cs.sample) : []
+            this.sampleKeys = this.callSets ? this.callSets.map((cs: { sample: string }) => cs.sample) : []
             this.sampleNames = this.sampleKeys
         }
 
@@ -246,7 +246,7 @@ class CNVPytorTrack extends TrackBase {
     }
 
     menuItemList() {
-        let items = []
+        let items: any[] = []
 
         if (this.flipAxis !== undefined) {
             items.push({
@@ -281,7 +281,7 @@ class CNVPytorTrack extends TrackBase {
         items.push('<hr/>')
         items.push("Signal Type")
 
-        let signal_dct = {"rd_snp": "RD and BAF Likelihood", "rd": "RD Signal", "snp": "BAF Likelihood"}
+        let signal_dct: Record<string, string> = {"rd_snp": "RD and BAF Likelihood", "rd": "RD Signal", "snp": "BAF Likelihood"}
         for (let signal_name in signal_dct) {
 
             items.push({
@@ -335,13 +335,13 @@ class CNVPytorTrack extends TrackBase {
         return items
     }
 
-    async recreate_tracks(bin_size) {
+    async recreate_tracks(bin_size: number) {
         this.tracks = []
         const p = []
 
         if (!(bin_size in this.wigFeatures_obj)) {
             if(Object.keys(this.hasChroms).length > 0) {
-                let chroms = [ ...new Set(this.browser.referenceFrameList.map(val => val.chr))]
+                let chroms: string[] = [ ...new Set(this.browser.referenceFrameList.map((val: { chr: string }) => val.chr)) as Set<string>]
                 if(chroms[0] == "all"){
                     chroms = this.browser.genome.chromosomeNames
                 }
@@ -366,7 +366,7 @@ class CNVPytorTrack extends TrackBase {
                 tconf.isMergedTrack = true
                 tconf.features = wig
                 tconf.name = signal_name
-                tconf.color = this.signal_colors.filter(x => x.singal_name === signal_name).map(x => x.color)
+                tconf.color = this.signal_colors.filter((x: { singal_name: string, color: string }) => x.singal_name === signal_name).map((x: { singal_name: string, color: string }) => x.color)
                 const t = await this.browser.createTrack(tconf)
                 if (t) {
                     t.autoscale = false     // Scaling done from merged track
@@ -400,29 +400,29 @@ class CNVPytorTrack extends TrackBase {
         return Promise.all(p)
     }
 
-    update_hasChroms(wigFeatures, chroms){
+    update_hasChroms(wigFeatures: Record<string, any>, chroms: string[]){
         for (let binSize in wigFeatures){
             if (!this.hasChroms[binSize]) {
                 this.hasChroms[binSize] = new Set();
             }
-            chroms.forEach(item => this.hasChroms[binSize].add(item))
+            chroms.forEach((item: string) => this.hasChroms[binSize].add(item))
 
         }
         return this.hasChroms
 
     }
 
-    async getFeatures(chr, bpStart, bpEnd, bpPerPixel) {
+    async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) {
         
         if(Object.keys(this.hasChroms).length > 0) {
             
             // Need to find the current binSize
             if (this.hasChroms[this.bin_size].size != 0){
-                let chroms = [ ...new Set(this.browser.referenceFrameList.map(val => val.chr))]
+                let chroms: string[] = [ ...new Set(this.browser.referenceFrameList.map((val: { chr: string }) => val.chr)) as Set<string>]
                 if(chroms[0] == "all"){
                     chroms = this.browser.genome.chromosomeNames
                 }
-                let newChroms = chroms.filter(val => !this.hasChroms[this.bin_size].has(val))
+                let newChroms = chroms.filter((val: string) => !this.hasChroms[this.bin_size].has(val))
 
                 if(newChroms.length != 0){
 
@@ -450,7 +450,7 @@ class CNVPytorTrack extends TrackBase {
         }
 
         if (this.tracks) {
-            const promises = this.tracks.map((t) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
+            const promises = this.tracks.map((t: { getFeatures: (chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) => Promise<any> }) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
             return Promise.all(promises)
         } else {
             return undefined  // This can happen if a redraw is triggered before the track has initialized.
@@ -458,16 +458,16 @@ class CNVPytorTrack extends TrackBase {
     }
 
     // TODO: refactor to igvUtils.js
-    getScaleFactor(min, max, height, logScale) {
+    getScaleFactor(min: number, max: number, height: number, logScale: boolean) {
         const scale = logScale ? height / (Math.log10(max + 1) - (min <= 0 ? 0 : Math.log10(min + 1))) : height / (max - min)
         return scale
     }
 
-    computeYPixelValue(yValue, yScaleFactor) {
+    computeYPixelValue(yValue: number, yScaleFactor: number) {
         return (this.flipAxis ? (yValue - this.dataRange.min) : (this.dataRange.max - yValue)) * yScaleFactor
     }
 
-    computeYPixelValueInLogScale(yValue, yScaleFactor) {
+    computeYPixelValueInLogScale(yValue: number, yScaleFactor: number) {
         let maxValue = this.dataRange.max
         let minValue = this.dataRange.min
         if (maxValue <= 0) return 0 // TODO:
@@ -478,7 +478,7 @@ class CNVPytorTrack extends TrackBase {
         return ((this.flipAxis ? (yValue - minValue) : (maxValue - yValue)) * yScaleFactor)
     }
 
-    draw(options) {
+    draw(options: any) {
 
         // const mergedFeatures = options.features    // Array of feature arrays, 1 for each track
         const mergedFeatures = options.features
@@ -523,7 +523,7 @@ class CNVPytorTrack extends TrackBase {
 
         // guides lines
         const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, options.pixelHeight, this.logScale)
-        const yScale = (yValue) => this.logScale
+        const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
 
@@ -551,16 +551,16 @@ class CNVPytorTrack extends TrackBase {
 
     }
 
-    paintAxis(ctx, pixelWidth, pixelHeight) {
+    paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
 
-        var x1,
-            x2,
-            y1,
-            y2,
-            a,
-            b,
-            reference,
-            shim,
+        var x1: number,
+            x2: number,
+            y1: number,
+            y2: number,
+            a: { x: number, y: number },
+            b: { x: number, y: number },
+            reference: number,
+            shim: number,
             font = {
                 'font': 'normal 10px Arial',
                 'textAlign': 'right',
@@ -600,14 +600,14 @@ class CNVPytorTrack extends TrackBase {
 
         IGVGraphics.strokeLine(ctx, a.x, a.y, b.x, b.y, font)
 
-        function prettyPrint(number) {
+        function prettyPrint(number: number): string {
             // if number >= 100, show whole number
             // if >= 1 show 1 significant digits
             // if <  1 show 2 significant digits
 
             // change the label for negative number to positive; For BAF likelihood section
             if(number < 0){
-                return Math.abs(number)
+                return String(Math.abs(number))
             }
 
             if (number === 0) {
@@ -624,7 +624,7 @@ class CNVPytorTrack extends TrackBase {
         }
 
         const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, pixelHeight, this.logScale)
-        const yScale = (yValue) => this.logScale
+        const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
 
@@ -638,7 +638,7 @@ class CNVPytorTrack extends TrackBase {
 
     }
 
-    popupData(clickState, features) {
+    popupData(clickState: any, features: any) {
 
         const featuresArray = features || clickState.viewport.cachedFeatures
 
@@ -678,7 +678,7 @@ class CNVPytorTrack extends TrackBase {
 
 }
 
-function autoscale(chr, featureArrays) {
+function autoscale(chr: string, featureArrays: any[][]) {
 
     let min = 0
     let max = -Number.MAX_VALUE

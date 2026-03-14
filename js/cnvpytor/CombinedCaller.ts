@@ -13,11 +13,11 @@ class CombinedCaller extends baseCNVpytorVCF {
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - GC content data indexed by chromosome and bin.
      */
-    constructor(wigFeatures: any, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
     }
 
-    async call_2d(omin: any = null, mcount: any = null, event_type: string = "both", max_distance: number = 0.1, baf_threshold: number = 0, max_copy_number: number = 10, min_cell_fraction: number = 0.0){
+    async call_2d(omin: number | null = null, mcount: number | null = null, event_type: string = "both", max_distance: number = 0.1, baf_threshold: number = 0, max_copy_number: number = 10, min_cell_fraction: number = 0.0){
         
         // let fit_obj = this.get_fit_v2()
         // this.globalMean = fit_obj.globalMean
@@ -33,19 +33,19 @@ class CombinedCaller extends baseCNVpytorVCF {
         let overlap_min = omin==null ?  0.05 * this.binSize / 3e9: omin ;
         let min_count = mcount == null ? parseInt((this.binSize / 10000).toString()) : mcount ;
 
-        let gstat_rd0 = []
-        let gstat_rd_all = []
-        let gstat_rd = []
-        let gstat_baf = []
-        let gstat_error = []
-        let gstat_lh = []
-        let gstat_n = []
-        let gstat_event = []
+        let gstat_rd0: Record<string, any>[] = []
+        let gstat_rd_all: Record<string, any>[] = []
+        let gstat_rd: number[] = []
+        let gstat_baf: number[] = []
+        let gstat_error: number[] = []
+        let gstat_lh: number[][] = []
+        let gstat_n: number[] = []
+        let gstat_event: any[] = []
         
         for (const [chr, wig] of Object.entries(this.wigFeatures) as [string, any[]][]) {
             let segments: any[] = []
             let levels: number[] = []
-            let likelihoods: any[] = [];
+            let likelihoods: number[][] = [];
 
             (wig as any[]).forEach((bin: any, bin_idx: number) => {
                 if (bin.hets_count > 4 ){
@@ -106,12 +106,12 @@ class CombinedCaller extends baseCNVpytorVCF {
                 
                 let merge_level = normal_merge(levels[i], error[i], levels[i + 1], error[i + 1]);
                 
-                let nlh
-                let nlh_sum;
+                let nlh: number[]
+                let nlh_sum: number;
                 try{
-                    nlh = likelihoods[i].map((l_value, l_idx) => { return l_value * likelihoods[i+1][l_idx]})
-                
-                    nlh_sum = nlh.reduce((a, c_value) => {return a + c_value});
+                    nlh = likelihoods[i].map((l_value: number, l_idx: number) => { return l_value * likelihoods[i+1][l_idx]})
+
+                    nlh_sum = nlh.reduce((a: number, c_value: number) => {return a + c_value});
                     
                 }catch{
                     console.log(likelihoods)
@@ -124,7 +124,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                 levels[i] = merge_level.nl
                 error[i] = merge_level.ne
                 
-                likelihoods[i] = nlh.map(function(item) { return item/nlh_sum } )
+                likelihoods[i] = nlh.map(function(item: number) { return item/nlh_sum } )
                 
                 segments[i].push(...segments[i+1])
 
@@ -178,13 +178,13 @@ class CombinedCaller extends baseCNVpytorVCF {
 
                         levels[i] = merge_level.nl
                         error[i] = merge_level.ne
-                        let nlh = likelihoods[i].map((l_value, l_idx) => { return l_value * likelihoods[i+1][l_idx]})
-                        let nlh_sum = nlh.reduce((a, c_value) => {return a + c_value});
-                        likelihoods[i] = nlh.map(function(item) { return item/nlh_sum } )
+                        let nlh = likelihoods[i].map((l_value: number, l_idx: number) => { return l_value * likelihoods[i+1][l_idx]})
+                        let nlh_sum = nlh.reduce((a: number, c_value: number) => {return a + c_value});
+                        likelihoods[i] = nlh.map(function(item: number) { return item/nlh_sum } )
 
                         
                         segments[i].push(...segments[i+1])
-                        segments[i] = segments[i].sort((a,b) => a-b)
+                        segments[i] = segments[i].sort((a: number, b: number) => a-b)
 
                         levels.splice(j, 1)
                         error.splice(j, 1)
@@ -212,7 +212,7 @@ class CombinedCaller extends baseCNVpytorVCF {
             }
             // console.log('final segments', segments)
             
-            segments.forEach((seg_value, seg_idx) => {
+            segments.forEach((seg_value: number[], seg_idx: number) => {
                 let baf_info = likelihood_baf_pval(likelihoods[seg_idx])
                 if(seg_value.length > 1){
                     let q0 = 0
@@ -220,7 +220,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                     let homs = 0
                     let hets = 0
 
-                    seg_value.forEach((bin, bin_idx) =>{
+                    seg_value.forEach((bin: number, bin_idx: number) =>{
                         gstat_rd_all.push(wig[bin])
                         if(baf_info.mean <= baf_threshold){
                             gstat_rd0.push(wig[bin])
@@ -248,8 +248,8 @@ class CombinedCaller extends baseCNVpytorVCF {
             points = 1
         }
         let x = gUtils.linspace(min_cell_fraction, 1, points)
-        let master_lh = {}
-        let germline_lh = {}
+        let master_lh: Record<number, any> = {}
+        let germline_lh: Record<number, any> = {}
         for(let cn=10; cn > -1; cn--){
             for(let h1=0; h1 < (cn/2+1); h1++){
                 let h2 = cn - h1
@@ -296,16 +296,16 @@ class CombinedCaller extends baseCNVpytorVCF {
                 
                 for( let ei=0; ei < gstat_rd.length; ei++){
                     if(event_type == "germline"){
-                        master_lh[ei].sort((a, b) => a[3] - b[3]);
+                        master_lh[ei].sort((a: number[], b: number[]) => a[3] - b[3]);
                     }
                     else{
-                        master_lh[ei].sort((a, b) => a[3] - b[3]);
+                        master_lh[ei].sort((a: number[], b: number[]) => a[3] - b[3]);
                         if(event_type == "both"){
-                            
-                            germline_lh[ei].sort((a, b) => a[3] - b[3]);
+
+                            germline_lh[ei].sort((a: number[], b: number[]) => a[3] - b[3]);
                             if(germline_lh[ei][0][3] > master_lh[ei][0][3]){
                                 //let tmp_list = list(filter( lambda x: x[0] != germline_lh[ei][0][0] and x[1] != germline_lh[ei][0][1], master_lh[ei]))
-                                let tmp_list = master_lh[ei].filter((x) => (x[0] != germline_lh[ei][0][0]) && (x[1] <= germline_lh[ei][0][1]))
+                                let tmp_list = master_lh[ei].filter((x: number[]) => (x[0] != germline_lh[ei][0][0]) && (x[1] <= germline_lh[ei][0][1]))
                                 // console.log('tmp_list', tmp_list)
                                 // master_lh[ei] = [germline_lh[ei][0]] + tmp_list
                                 master_lh[ei] = [germline_lh[ei][0]].push(...tmp_list)
@@ -344,7 +344,7 @@ class CombinedCaller extends baseCNVpytorVCF {
         
         var rawbinScore = this.formatDataStructureWig(this.wigFeatures, 'binScore', this.globalMean)
 
-        let gcCorrectedBinScore = [];
+        let gcCorrectedBinScore: Record<string, any>[] = [];
         if (this.gcFlag) {
             gcCorrectedBinScore = this.formatDataStructureWig(this.wigFeatures, 'gcCorrectedBinScore', this.globalMean);
         }
@@ -354,11 +354,11 @@ class CombinedCaller extends baseCNVpytorVCF {
         
     }
     
-    formatDataStructureWig(wigFeatures: any, feature_column: string, scaling_factor: number = 1): any[] {
-        const results: any[] = []
+    formatDataStructureWig(wigFeatures: Record<string, any[]>, feature_column: string, scaling_factor: number = 1): Record<string, any>[] {
+        const results: Record<string, any>[] = []
         for (const [chr, wig] of Object.entries(wigFeatures) as [string, any[]][]) {
 
-            (wig as any[]).forEach((sample: any) => {
+            wig.forEach((sample: Record<string, any>) => {
                 var new_sample = { ...sample }
                 if (scaling_factor != 1) {
                     new_sample.value = sample[feature_column] / scaling_factor * 2

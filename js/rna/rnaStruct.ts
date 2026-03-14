@@ -39,12 +39,12 @@ class RnaStructTrack extends TrackBase {
         }
     }
 
-    async getFeatures(chr: string, start: number, end: number): Promise<any> {
+    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
         const visibilityWindow = this.visibilityWindow
         return this.featureSource.getFeatures({chr, start, end, visibilityWindow})
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const ctx = options.context
 
@@ -144,7 +144,7 @@ class RnaStructTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         const features = super.clickedFeatures(clickState)
 
@@ -186,7 +186,7 @@ class RnaStructTrack extends TrackBase {
         return clicked
     }
 
-    popupData(clickState, features) {
+    popupData(clickState: any, features: any) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
 
@@ -226,15 +226,15 @@ function sortByScore(featureList: any[], direction: number): void {
 class RNAFeatureSource {
     config: any
     genome: any
-    chromAliasManager?: any
-    featureCache?: any
+    chromAliasManager?: ChromAliasManager
+    featureCache?: FeatureCache
 
     constructor(config: any, genome: any) {
         this.config = config
         this.genome = genome
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: { chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number }): Promise<any> {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: { chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number }): Promise<any[] | null> {
 
 
         const genome = this.genome
@@ -279,7 +279,7 @@ class RNAFeatureSource {
                     const color = colors[colorIdx]
 
 
-                    let feature
+                    let feature: Record<string, any>
                     if (startLeftNuc <= endRightNuc) {
                         feature = {
                             chr: chr,
@@ -316,7 +316,7 @@ class RNAFeatureSource {
 
             this.chromAliasManager = new ChromAliasManager(Array.from(chrNames) as string[], genome)
 
-            this.featureCache = new FeatureCache(features)
+            this.featureCache = new FeatureCache(features as any)
 
         }
 

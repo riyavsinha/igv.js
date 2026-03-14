@@ -26,11 +26,11 @@ class FeatureTrack extends TrackBase {
         useScore: false
     }
 
-    constructor(config, browser) {
+    constructor(config: any, browser: any) {
         super(config, browser)
     }
 
-    init(config) {
+    init(config: any) {
         super.init(config)
 
         // Obscure option, not common or supoorted, included for backward compatibility
@@ -116,7 +116,7 @@ class FeatureTrack extends TrackBase {
         return this.featureSource.searchable
     }
 
-    async search(locus) {
+    async search(locus: string) {
         if (this.featureSource && this.featureSource.searchable) {
             return this.featureSource.search(locus)
         } else {
@@ -142,7 +142,7 @@ class FeatureTrack extends TrackBase {
         }
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
         return this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
     }
@@ -154,7 +154,7 @@ class FeatureTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features) {
+    computePixelHeight(features: any[]) {
 
         if (this.displayMode === "COLLAPSED") {
             return this.margin + this.expandedRowHeight
@@ -190,7 +190,7 @@ class FeatureTrack extends TrackBase {
      *                 viewportWidth: this.$viewport.width()
      * @param options
      */
-    draw(options) {
+    draw(options: any) {
 
         const {features, context, bpPerPixel, bpStart, bpEnd, pixelWidth, pixelHeight, referenceFrame} = options
 
@@ -273,7 +273,7 @@ class FeatureTrack extends TrackBase {
 
     };
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         const y = clickState.y - this.margin
         const allFeatures = super.clickedFeatures(clickState)
@@ -298,7 +298,7 @@ class FeatureTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState, features) {
+    popupData(clickState: any, features?: any[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation
@@ -403,7 +403,7 @@ class FeatureTrack extends TrackBase {
             }
 
             menuItems.push({
-                element: createCheckbox(lut[displayMode], displayMode === this.displayMode),
+                element: createCheckbox((lut as Record<string, string>)[displayMode], displayMode === this.displayMode),
                 click: displayModeHandler
             })
         }
@@ -413,7 +413,7 @@ class FeatureTrack extends TrackBase {
     };
 
 
-    contextMenuItemList(clickState) {
+    contextMenuItemList(clickState: any) {
 
         const features = this.clickedFeatures(clickState)
 
@@ -499,7 +499,7 @@ class FeatureTrack extends TrackBase {
      * @returns {string}
      */
 
-    getColorForFeature(f) {
+    getColorForFeature(f: any) {
 
         const feature = f._f || f    // f might be a "whole genome" wrapper
 
@@ -537,7 +537,7 @@ class FeatureTrack extends TrackBase {
         }
 
 
-        function getAlpha(min, max, score) {
+        function getAlpha(min: number, max: number, score: number) {
             const binWidth = (max - min) / 9
             const binNumber = Math.floor((score - min) / binWidth)
             return Math.min(1.0, 0.2 + (binNumber * 0.8) / 9)
@@ -559,7 +559,7 @@ class FeatureTrack extends TrackBase {
  * Monitors track drag events, updates label position to ensure that they're always visible.
  * @param track
  */
-function monitorTrackDrag(track) {
+function monitorTrackDrag(track: FeatureTrack) {
 
     function onDragEnd() {
         if (track.trackView && track.displayMode !== "SQUISHED") {

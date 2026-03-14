@@ -71,7 +71,7 @@ class HDF5Reader {
         return h5_obj.keys
     }
 
-    async get_rd_signal(bin_size: number = this.bin_size, chrom?: any): Promise<any> {
+    async get_rd_signal(bin_size: number = this.bin_size, chrom?: string[]): Promise<Record<number, Record<string, any[]>>> {
         // Fetch the pytor file and get keys
         const h5Obj = await this.fetch();
         this.pytorKeys = h5Obj.keys;
@@ -97,8 +97,8 @@ class HDF5Reader {
         return { [bin_size]: wigFeatures };
     }
 
-    async getWigFeatures(rdChromosomes: string[], binSize: number, rdStat: any): Promise<any> {
-        const wigFeatures = {
+    async getWigFeatures(rdChromosomes: string[], binSize: number, rdStat: number[]): Promise<Record<string, any[]>> {
+        const wigFeatures: Record<string, any[]> = {
             RD_Raw: [],
             RD_Raw_gc_coor: [],
             ReadDepth: [],
@@ -124,20 +124,20 @@ class HDF5Reader {
         return wigFeatures;
     }
 
-    async getChromosomes(refChroms?: any): Promise<string[]> {
+    async getChromosomes(refChroms?: string[]): Promise<string[]> {
         // return chromosome names if they exists in the rd_chromosomes
         const rdChroms_obj = await this.h5_obj.get("rd_chromosomes");
         const rdChroms = await rdChroms_obj.value
         if(!refChroms){
-            return rdChroms 
+            return rdChroms
         }else{
             let refChromsSet = new Set(refChroms)
-            return rdChroms.filter(item => refChromsSet.has(item));
+            return rdChroms.filter((item: string) => refChromsSet.has(item));
             
         }
     }
 
-    setCallers(wigFeatures: any): void {
+    setCallers(wigFeatures: Record<string, any[]>): void {
         this.callers = [];
         if (wigFeatures.ReadDepth.length) this.callers.push('ReadDepth');
         if (wigFeatures["2D"].length) this.callers.push('2D');
@@ -158,9 +158,9 @@ class HDF5Reader {
         return segments
     }
 
-    async rd_call_combined(chrom: string, bin_size: number, rd_stat: any, signal_name_obj: SignalNames): Promise<any[]> {
-        let chr_wig = [];
-        
+    async rd_call_combined(chrom: string, bin_size: number, rd_stat: number[], signal_name_obj: SignalNames): Promise<Record<string, any>[]> {
+        let chr_wig: Record<string, any>[] = [];
+
         let segments
         let mosaic_call_segments = signal_name_obj.signals['Mosaic_segments']
         if (this.pytorKeys.includes(mosaic_call_segments)){
@@ -175,8 +175,8 @@ class HDF5Reader {
         if (this.pytorKeys.includes(mosaic_calls)){
             const segments_call_dataset = await this.h5_obj.get(mosaic_calls)
             let segments_call = await segments_call_dataset.to_array() //create_nested_array(value, shape)
-            segments.forEach((ind_segment, segment_idx) => {
-                ind_segment.forEach((bin_value, bin_idx) =>{
+            segments.forEach((ind_segment: number[], segment_idx: number) => {
+                ind_segment.forEach((bin_value: number, bin_idx: number) =>{
                     chr_wig.push({chr:chrom, start: bin_value*bin_size, end: (bin_value+1) * bin_size, value: (segments_call[0][segment_idx]/rd_stat[4]) *2})
                 })
             })
@@ -191,7 +191,7 @@ class HDF5Reader {
      * @param {integer} bin_size - bin_size 
      * @returns - array - read depth statistics array
      */
-    async rd_stat(bin_size: number): Promise<any> {
+    async rd_stat(bin_size: number): Promise<number[] | undefined> {
     
         let rd_stat_signal =  `rd_stat_${bin_size}_auto`
         let rd_stat;
@@ -203,15 +203,15 @@ class HDF5Reader {
     }
 
     
-    async get_chr_signal(chrom: string, bin_size: number, signal_name: string, rd_stat: any): Promise<any[]> {
+    async get_chr_signal(chrom: string, bin_size: number, signal_name: string, rd_stat: number[]): Promise<Record<string, any>[]> {
         /* return a list of dictionary for a chromosome */
-        let chr_wig = [];
-        
+        let chr_wig: Record<string, any>[] = [];
+
         if (this.pytorKeys.includes(signal_name)){
             const chrom_dataset = await this.h5_obj.get(signal_name)
-            
+
             let chrom_data = await chrom_dataset.value
-            chrom_data.forEach((bin_value, bin_idx) => {
+            chrom_data.forEach((bin_value: number, bin_idx: number) => {
                 chr_wig.push({chr:chrom, start: bin_idx*bin_size, end: (bin_idx+1) * bin_size, value: (bin_value/rd_stat[4]) *2})
             });
         }
@@ -219,15 +219,15 @@ class HDF5Reader {
     }
 
 
-    async getBafSignals(chrom: string, binSize: number, signalName: string, scalingFactor: number = -1): Promise<any[][]> {
-        const chrWig1 = [];
-        const chrWig2 = [];
+    async getBafSignals(chrom: string, binSize: number, signalName: string, scalingFactor: number = -1): Promise<[Record<string, any>[], Record<string, any>[]]> {
+        const chrWig1: Record<string, any>[] = [];
+        const chrWig2: Record<string, any>[] = [];
         
         if (this.pytorKeys.includes(signalName)) {
             const chromDataset = await this.h5_obj.get(signalName);
             const chromData = await chromDataset.to_array();
 
-            chromData.forEach((lh, binIdx) => {
+            chromData.forEach((lh: number, binIdx: number) => {
                 if (!isNaN(lh)) {
                     chrWig1.push({
                         chr: chrom,
@@ -301,7 +301,7 @@ function fixString(strings: string[]): string[] {
 //     return nested;
 // }
 
-function create_nested_array(value: any[], shape: number[]): any {
+function create_nested_array(value: number[], shape: number[]): any {
     // check that shapes match:
     const total_length = value.length;
     const dims_product = shape.reduce((previous, current) => (previous * current), 1);
@@ -309,7 +309,7 @@ function create_nested_array(value: any[], shape: number[]): any {
         console.warn(`shape product: ${dims_product} does not match length of flattened array: ${total_length}`);
     }
     // Get reshaped output:
-    let output = value;
+    let output: any = value;
     const subdims = shape.slice(1).reverse();
     for (let dim of subdims) {
         // in each pass, replace input with array of slices of input

@@ -159,12 +159,12 @@ const appleCrayonRGBPalette =
     }
 
 function appleCrayonRGB(name: string): string {
-    const {r, g, b} = appleCrayonRGBPalette[name]
+    const {r, g, b} = (appleCrayonRGBPalette as Record<string, {r: number, g: number, b: number}>)[name]
     return `rgb(${r},${g},${b})`
 }
 
 function appleCrayonRGBA(name: string, alpha: number): string {
-    const {r, g, b} = appleCrayonRGBPalette[name]
+    const {r, g, b} = (appleCrayonRGBPalette as Record<string, {r: number, g: number, b: number}>)[name]
     return `rgba(${r},${g},${b},${alpha})`
 }
 
@@ -197,7 +197,7 @@ function isValidColorName(name: string): boolean {
 function getColorNameRGBString(name: string): string | undefined {
 
     if (isValidColorName(name)) {
-         return webColorRGBPalette[ name ] || appleCrayonRGB(name)
+         return (webColorRGBPalette as Record<string, string>)[ name ] || appleCrayonRGB(name)
     } else {
         return undefined
     }
@@ -301,7 +301,7 @@ class PaletteColorTable {
     colorGenerator: any
 
     constructor(palette: string) {
-        this.colors = colorPalettes[palette]
+        this.colors = (colorPalettes as Record<string, string[]>)[palette]
         if (!Array.isArray(this.colors)) this.colors = []
         this.colorTable = new Map()
         this.nextIdx = 0

@@ -17,7 +17,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - reference genome name
      */
-    constructor(wigFeatures: any, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
         this.binBands = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128]
     }
@@ -34,7 +34,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         // let cnvs = this.cnvCalling(partitionLevels)
         // console.log("cnvs: ", cnvs)
         
-        (Object.entries(this.wigFeatures) as [string, any[]][]).forEach(([chr, chrRD]) => {
+        (Object.entries(this.wigFeatures) as [string, any[]][]).forEach(([chr, chrRD]: [string, any[]]) => {
             chrRD.forEach((bin: any, index: number) => {
                 if (partitionLevels[chr]){
                     bin.partitionLevel = parseInt(partitionLevels[chr][index])
@@ -53,29 +53,29 @@ class MeanShiftCaller extends baseCNVpytorVCF {
 
     }
     
-    getRDSignalBandWidth(data_array) {
+    getRDSignalBandWidth(data_array: number[]): number[] {
         const threshold = this.globalMean / 4;
 
         // The values are reversed and squared as they will be used to calculate a gradient function.
         // This optimization is done to speed up the calculations.
 
         const constantValue = 4 / this.globalStd ** 2;
-        return data_array.map(value => {
+        return data_array.map((value: number) => {
             return value > threshold ? this.globalMean / (this.globalStd ** 2 * value) : constantValue;
         });
     }
 
     partition(repeats: number = 3): any {
-        
+
         // sort the dictionary based on chromosome names;
-        let sortedDictionary = {};
+        let sortedDictionary: Record<string, any[]> = {};
         Object.keys(this.wigFeatures).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(key => {
             sortedDictionary[key] = this.wigFeatures[key];
         });
 
         let binScoreField = this.gcFlag ? "gcCorrectedBinScore": "binScore" ;
         
-        var chrLevels = {}
+        var chrLevels: Record<string, any> = {}
         // Object.entries(this.wigFeatures).forEach(([chr, chr_rd]) => {
         for (const [chr, chrWig] of Object.entries(sortedDictionary) as [string, any[]][]) {
 
@@ -85,18 +85,18 @@ class MeanShiftCaller extends baseCNVpytorVCF {
             var masked = new Array(chrWig.length).fill(false)
 
             // set the level; score from either RAW or GC corrected bin score 
-            var levels = chrWig.map((item, index) => !masked[index] ? item[binScoreField] : undefined);
+            var levels = chrWig.map((item: any, index: number) => !masked[index] ? item[binScoreField] : undefined);
             // console.log("Levels: ", chr, levels)
             // var levels = chrWig.map((item, index) => !masked[index] ? item : undefined);
             
             
-            this.binBands.forEach((bin_band, bin_band_index) => {
-                
+            this.binBands.forEach((bin_band: number, bin_band_index: number) => {
+
                 // console.log("BinBand: ", bin_band)
 
                 // not masked levels at current bin
                 // get boolean values
-                var not_masked = masked.map((value, index) => { return !value; })
+                var not_masked = masked.map((value: boolean, index: number) => { return !value; })
                 // console.log(not_masked)
 
                 // not masked level at current bin
@@ -193,7 +193,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
                 border.push(levels.length);
 
                 // reset the mask
-                masked = new Array(this.wigFeatures.length).fill(false);
+                masked = new Array((this.wigFeatures as any).length).fill(false);
 
                 // check the borders
                 for (var i = 1; i < border.length; i++) {
@@ -251,7 +251,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         return chrLevels
     }
 
-    cnvCalling(levels) {
+    cnvCalling(levels: Record<string, any[]>) {
 
         // console.log("levels: ", levels)
         var delta = 0.25 * this.globalMean
@@ -261,8 +261,8 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         // var levels = this.meanShiftCaller(bin_size)
         // var levels = this.MeanShiftCallerV2(bin_size)
 
-        var merged_level = {}
-        var cnv_levels = [];
+        var merged_level: Record<string, number[]> = {}
+        var cnv_levels: Record<string, any>[] = [];
 
         (Object.entries(levels) as [string, any[]][]).forEach(([chr, chr_levels]) => {
 
@@ -302,7 +302,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
             // console.log('updated levels', chr_levels)
 
             // var chr_rd = this.rd[chr]
-            var chr_rd = []
+            var chr_rd: number[] = []
             Object.entries(this.wigFeatures[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
             // console.log('cnv_calling', chr_rd)
 
@@ -443,7 +443,7 @@ function erf(x: number): number {
     return (2 * sum) / Math.sqrt(3.14159265358979)
 }
 
-function getEValue(mean: number, sigma: number, rd: any[], start: number, end: number): number {
+function getEValue(mean: number, sigma: number, rd: number[], start: number, end: number): number {
     var arr = new DataStat(rd.slice(start, end));
     if (arr.std == 0) {
         if (sigma > 0) { arr.std = (sigma * arr.mean) / mean }
@@ -453,7 +453,7 @@ function getEValue(mean: number, sigma: number, rd: any[], start: number, end: n
     return p_val
 }
 
-function gaussianEValue(mean: number, sigma: number, rd: any[], start: number, end: number): number {
+function gaussianEValue(mean: number, sigma: number, rd: number[], start: number, end: number): number {
     var arr = new DataStat(rd.slice(start, end))
 
     if (arr.mean < mean) {
@@ -464,7 +464,7 @@ function gaussianEValue(mean: number, sigma: number, rd: any[], start: number, e
     return Math.pow(0.5 * (1 - erf(x)), end - start)
 }
 
-function adjustToEvalue(mean: number, sigma: number, rd: any[], start: number, end: number, pval: number, max_steps: number = 1000): [number, number] | 0 {
+function adjustToEvalue(mean: number, sigma: number, rd: number[], start: number, end: number, pval: number, max_steps: number = 1000): [number, number] | 0 {
     var val = getEValue(mean, sigma, rd, start, end)
     var step = 0, done = false
     while ((val > pval) && !done && (step < max_steps)) {
@@ -535,7 +535,7 @@ function t_test_2_samples(m1: number, s1: number, n1: number, m2: number, s2: nu
 export class Partition {
     [key: string]: any
 
-    constructor(rd: any, mean: number, std: number) {
+    constructor(rd: Record<string, any[]>, mean: number, std: number) {
         this.rd = rd
         this.mean = mean
         this.std = std
@@ -543,7 +543,7 @@ export class Partition {
     }
 
     get_rd_signal_bandwidth(data_array: number[]): number[] {
-        var new_array = []
+        var new_array: number[] = []
 
         data_array.forEach((value, index) => {
             var tmp_value = 0;
@@ -559,7 +559,7 @@ export class Partition {
 
     meanShiftCaller(bin_size: number, repeats: number = 3): any {
 
-        var ChrLevels = {};
+        var ChrLevels: Record<string, number[]> = {};
 
         (Object.entries(this.rd) as [string, any[]][]).forEach(([chr, chr_rd]) => {
             var masked = new Array(chr_rd.length).fill(false)
@@ -571,13 +571,13 @@ export class Partition {
                 if (!masked[b]) { levels[b] = chr_rd[b]; }
             }
 
-            this.bin_bands.forEach((bin_band, bin_band_index) => {
+            this.bin_bands.forEach((bin_band: number, bin_band_index: number) => {
                 // not masked levels at current bin
                 // get boolean values
-                var not_masked = masked.map((value, index) => { return !value; })
+                var not_masked = masked.map((value: boolean, index: number) => { return !value; })
 
                 // not masked level at current bin
-                var nm_levels = []
+                var nm_levels: number[] = []
 
                 Object.entries(chr_rd).forEach(([k, v]) => { nm_levels.push((v as any).binScore) })
                 
@@ -719,16 +719,16 @@ export class Partition {
                 levels[b] = this.rd[b];
             }
         }
-        this.bin_bands.forEach((bin_band, bin_band_index) => {
+        this.bin_bands.forEach((bin_band: number, bin_band_index: number) => {
             // not masked levels at current bin
             // get boolean values
-            var not_masked = masked.map((value, index) => {
+            var not_masked = masked.map((value: boolean, index: number) => {
                 return !value;
             });
 
             // not masked level at current bin
             // var nm_levels = not_masked.map((value, index) => {if(value) return this.rd[index]});
-            var nm_levels = [];
+            var nm_levels: number[] = [];
             not_masked.forEach((value, index) => {
                 if (value) nm_levels.push(this.rd[index]);
             });
@@ -915,8 +915,8 @@ export class Partition {
         var levels = this.meanShiftCaller(bin_size)
 
         
-        var merged_level = {}
-        var cnv_levels = [];
+        var merged_level: Record<string, number[]> = {}
+        var cnv_levels: Record<string, any>[] = [];
         // var t_value = cdf(Math.abs(10), (5))
         // console.log('Testing student t test:', t_value)
 
@@ -958,7 +958,7 @@ export class Partition {
             // console.log('updated levels', chr_levels)
 
             // var chr_rd = this.rd[chr]
-            var chr_rd = []
+            var chr_rd: number[] = []
             Object.entries(this.rd[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
             // console.log('cnv_calling', chr_rd)
 

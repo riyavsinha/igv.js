@@ -105,7 +105,7 @@ class ShoeboxTrack extends TrackBase {
 
         const browser = this.browser
 
-        function dialogHandler(e) {
+        function dialogHandler(e: any) {
 
             const callback = () => {
 
@@ -117,7 +117,7 @@ class ShoeboxTrack extends TrackBase {
 
                     const tracks = []
                     if (this.trackView.track.selected) {
-                        tracks.push(...(this.trackView.browser.getSelectedTrackViews().map(({track}) => track)))
+                        tracks.push(...(this.trackView.browser.getSelectedTrackViews().map(({track}: {track: any}) => track)))
                     } else {
                         tracks.push(this)
                     }
@@ -152,7 +152,7 @@ class ShoeboxTrack extends TrackBase {
         element.textContent = 'Set data range';
 
         // Note -- menu item handlers must be functions, not arrow functions
-        function dataRangeHandler(e) {
+        function dataRangeHandler(e: any) {
             if (this.trackView.track.selected) {
                 this.browser.dataRangeDialog.configure(this.trackView.browser.getSelectedTrackViews())
             } else {
@@ -166,21 +166,21 @@ class ShoeboxTrack extends TrackBase {
         return menuItems
     }
 
-    setDataRange({min, max}) {
+    setDataRange({min, max}: {min: number, max: number}) {
         this.dataRange.min = min
         this.dataRange.max = max
         this.colorScale.setMinMax(min, max)
         this.trackView.repaintViews()
     }
 
-    async getFeatures(chr, start, end, bpPerPixel) {
+    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
         const features = await this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
 
         return features
     }
 
-    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}) {
+    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: any[], bpPerPixel: number, bpStart: number}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -231,7 +231,7 @@ class ShoeboxTrack extends TrackBase {
 
     }
 
-    paintAxis(ctx, pixelWidth, pixelHeight) {
+    paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
 
         //IGVGraphics.fillRect(ctx, 0, 0, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
         var font = {
@@ -263,13 +263,13 @@ class ShoeboxTrack extends TrackBase {
      * @param features
      * @returns {number}
      */
-    computePixelHeight(features) {
+    computePixelHeight(features: any[]) {
         if (!features || features.length === 0) return 0
         return features[0].values.length * this.rowHeight
     }
 
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
 
         const allFeatures = super.clickedFeatures(clickState)
         const y = clickState.y
@@ -279,14 +279,14 @@ class ShoeboxTrack extends TrackBase {
         })
     }
 
-    hoverText(clickState) {
+    hoverText(clickState: any) {
         const features = this.clickedFeatures(clickState)
         if (features && features.length > 0) {
             return `${features[0].sample}: ${features[0].value}`
         }
     }
 
-    popupData(clickState, featureList) {
+    popupData(clickState: any, featureList: any) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
 
@@ -328,12 +328,12 @@ class ShoeboxTrack extends TrackBase {
 }
 
 
-function prettyPrint(number) {
+function prettyPrint(number: number): string {
 
     if (Number.isInteger(number)) {
-        return number
+        return String(number)
     } else if (number % 1 === 0) {   // Number can be represented exactly as an integer
-        return number
+        return String(number)
     } else if (Math.abs(number) >= 10) {
         return number.toFixed()
     } else if (Math.abs(number) >= 1) {

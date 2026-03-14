@@ -174,7 +174,7 @@ class SequenceTrack {
 
     translateSequence(seq: string): Array<Array<{codons: string; aminoA: string}>> {
 
-        const threeFrame = [[], [], []]
+        const threeFrame: Array<Array<{codons: string; aminoA: string}>> = [[], [], []]
 
         for (let fNum of [0, 1, 2]) {
             let idx = fNum
@@ -185,7 +185,7 @@ class SequenceTrack {
                     st = st.split('').reverse().join('')
                 }
 
-                const aa = translationDict[st.toUpperCase()] || ""
+                const aa = (translationDict as Record<string, string>)[st.toUpperCase()] || ""
                 threeFrame[fNum].push({
                     codons: st,
                     aminoA: aa
@@ -245,7 +245,7 @@ class SequenceTrack {
             }
 
             if (this.reversed) {
-                sequence = sequence.split('').map(function (cv) {
+                sequence = sequence.split('').map(function (cv: string) {
                     return complement[cv]
                 }).join('')
             }

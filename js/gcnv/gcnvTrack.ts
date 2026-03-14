@@ -112,7 +112,7 @@ class GCNVTrack extends TrackBase {
         return chrFeatures.slice(prevIndex, nextIndex)
     }
 
-    draw(options) {
+    draw(options: any) {
 
         const {features, context, bpPerPixel, bpStart, pixelWidth, pixelHeight} = options
 
@@ -121,18 +121,18 @@ class GCNVTrack extends TrackBase {
         //    baselineColor = IGVColor.addAlpha(self.color, 0.1);
         //}
 
-        const yScale = (yValue) => {
+        const yScale = (yValue: number) => {
             return ((this.dataRange.max - yValue) / (this.dataRange.max - this.dataRange.min)) * pixelHeight
         }
 
-        const getX = function (bpPosition) {
+        const getX = function (bpPosition: number) {
             let x = Math.floor((bpPosition - bpStart) / bpPerPixel)
             if (isNaN(x)) console.warn('isNaN(x). feature start ' + StringUtils.numberFormatter(bpPosition) +
                 ' bp start ' + StringUtils.numberFormatter(bpStart))
             return x
         }
 
-        const drawGuideLines = (options) => {
+        const drawGuideLines = (options: any) => {
             if (this.config.hasOwnProperty('guideLines')) {
                 for (let line of this.config.guideLines) {
                     if (line.hasOwnProperty('color') && line.hasOwnProperty('y') && line.hasOwnProperty('dotted')) {
@@ -160,7 +160,7 @@ class GCNVTrack extends TrackBase {
                 const clickToHighlight = this.config.clickToHighlight
 
                 let previousEnd = -1
-                let previousValues = {}
+                let previousValues: Record<string, number> = {}
 
                 let highlightConnectorLines = []
                 let highlightFeatureLines = []
@@ -244,14 +244,14 @@ class GCNVTrack extends TrackBase {
         drawGuideLines(options)
     }
 
-    doAutoscale(features) {
+    doAutoscale(features: any[]) {
 
-        let min, max
+        let min: number, max: number
         if (features.length > 0) {
             min = Number.MAX_VALUE
             max = -Number.MAX_VALUE
 
-            features.forEach(function (feature) {
+            features.forEach(function (feature: any) {
                 min = Math.min(min, ...feature.values)
                 max = Math.max(max, ...feature.values)
             })
@@ -267,7 +267,7 @@ class GCNVTrack extends TrackBase {
         return {min: min, max: max}
     }
 
-    clickedFeatures(clickState) {
+    clickedFeatures(clickState: any) {
         //console.warn('click', clickState.canvasX, clickState.canvasY, clickState)
 
         const BOUNDING_BOX_PADDING = 10
@@ -287,7 +287,7 @@ class GCNVTrack extends TrackBase {
 
         if (key) {
             let closestDistanceSoFar = Number.MAX_VALUE
-            let closestResult = []
+            let closestResult: { name: string, color: string }[] = []
             const segments = this.clickDetectorCache[key]
             for (let segment of segments) {
                 const x1 = segment[0]
@@ -332,12 +332,12 @@ class GCNVTrack extends TrackBase {
         return []
     }
 
-    popupData(clickState, features) {
+    popupData(clickState: any, features: any) {
 
         if(features === undefined) features = this.clickedFeatures(clickState)
 
-        const items = []
-        features.forEach(function (f) {
+        const items: { name: string, value: any }[] = []
+        features.forEach(function (f: Record<string, any>) {
             for (let property of Object.keys(f)) {
                 if (isSimpleType(f[property])) {
                     items.push({name: property, value: f[property]})

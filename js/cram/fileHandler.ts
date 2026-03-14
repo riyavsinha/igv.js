@@ -37,7 +37,7 @@ export default class FileHandler {
 
     async _fetch(position: number, length: number): Promise<ArrayBuffer> {
         const loadRange: LoadRange = {start: position, size: length}
-        const arrayBuffer = await igvxhr.loadArrayBuffer(this.url, buildOptions(this.config, {range: loadRange}))
+        const arrayBuffer = await igvxhr.loadArrayBuffer(this.url as string, buildOptions(this.config, {range: loadRange}))
         return arrayBuffer
     }
 
@@ -53,7 +53,7 @@ export default class FileHandler {
     }
 
     async readFile(): Promise<Uint8Array> {
-        const arrayBuffer = await igvxhr.loadArrayBuffer(this.url, buildOptions(this.config))
+        const arrayBuffer = await igvxhr.loadArrayBuffer(this.url as string, buildOptions(this.config))
         return new Uint8Array(arrayBuffer)
     }
 

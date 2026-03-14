@@ -15,7 +15,7 @@
 
     // Start permissive — TS 6.0 defaults strict to true, override for migration
     "strict": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": false,
 
     // Module interop

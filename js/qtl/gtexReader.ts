@@ -43,7 +43,7 @@ class GtexReader {
         })
 
         if (json && json.singleTissueEqtl) {
-            return json.singleTissueEqtl.map(json => new EQTL(json))
+            return json.singleTissueEqtl.map((json: any) => new EQTL(json))
         } else {
             return []
         }

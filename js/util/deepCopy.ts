@@ -26,10 +26,10 @@ function deepCopy(o: unknown): unknown {
     if (o instanceof Date) return new Date(o)
     if (Array.isArray(o)) return cloneArray(o, deepCopy)
     if (typeof (o as Record<string, unknown>).then === "function") return o
-    const o2 = {}
-    for (let k in o) {
+    const o2: Record<string, unknown> = {}
+    for (let k in (o as Record<string, unknown>)) {
         if (Object.hasOwnProperty.call(o, k) === false) continue
-        const cur = o[k]
+        const cur = (o as Record<string, unknown>)[k]
         if (typeof cur !== 'object' || cur === null) {
             o2[k] = cur
         } else if (cur instanceof Date) {

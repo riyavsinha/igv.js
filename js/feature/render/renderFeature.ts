@@ -284,7 +284,7 @@ function renderAminoAcidSequence(this: any, ctx: CanvasRenderingContext2D, stran
                 const sequence: string = sequenceInterval.getSequence(start, end)
                 if (sequence && 3 === sequence.length) {
                     const key: string = '+' === strand ? sequence : complementSequence(sequence.split('').reverse().join(''))
-                    aaLetter = translationDict[key]
+                    aaLetter = (translationDict as Record<string, string>)[key]
                 }
             }
 
@@ -493,7 +493,7 @@ function getAminoAcidLetterWithExonGap(this: any, strand: string | undefined, ph
             }
 
             triplet = stringA + stringB
-            aminoAcidLetters.left = {triplet, aminoAcidLetter: translationDict[triplet]}
+            aminoAcidLetters.left = {triplet, aminoAcidLetter: (translationDict as Record<string, string>)[triplet]}
         }
 
         if (remainder) {
@@ -517,7 +517,7 @@ function getAminoAcidLetterWithExonGap(this: any, strand: string | undefined, ph
             }
 
             triplet = stringA + stringB
-            aminoAcidLetters.rite = {triplet, aminoAcidLetter: translationDict[triplet]}
+            aminoAcidLetters.rite = {triplet, aminoAcidLetter: (translationDict as Record<string, string>)[triplet]}
         }
 
     } else {
@@ -538,7 +538,7 @@ function getAminoAcidLetterWithExonGap(this: any, strand: string | undefined, ph
 
             triplet = stringA + stringB
             triplet = complementSequence(triplet.split('').reverse().join(''))
-            aminoAcidLetters.rite = {triplet, aminoAcidLetter: translationDict[triplet]}
+            aminoAcidLetters.rite = {triplet, aminoAcidLetter: (translationDict as Record<string, string>)[triplet]}
         }
 
         if (remainder) {
@@ -558,7 +558,7 @@ function getAminoAcidLetterWithExonGap(this: any, strand: string | undefined, ph
 
             triplet = stringA + stringB
             triplet = complementSequence(triplet.split('').reverse().join(''))
-            aminoAcidLetters.left = {triplet, aminoAcidLetter: translationDict[triplet]}
+            aminoAcidLetters.left = {triplet, aminoAcidLetter: (translationDict as Record<string, string>)[triplet]}
         }
     }
 

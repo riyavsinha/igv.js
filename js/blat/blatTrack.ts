@@ -47,7 +47,7 @@ class BlatTrack extends FeatureTrack {
 
         if (undefined === this.table) {
 
-            const rows = this._features.map(f => [
+            const rows = this._features.map((f: any) => [
                 this.browser.genome.getChromosomeDisplayName(f.chr),
                 (f.start + 1),
                 f.end,
@@ -95,7 +95,7 @@ class BlatTrack extends FeatureTrack {
         function click() {
             this.openTableView()
         }
-        menuItems.push({ label: 'Open table view', click })
+        menuItems.push({ label: 'Open table view', click } as any)
 
         return menuItems
     }

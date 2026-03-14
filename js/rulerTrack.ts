@@ -31,7 +31,7 @@ class RulerTrack {
         this.id = "ruler"
     }
 
-    async getFeatures(chr: string, start: number, end: number) {
+    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
         return []
     };
 
