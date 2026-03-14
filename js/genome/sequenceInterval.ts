@@ -1,12 +1,14 @@
-import GenomicInterval from "./genomicInterval.js"
+import GenomicInterval from "./genomicInterval"
 
 class SequenceInterval extends GenomicInterval {
+    features: string | null
 
-    constructor(chr, start, end, features) {
+    constructor(chr: string, start: number, end: number, features: string | null) {
         super(chr, start, end, features)
+        this.features = features
     }
 
-    getSequence(start, end) {
+    getSequence(start: number, end: number): string | null {
         if (start < this.start || end > this.end) {
             return null
         }
@@ -16,7 +18,7 @@ class SequenceInterval extends GenomicInterval {
         return seq
     }
 
-    hasSequence(start, end) {
+    hasSequence(start: number, end: number): boolean {
         return start >= this.start && end <= this.end
     }
 

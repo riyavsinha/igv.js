@@ -120,3 +120,19 @@ The `dispose()` method used `Object.keys(this).forEach(function(key) { this[key]
 
 ### `js/ui/circularViewControl.ts` — constructor-function pattern instead of ES6 class [FIXED]
 Used old-style `function CircularViewControl(...)` with prototype method assignments, inconsistent with the rest of the codebase. Converted to an ES6 `class` with proper constructor and method declarations.
+
+---
+
+## Phase 1d Bugs
+
+### `js/genome/cytoband.ts` — 4 unused imports [FIXED]
+The file had imports for `igvUtils`, `igv-utils`, `BWReader`, and `Chromosome` — none of which were used. The file only defines the `Cytoband` class with no dependencies. Removed all 4 imports.
+
+### `js/genome/chromSizes.ts:43` — `this.fastaURL` should be `this.url` [FIXED]
+In `loadAll()`, the data URL branch referenced `this.fastaURL` which doesn't exist on the `ChromSizes` class. The class only has a `url` property. Fixed to `this.url`.
+
+### `js/genome/chromSizes.ts:29-33` — `chromosomeNames` getter missing return statement [FIXED]
+The `get chromosomeNames()` accessor computed `this.#chromosomeNames` but never returned it. Added `return this.#chromosomeNames`.
+
+### `js/genome/chromSizes.ts:7` — unused `reservedProperties` constant [FIXED]
+A `Set` of reserved property names was defined at module scope but never referenced. Removed.

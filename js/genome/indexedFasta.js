@@ -1,7 +1,7 @@
 // Indexed fasta files
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
-import GenomicInterval from "./genomicInterval.js"
-import Chromosome from "./chromosome.js"
+import GenomicInterval from "./genomicInterval"
+import Chromosome from "./chromosome"
 import {buildOptions} from "../util/igvUtils.js"
 
 const splitLines = StringUtils.splitLines

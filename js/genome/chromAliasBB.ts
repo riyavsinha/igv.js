@@ -1,5 +1,5 @@
-import BWReader from "../bigwig/bwReader.js"
-import ChromAliasDefaults from "./chromAliasDefaults.js"
+import BWReader from "../bigwig/bwReader"
+import ChromAliasDefaults from "./chromAliasDefaults"
 
 /**
  * Chromosome alias source backed by a UCSC bigbed file
@@ -12,15 +12,16 @@ import ChromAliasDefaults from "./chromAliasDefaults.js"
 
 class ChromAliasBB {
 
-    aliasRecordCache = new Map()
+    aliasRecordCache: Map<string, Record<string, string>> = new Map()
+    reader: any
 
-    constructor(url, config, genome) {
+    constructor(url: string, config: any, genome: any) {
         config = config || {}
         config.url = url
         this.reader = new BWReader(config, genome)
     }
 
-    async preload(chrNames) {
+    async preload(chrNames: string[]): Promise<void> {
        await this.reader.preload()
         for(let nm of chrNames) {
             await this.search(nm)
@@ -35,8 +36,8 @@ class ChromAliasBB {
      * @param alias
      * @returns {*}
      */
-    getChromosomeName(alias) {
-        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias).chr : alias
+    getChromosomeName(alias: string): string {
+        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias)!.chr : alias
     }
 
     /**
@@ -48,7 +49,7 @@ class ChromAliasBB {
      * @param nameSet -- The name set, e.g. "ucsc"
      * @returns {*|undefined}
      */
-    getChromosomeAlias(chr, nameSet)
+    getChromosomeAlias(chr: string, nameSet: string): string
     {
         const aliasRecord =  this.aliasRecordCache.get(chr)
         return aliasRecord ? aliasRecord[nameSet] || chr : chr
@@ -59,7 +60,7 @@ class ChromAliasBB {
      * @param alias
      * @returns {Promise<any>}
      */
-    async search(alias) {
+    async search(alias: string): Promise<Record<string, string> | undefined> {
         if (!this.aliasRecordCache.has(alias)) {
             const aliasRecord = await this.reader.search(alias)
             if (aliasRecord) {

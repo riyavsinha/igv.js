@@ -5,7 +5,7 @@ import {assert} from 'chai'
 import {fileToDataURL} from "./utils/URLUtils.js"
 import BWReader from "../js/bigwig/bwReader.js"
 import {createGenome} from "./utils/MockGenome.js"
-import ChromAliasBB from "../js/genome/chromAliasBB.js"
+import ChromAliasBB from "../js/genome/chromAliasBB"
 
 function getWGChromosomeNames() {
     const chromosomeNames = []

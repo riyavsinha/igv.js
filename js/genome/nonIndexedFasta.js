@@ -1,7 +1,7 @@
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
-import Chromosome from "./chromosome.js"
+import Chromosome from "./chromosome"
 import {buildOptions, isDataURL} from "../util/igvUtils.js"
-import SequenceInterval from "./sequenceInterval.js"
+import SequenceInterval from "./sequenceInterval"
 
 const splitLines = StringUtils.splitLines
 

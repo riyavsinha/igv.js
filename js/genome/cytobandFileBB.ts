@@ -1,20 +1,21 @@
-import {Cytoband} from "./cytoband.js"
-import BWSource from "../bigwig/bwSource.js"
+import {Cytoband} from "./cytoband"
+import BWSource from "../bigwig/bwSource"
 
 class CytobandFileBB {
 
-    cytobandMap = new Map()
+    cytobandMap: Map<string, Cytoband[]> = new Map()
+    source: any
 
-    constructor(url, config, genome) {
+    constructor(url: string, config: any, genome: any) {
         config = config || {}
         config.url = url
         this.source = new BWSource(config, genome)
     }
 
-    async getCytobands(chr) {
+    async getCytobands(chr: string): Promise<Cytoband[]> {
 
         if (this.cytobandMap.has(chr)) {
-            return this.cytobandMap.get(chr)
+            return this.cytobandMap.get(chr)!
         } else {
             let cytobands = await this.#readCytobands(chr)
             if (!cytobands) cytobands = []  // Prevent loading again
@@ -23,9 +24,9 @@ class CytobandFileBB {
         }
     }
 
-    async #readCytobands(chr) {
+    async #readCytobands(chr: string): Promise<Cytoband[]> {
         const features = await this.source.getFeatures({chr})
-        return features.map(f => new Cytoband(f.start, f.end, f.name, f.gieStain))
+        return features.map((f: any) => new Cytoband(f.start, f.end, f.name, f.gieStain))
     }
 }
 

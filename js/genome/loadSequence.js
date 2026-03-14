@@ -1,7 +1,7 @@
 import NonIndexedFasta from "./nonIndexedFasta.js"
 import FastaSequence from "./indexedFasta.js"
 import {isDataURL} from "../util/igvUtils.js"
-import ChromSizes from "./chromSizes.js"
+import ChromSizes from "./chromSizes"
 import Twobit from "./twobit.js"
 import CachedSequence from "./cachedSequence.js"
 

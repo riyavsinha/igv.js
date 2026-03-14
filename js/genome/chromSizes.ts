@@ -1,46 +1,46 @@
-import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
-import Chromosome from "./chromosome.js"
-import {isDataURL} from "../util/igvUtils.js"
+import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
+import Chromosome from "./chromosome"
+import {isDataURL} from "../util/igvUtils"
 
 const splitLines = StringUtils.splitLines
-
-const reservedProperties = new Set(['fastaURL', 'indexURL', 'cytobandURL', 'indexed'])
 
 /**
  * Represents a reference object created from a ChromSizes file.  This is unusual, primarily for testing.
  */
 class ChromSizes {
 
-    #chromosomeNames
-    chromosomes = new Map()
+    #chromosomeNames: string[] | undefined
+    chromosomes: Map<string, Chromosome> = new Map()
+    url: string
 
-    constructor(url) {
+    constructor(url: string) {
         this.url = url
     }
 
-    async init() {
+    async init(): Promise<void> {
         return this.loadAll()
     }
 
-    getSequenceRecord(chr) {
+    getSequenceRecord(chr: string): Chromosome | undefined {
         return this.chromosomes.get(chr)
     }
 
-    get chromosomeNames() {
+    get chromosomeNames(): string[] | undefined {
         if(!this.#chromosomeNames) {
             this.#chromosomeNames = Array.from(this.chromosomes.keys())
         }
+        return this.#chromosomeNames
     }
 
-    async getSequence(chr, start, end) {
+    async getSequence(chr: string, start: number, end: number): Promise<null> {
         return null // TODO -- return array of "N"s?
     }
 
-    async loadAll() {
+    async loadAll(): Promise<void> {
 
-        let data
+        let data: string
         if (isDataURL(this.url)) {
-            let bytes = BGZip.decodeDataURI(this.fastaURL)
+            let bytes = BGZip.decodeDataURI(this.url)
             data = ""
             for (let b of bytes) {
                 data += String.fromCharCode(b)
@@ -63,11 +63,11 @@ class ChromSizes {
 
 }
 
-async function loadChromSizes(url) {
+async function loadChromSizes(url: string): Promise<Map<string, Chromosome>> {
 
-    const chromosomeSizes = new Map();
+    const chromosomeSizes = new Map<string, Chromosome>();
 
-    let data
+    let data: string
     if (isDataURL(url)) {
         let bytes = BGZip.decodeDataURI(url)
         data = ""

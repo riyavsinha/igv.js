@@ -620,7 +620,7 @@ dynamic and fighting it with pure types would add complexity without benefit.
 
 ---
 
-## 5. Phase 1: Utilities & Data Models — STATUS: DONE (partial)
+## 5. Phase 1: Utilities & Data Models — STATUS: DONE
 
 **~35 files, ~5,000 LOC**
 
@@ -670,30 +670,28 @@ dependency tree.
 | `js/searchFeatures.ts` | Feature search; added `SearchConfig`, `LocusResult` interfaces |
 | `js/intervalTree.ts` | Red-black interval tree; converted free functions to `#private` methods |
 
-### Subphase 1d: Genome data models — STATUS: NOT STARTED
+### Subphase 1d: Genome data models — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/genome/chromosome.js` | Chromosome data class |
-| `js/genome/genomicInterval.js` | Genomic interval representation |
-| `js/genome/chromAliasDefaults.js` | Default chromosome aliases |
-| `js/genome/chromAliasFile.js` | Alias file parser |
-| `js/genome/chromAliasBB.js` | BigBed alias source |
-| `js/genome/cytobandFile.js` | Cytoband file parser |
-| `js/genome/cytobandFileBB.js` | BigBed cytoband source |
-| `js/genome/chromSizes.js` | Chromosome sizes |
-| `js/genome/cytoband.js` | Cytoband data model |
-| `js/genome/sequenceInterval.js` | Cached sequence interval |
+| `js/genome/chromosome.ts` | Typed class properties; `altNames` made optional |
+| `js/genome/genomicInterval.ts` | Typed class with `chr`, `start`, `end`, `features` properties |
+| `js/genome/cytoband.ts` | Removed 4 unused imports (igvUtils, igv-utils, BWReader, Chromosome) |
+| `js/genome/sequenceInterval.ts` | Extends GenomicInterval; narrowed `features` to `string \| null` |
+| `js/genome/chromAliasDefaults.ts` | Typed all methods and static helpers |
+| `js/genome/chromAliasFile.ts` | Typed with `aliasRecordCache`, `headings`, `altNameSets` properties |
+| `js/genome/chromAliasBB.ts` | Typed; reader kept as `any` (depends on BWReader, Phase 3) |
+| `js/genome/cytobandFile.ts` | Typed; `cytobands: Map<string, Cytoband[]>` |
+| `js/genome/cytobandFileBB.ts` | Typed; source kept as `any` (depends on BWSource, Phase 3) |
+| `js/genome/chromSizes.ts` | **Bug fix**: `this.fastaURL` → `this.url`; **bug fix**: missing `return` in getter; removed unused `reservedProperties` |
 
-### Subphase 1e: Create `js/types/` directory — STATUS: NOT STARTED
+### Subphase 1e: Create `js/types/` directory — STATUS: DONE
 
-During this phase, create the foundational type files:
-- `js/types/config.ts`
-- `js/types/feature.ts`
-- `js/types/reader.ts`
-- `js/types/events.ts`
-- `js/types/tracks.ts`
-- `js/types/genome.ts`
+Created foundational type files for use in subsequent phases:
+- `js/types/feature.ts` — `GenomicFeature`, `Exon`, `PopupDataItem` interfaces
+- `js/types/config.ts` — `TrackConfig`, `BrowserConfig` interfaces
+- `js/types/reader.ts` — `FeatureReader`, `FeatureSource`, `FeatureQueryOptions` interfaces
+- `js/types/genome.ts` — `GenomeConfig`, `ChromAlias`, `SequenceSource` interfaces
 
 ### Migration Steps for Each File
 

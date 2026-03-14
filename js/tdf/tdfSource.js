@@ -1,5 +1,5 @@
 import TDFReader from "./tdfReader.js"
-import GenomicInterval from "../genome/genomicInterval.js"
+import GenomicInterval from "../genome/genomicInterval"
 import BaseFeatureSource from "../feature/baseFeatureSource.js"
 
 class TDFSource extends BaseFeatureSource {

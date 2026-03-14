@@ -2,19 +2,20 @@
  * Default chromosome aliases, mostly 1<->chr1 etc.  Used if chrom alias file is not supplied.
  *
  */
-import {isNumber, buildOptions} from "../util/igvUtils.js"
-import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
+import {isNumber, buildOptions} from "../util/igvUtils"
+import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
 
 class ChromAliasDefaults {
 
-    aliasRecordCache = new Map()
+    aliasRecordCache: Map<string, Record<string, string>> = new Map()
+    genomeID: string
 
-    constructor(id, chromosomeNames) {
+    constructor(id: string, chromosomeNames: string[]) {
         this.genomeID = id
         this.update(id, chromosomeNames)
     }
 
-    async preload() {
+    async preload(): Promise<void> {
         // no-op
     }
 
@@ -24,8 +25,8 @@ class ChromAliasDefaults {
      * @param alias
      * @returns {*}
      */
-    getChromosomeName(alias) {
-        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias).chr : alias
+    getChromosomeName(alias: string): string {
+        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias)!.chr : alias
     }
 
     /**
@@ -35,22 +36,22 @@ class ChromAliasDefaults {
      * @param nameSet -- The name set, e.g. "ucsc"
      * @returns {*|undefined}
      */
-    getChromosomeAlias(chr, nameSet) {
+    getChromosomeAlias(chr: string, nameSet: string): string {
         const aliasRecord = this.aliasRecordCache.get(chr)
         return aliasRecord ? aliasRecord[nameSet] || chr : chr
     }
 
-    update(id, chromosomeNames) {
+    update(id: string, chromosomeNames: string[]): void {
 
         if (chromosomeNames) {
-            const aliasRecords = []
+            const aliasRecords: Record<string, string>[] = []
             for (let name of chromosomeNames) {
 
                 if(this.aliasRecordCache.has(name)) {
                     continue;
                 }
 
-                const record = {chr: name}
+                const record: Record<string, string> = {chr: name}
                 aliasRecords.push(record)
 
                 if (name.startsWith("gi|")) {
@@ -61,8 +62,8 @@ class ChromAliasDefaults {
                     // Also strip version number out, if present
                     const dotIndex = alias.lastIndexOf('.')
                     if (dotIndex > 0) {
-                        const alias = alias.substring(0, dotIndex)
-                        record["ncbi-gi"] = alias
+                        const unversioned = alias.substring(0, dotIndex)
+                        record["ncbi-gi"] = unversioned
                     }
                 } else {
 
@@ -148,7 +149,7 @@ class ChromAliasDefaults {
         }
     }
 
-    search(alias) {
+    search(alias: string): Record<string, string> | undefined {
         return this.aliasRecordCache.get(alias)
 
     }
@@ -157,12 +158,12 @@ class ChromAliasDefaults {
      * Extract the user friendly name from an NCBI accession
      * example: gi|125745044|ref|NC_002229.3|  =>  NC_002229.3
      */
-    static getNCBIName(name) {
+    static getNCBIName(name: string): string {
         const tokens = name.split("\\|")
         return tokens[tokens.length - 1]
     }
 
-    static addCaseAliases(aliasRecord) {
+    static addCaseAliases(aliasRecord: Record<string, string>): void {
 
             // Add some aliases for case insensitivy
             const upper = aliasRecord.chr.toUpperCase()

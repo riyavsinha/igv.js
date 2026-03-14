@@ -9,21 +9,26 @@
  * @param config
  * @returns {Promise<*[]>}
  */
-import {buildOptions} from "../util/igvUtils.js"
-import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
-import ChromAliasDefaults from "./chromAliasDefaults.js"
+import {buildOptions} from "../util/igvUtils"
+import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
+import ChromAliasDefaults from "./chromAliasDefaults"
 
 class ChromAliasFile {
 
-    aliasRecordCache = new Map()
+    aliasRecordCache: Map<string, Record<string, string>> = new Map()
+    aliasURL: string
+    config: any
+    genome: any
+    headings: string[] | undefined
+    altNameSets: string[] | undefined
 
-    constructor(aliasURL, config, genome) {
+    constructor(aliasURL: string, config: any, genome: any) {
         this.aliasURL = aliasURL
         this.config = config
         this.genome = genome
     }
 
-    async preload(chrNames) {
+    async preload(chrNames: string[]): Promise<void> {
         // A no-op, this is a text file, no need to preload
     }
     /**
@@ -32,8 +37,8 @@ class ChromAliasFile {
      * @param alias
      * @returns {*}
      */
-    getChromosomeName(alias) {
-        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias).chr : alias
+    getChromosomeName(alias: string): string {
+        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias)!.chr : alias
     }
 
     /**
@@ -42,24 +47,24 @@ class ChromAliasFile {
      * @param nameSet -- The name set, e.g. "ucsc"
      * @returns {*|undefined}
      */
-    getChromosomeAlias(chr, nameSet)
+    getChromosomeAlias(chr: string, nameSet: string): string
     {
         const aliasRecord =  this.aliasRecordCache.get(chr)
         return aliasRecord ? aliasRecord[nameSet] || chr : chr
     }
 
 
-    async loadAliases() {
+    async loadAliases(): Promise<void> {
 
         const data = await igvxhr.loadString(this.aliasURL, buildOptions(this.config))
-        const lines = StringUtils.splitLines(data)
+        const lines: string[] = StringUtils.splitLines(data)
         const firstLine = lines[0]
         if (firstLine.startsWith("#")) {
-            this.headings = firstLine.substring(1).split("\t").map(h => h.trim())
+            this.headings = firstLine.substring(1).split("\t").map((h: string) => h.trim())
             this.altNameSets = this.headings.slice(1)
         }
 
-        const chromosomeNameSet = this.genome.chromosomeNames ?
+        const chromosomeNameSet: Set<string> = this.genome.chromosomeNames ?
             new Set(this.genome.chromosomeNames) : new Set()
 
         for (let line of lines) {
@@ -67,15 +72,15 @@ class ChromAliasFile {
                 const tokens = line.split("\t")
 
                 // Find the canonical chromosome
-                let chr = tokens.find(t => chromosomeNameSet.has(t))
+                let chr = tokens.find((t: string) => chromosomeNameSet.has(t))
                 if(!chr) {
                     chr = tokens[0]
                 }
 
-                const aliasRecord = {chr}
+                const aliasRecord: Record<string, string> = {chr}
                 ChromAliasDefaults.addCaseAliases(aliasRecord)
                 for (let i = 0; i < tokens.length; i++) {
-                    const key = this.headings ? this.headings[i] : i
+                    const key = this.headings ? this.headings[i] : String(i)
                     aliasRecord[key] = tokens[i]
                 }
 
@@ -96,7 +101,7 @@ class ChromAliasFile {
      * @param alias - the sequence name or alias
      * @returns {Promise<any>} promise to resolve to the alias record.
      */
-    async search(alias) {
+    async search(alias: string): Promise<Record<string, string> | undefined> {
         if(this.aliasRecordCache.size === 0) {
             await this.loadAliases()
         }

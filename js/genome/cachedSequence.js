@@ -2,7 +2,7 @@
  * Wrapper for a sequence loader that provides caching
  */
 
-import SequenceInterval from "./sequenceInterval.js"
+import SequenceInterval from "./sequenceInterval"
 
 class CachedSequence {
 

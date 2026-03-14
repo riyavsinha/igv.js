@@ -1,18 +1,20 @@
-import {buildOptions, isDataURL} from "../util/igvUtils.js"
-import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
-import {Cytoband} from "./cytoband.js"
-import Chromosome from "./chromosome.js"
+import {buildOptions, isDataURL} from "../util/igvUtils"
+import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
+import {Cytoband} from "./cytoband"
+import Chromosome from "./chromosome"
 
 class CytobandFile {
 
-    cytobands = new Map()
+    cytobands: Map<string, Cytoband[]> = new Map()
+    url: string
+    config: any
 
-    constructor(url, config) {
+    constructor(url: string, config: any) {
         this.url = url;
         this.config = config;
     }
 
-    async getCytobands(chr) {
+    async getCytobands(chr: string): Promise<Cytoband[] | undefined> {
         if(this.cytobands.size === 0) {
             await this.#loadCytobands()
         }
@@ -31,9 +33,9 @@ class CytobandFile {
      * }
      * @returns {Promise<*[]>}
      */
-    async #loadCytobands() {
+    async #loadCytobands(): Promise<void> {
 
-        let data
+        let data: string
         if (isDataURL(this.url)) {
             const plain = BGZip.decodeDataURI(this.url)
             data = ""
@@ -45,9 +47,9 @@ class CytobandFile {
             data = await igvxhr.loadString(this.url, buildOptions(this.config))
         }
 
-        let lastChr
-        let bands = []
-        const lines = StringUtils.splitLines(data)
+        let lastChr: string | undefined
+        let bands: Cytoband[] = []
+        const lines: string[] = StringUtils.splitLines(data)
         for (let line of lines) {
 
             const tokens = line.split("\t")
@@ -70,7 +72,7 @@ class CytobandFile {
             }
         }
         if(bands.length > 0) {
-            this.cytobands.set(lastChr, bands)
+            this.cytobands.set(lastChr!, bands)
         }
 
     }
@@ -78,4 +80,3 @@ class CytobandFile {
 }
 
 export default CytobandFile
-

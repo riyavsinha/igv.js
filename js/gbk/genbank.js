@@ -1,5 +1,5 @@
-import SequenceInterval from "../genome/sequenceInterval.js"
-import Chromosome from "../genome/chromosome.js"
+import SequenceInterval from "../genome/sequenceInterval"
+import Chromosome from "../genome/chromosome"
 
 /**
  * Represents a Genbank file, which combines both annotations (features) and sequence.   The format combines both
