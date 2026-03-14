@@ -6,17 +6,15 @@ import {FileUtils} from "../../node_modules/igv-utils/src/index.js"
 
 
 function cloneArray(a: unknown[], fn: (o: unknown) => unknown): unknown[] {
-    const keys = Object.keys(a)
-    const a2 = new Array(keys.length)
-    for (let i = 0; i < keys.length; i++) {
-        const k = keys[i]
-        const cur = a[k]
+    const a2 = new Array(a.length)
+    for (let i = 0; i < a.length; i++) {
+        const cur = a[i]
         if (typeof cur !== 'object' || cur === null) {
-            a2[k] = cur
+            a2[i] = cur
         } else if (cur instanceof Date) {
-            a2[k] = new Date(cur)
+            a2[i] = new Date(cur)
         } else {
-            a2[k] = fn(cur)
+            a2[i] = fn(cur)
         }
     }
     return a2

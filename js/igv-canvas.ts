@@ -7,18 +7,6 @@
 
 import {randomRGB} from "./util/colorPalletes.js";
 
-var debug = false
-
-var log = function (msg: string): void {
-    if (debug) {
-        var d = new Date()
-        var time = d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds()
-        if (typeof console != "undefined") {
-            console.log("igv-canvas: " + time + " " + msg)
-        }
-    }
-}
-
 
 const IGVGraphics = {
 
@@ -52,8 +40,6 @@ const IGVGraphics = {
         y1 = Math.floor(y1) + 0.5
         x2 = Math.floor(x2) + 0.5
         y2 = Math.floor(y2) + 0.5
-
-        log("stroke line, prop: " + properties)
 
         if (properties) {
             ctx.save()

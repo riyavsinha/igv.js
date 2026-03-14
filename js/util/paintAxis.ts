@@ -1,7 +1,6 @@
 import IGVGraphics from "../igv-canvas.js"
 
 const shim = .01
-const diagnosticColor = "rgb(251,128,114)"
 const colorStripWidth = 4
 const axesXOffset = colorStripWidth + 1
 

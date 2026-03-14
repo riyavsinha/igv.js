@@ -68,9 +68,9 @@ class BinnedColorScale {
 
     getColor(value: number): string {
 
-        for (let threshold of this.thresholds) {
-            if (value < threshold) {
-                return this.colors[this.thresholds.indexOf(threshold)]
+        for (let i = 0; i < this.thresholds.length; i++) {
+            if (value < this.thresholds[i]) {
+                return this.colors[i]
             }
         }
 

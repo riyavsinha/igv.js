@@ -33,8 +33,8 @@ function parseAutoSQL(str: string): AutoSQLResult {
             } else if (startDecoding) {
                 const idx = line.indexOf(';')
                 if (idx > 0) {
-                    const tokens = line.substr(0, idx).split(/\s+/)
-                    const description = line.substr(idx + 1).replace(/"/g, '').trim()
+                    const tokens = line.substring(0, idx).split(/\s+/)
+                    const description = line.substring(idx + 1).replace(/"/g, '').trim()
                     fields.push({
                         type: tokens[0],
                         name: tokens[1],

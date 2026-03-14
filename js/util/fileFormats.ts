@@ -24,18 +24,18 @@ function getFormat(name: string): FileFormat | undefined {
 
     function expandFormat(format: FileFormat): FileFormat {
 
-        const fields = format.fields
+        const result: FileFormat = {fields: format.fields}
         const keys = ['chr', 'start', 'end'] as const
 
-        for (let i = 0; i < fields.length; i++) {
+        for (let i = 0; i < result.fields.length; i++) {
             for (let key of keys) {
-                if (key === fields[i]) {
-                    format[key] = i
+                if (key === result.fields[i]) {
+                    result[key] = i
                 }
             }
         }
 
-        return format
+        return result
     }
 }
 

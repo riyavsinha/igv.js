@@ -1,21 +1,14 @@
 import {FileUtils, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
-const extend = function (parent: any, child: any): any {
-
-    child.prototype = Object.create(parent.prototype)
-    child.prototype.constructor = child
-    child.prototype._super = Object.getPrototypeOf(child.prototype)
-    return child
-}
-
 /**
  * Test if the given value is a string or number.  Not using typeof as it fails on boxed primitives.
  */
+const SIMPLE_TYPES = new Set(["boolean", "number", "string", "symbol"])
+
 function isSimpleType(value: unknown): boolean {
-    const simpleTypes = new Set(["boolean", "number", "string", "symbol"])
     const valueType = typeof value
-    return (value !== undefined && (simpleTypes.has(valueType) || (value as any).substring || (value as any).toFixed))
+    return (value !== undefined && (SIMPLE_TYPES.has(valueType) || value instanceof String || value instanceof Number))
 }
 
 function buildOptions(config: Record<string, any>, options?: Record<string, any>): Record<string, any> {
@@ -198,7 +191,6 @@ function getElementVerticalDimension(element: HTMLElement): {top: number, bottom
 
 export {
     createColumn,
-    extend,
     isSimpleType,
     buildOptions,
     validateGenomicExtent,
