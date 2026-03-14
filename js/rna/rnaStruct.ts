@@ -7,7 +7,6 @@ import TextFeatureSource from "../feature/textFeatureSource.js"
 import ChromAliasManager from "../feature/chromAliasManager"
 import FeatureCache from "../feature/featureCache"
 
-// @ts-expect-error TS2417 - static defaults shape differs from base class
 class RnaStructTrack extends TrackBase {
     [key: string]: any
 

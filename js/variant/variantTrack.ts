@@ -16,7 +16,6 @@ const isString = StringUtils.isString
 const DEFAULT_VISIBILITY_WINDOW = 1000000
 const TOP_MARGIN = 10
 
-// @ts-expect-error - static defaults shape differs from TrackBase
 class VariantTrack extends TrackBase {
     [key: string]: any
 

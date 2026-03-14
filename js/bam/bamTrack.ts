@@ -9,8 +9,6 @@ import PairedEndStats from "./pairedEndStats"
 import AlignmentTrack from "./alignmentTrack.js"
 import CoverageTrack from "./coverageTrack.js"
 
-
-// @ts-expect-error - static defaults shape differs from TrackBase
 class BAMTrack extends TrackBase {
     [key: string]: any
 

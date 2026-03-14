@@ -12,8 +12,6 @@ someMotifValues.forEach(motif => {
     JUNCTION_MOTIF_PALETTE.getColor(motif)
 })
 
-
-// @ts-expect-error - static defaults shape differs from TrackBase
 class SpliceJunctionTrack extends TrackBase {
     [key: string]: any
 

@@ -52,10 +52,12 @@
       "Bash(xargs -I {} basename {})",
       "Bash(npm ls --depth=0)",
       "Bash(head -1 /Users/riyavsinha/projects/igv.js/test/*.js)",
-      "WebFetch(domain:gist.github.com)"
+      "WebFetch(domain:gist.github.com)",
+      "Bash(/tmp/test_ts8.ts:*)"
     ],
     "additionalDirectories": [
-      "/Users/riyavsinha/projects/igv.js"
+      "/Users/riyavsinha/projects/igv.js",
+      "/tmp"
     ]
   }
 }

@@ -25,7 +25,6 @@ const MINIMUM_BLAT_LENGTH = 20
 
 const pairCompatibleGroupOptions = new Set(["firstOfPairStrand"])
 
-// @ts-expect-error - static defaults shape differs from TrackBase (will unify when TrackBase is converted)
 class AlignmentTrack extends TrackBase {
     [key: string]: any
 

@@ -27,7 +27,6 @@ function getArcType(config: any): string {
 
 const DEFAULT_ARC_COLOR = "rgb(180,25,137)"
 
-// @ts-expect-error - static defaults shape differs from TrackBase
 class InteractionTrack extends TrackBase {
     [key: string]: any
 

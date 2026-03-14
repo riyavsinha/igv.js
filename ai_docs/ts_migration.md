@@ -211,7 +211,7 @@ import typescript from '@rollup/plugin-typescript'
 
 export default [
   {
-    input: 'js/index.js', // stays .js until Phase 6
+    input: 'js/index.ts', // updated in Phase 6
     output: [
       { file: 'dist/igv.esm.js', format: 'es' },
       { file: 'dist/igv.esm.min.js', format: 'es', sourcemap: true, plugins: [terser()] }
@@ -1009,90 +1009,49 @@ Note: `js/trackBase.js` is deferred to Phase 6 (core orchestration) since it's t
 
 ---
 
-## 10. Phase 6: Core Orchestration
+## 10. Phase 6: Core Orchestration — DONE
 
-**~20 files, ~15,000 LOC**
+**55 files converted** (274 TS total, 6 JS remaining: 4 vendor + embedCss + cram-bundle)
 
-### Subphase 6a: Track factory and registry
+Converted in 4 layers using parallel agent batches:
 
-| File | Notes |
-|------|-------|
-| `js/trackFactory.js` | Track creation factory (Map-based registry) |
-| `js/util/trackClassRegistry.js` | Runtime track class registry |
+### Layer 1: Leaf modules (41 files)
+- **Sample** (10): sampleInfoConstants, sampleInfoPaletteLibrary, sampletable_chr_17_only_names, sampleUtils, plinkSampleInformation, sampleInfo, sampleInfoControl, sampleInfoViewport, sampleNameControl, sampleNameViewport
+- **ROI** (7): roiUtils, ROISet, trackROISet, ROITable, ROIMenu, ROIManager, roiTableControl
+- **UCSC** (7): ucscUtils, hub/stanza, hub/hubParser, hub/trackConfigContainer, hub/trackDbHub, hub/hub, imageTrack
+- **UI controls** (11): centerLineButton, chromosomeSelectWidget, cursorGuide, customButton, multiTrackSelectButton, overlayTrackButton, regionTableBase, saveImageControl, trackLabelControl, viewportCenterLine, utils/colorPalettes
+- **WebSocket** (2): messageHandler, websocketClient
+- **Other** (4): session/igvXmlSession, jbrowse/circularViewUtils, util/fileFormatUtils, util/viewportUtils, windowSizePanel
 
-The factory maps string type names to track constructor functions. Type with a generic registry:
+### Layer 2-3: Viewport + infrastructure + TrackBase (9 files)
+- responsiveNavbar, genome/bpt (comments-only file)
+- **Viewport hierarchy**: viewport (base), trackViewport, viewportColumnManager, ideogramViewport, rulerViewport, rulerSweeper
+- **TrackBase** — Critical base class for all tracks. Added `[key: string]: any` index signature and `declare` fields. Removed explicit declarations for `color`, `height`, `logScale`, `trackView` since subclasses override them as accessors.
 
-```typescript
-type TrackConstructor = new (config: TrackConfig, browser: Browser) => TrackBase
+### Layer 4: Top-level (5 files)
+- trackView, trackFactory, **browser** (~2500 LOC, 45+ field declarations), igv-create, index
 
-const trackFunctions = new Map<string, TrackConstructor | ((config: TrackConfig, browser: Browser) => TrackBase)>()
-```
+### Rollup config updated
+- `rollup.config.js`: Changed entry point from `js/index.js` to `js/index.ts`
 
-### Subphase 6b: Viewport management
+### Key fixes during Phase 6
+- Removed 8 unused `@ts-expect-error` directives (TrackBase now TS, so static defaults no longer conflict)
+- TrackBase: removed `declare` for `color`, `height`, `logScale`, `trackView` — subclasses override these as accessors (TS2611)
+- Viewport: removed `cachedFeatures` field declaration — TrackViewport defines it as accessor
+- trackFactory: fixed IdeogramTrack constructor (1 arg, not 2), MergedTrack (3 args, not 2)
+- ROIManager: fixed ROITable constructor call (1 arg, not 2)
+- ROISet: added missing 3rd arg to `computeWGFeatures`
+- browser.ts: added `force?: boolean` param to `updateViews()`, cast `Element` to `HTMLElement` for querySelectorAll results
+- search.ts / browser.ts: aligned `string | string[]` param handling
+- regionTableBase: widened footerDOM setter param to `(...args: any[]) => void`
+- sampleInfoViewport/sampleNameViewport: cast `viewport.innerWidth` via `(this.viewport as any)`
+- rulerViewport: eslint-disable for `@typescript-eslint/no-this-alias` on module-level currentViewport assignment
 
-| File | Notes |
-|------|-------|
-| `js/trackView.js` | Track view (container for track + viewport) |
-| `js/trackViewport.js` | Feature track viewport |
-| `js/viewport.js` | Base viewport class |
-| `js/viewportColumnManager.js` | Multi-locus column management |
-
-### Subphase 6c: Specialized viewports
-
-| File | Notes |
-|------|-------|
-| `js/ideogramViewport.js` | Ideogram viewport |
-| `js/rulerViewport.js` | Ruler viewport |
-| `js/rulerSweeper.js` | Ruler drag selection |
-| `js/windowSizePanel.js` | Window size display |
-
-### Subphase 6d: Navigation and UI controls
-
-| File | Notes |
-|------|-------|
-| `js/responsiveNavbar.js` | Responsive navigation bar |
-| `js/ui/cursorGuide.js` | Cursor tracking guide |
-| `js/ui/viewportCenterLine.js` | Center line indicator |
-| `js/ui/circularViewControl.js` | Circular view toggle |
-| Remaining `js/ui/` files | Various UI controls |
-
-### Subphase 6e: ROI and sample management
-
-| Module | Notes |
-|--------|-------|
-| `js/roi/*.js` (7 files) | Region of Interest manager, sets, menus |
-| `js/sample/*.js` (7 files) | Sample info, viewports, name display |
-
-### Subphase 6f: Integration modules
-
-| Module | Notes |
-|--------|-------|
-| `js/session/*.js` | Session save/load |
-| `js/ucsc/*.js` | UCSC track hub integration |
-| `js/jbrowse/*.js` | JBrowse compatibility |
-| `js/websocket/*.js` | WebSocket client |
-
-### Subphase 6g: Browser class
-
-`js/browser.js` is the last major source file to migrate. It is the central orchestrator with
-50+ imports and ~2,000+ LOC. Key typing areas:
-
-- Constructor: accepts `BrowserConfig`, creates DOM elements, initializes subsystems
-- Track management: `loadTrack()`, `removeTrack()`, `findTracks()`
-- Navigation: `search()`, `zoomIn()`, `zoomOut()`, `goto()`
-- Session: `toJSON()`, `loadSession()`, `compressedSession()`
-- Events: typed event emitter methods
-- State: `this.genome`, `this.trackViews`, `this.referenceFrameList`
-
-### Subphase 6h: Entry points
-
-| File | Notes |
-|------|-------|
-| `js/igv-create.js` | `createBrowser()`, `removeBrowser()`, module-level `allBrowsers` array |
-| `js/index.js` | Public API surface — the default export object |
-
-When `index.js` is migrated to `index.ts`, the Rollup input path must be updated to
-`js/index.ts`.
+### Verification
+- Typecheck: 0 errors
+- Lint: 0 errors (2026 warnings, all `no-explicit-any`)
+- Tests: 245 passing
+- Build: success (ESM + UMD)
 
 ---
 
