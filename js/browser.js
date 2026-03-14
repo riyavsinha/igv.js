@@ -19,7 +19,7 @@ import {defaultNucleotideColors} from "./util/nucleotideColors.js"
 import search from "./search"
 import ResponsiveNavbar from "./responsiveNavbar.js"
 import DataRangeDialog from "./ui/components/dataRangeDialog.js"
-import HtsgetReader from "./htsget/htsgetReader.js"
+import HtsgetReader from "./htsget/htsgetReader"
 import MenuPopup from "./ui/menuPopup.js"
 import {viewportColumnManager} from './viewportColumnManager.js'
 import ViewportCenterLine from './ui/viewportCenterLine.js'
@@ -30,13 +30,13 @@ import {createCircularView, makeCircViewChromosomes} from "./jbrowse/circularVie
 import ROIManager from './roi/ROIManager.js'
 import TrackROISet from "./roi/trackROISet.js"
 import SampleInfo from "./sample/sampleInfo.js"
-import {translateSession} from "./hic/shoeboxUtils.js"
+import {translateSession} from "./hic/shoeboxUtils"
 import MenuUtils from "./ui/menuUtils.js"
 import Genome from "./genome/genome"
 import {setDefaults} from "./util/defaultOptions.js"
 import {trackViewportPopoverList} from './trackViewport.js'
 import TrackBase from "./trackBase.js"
-import {loadGenbank} from "./gbk/genbankParser.js"
+import {loadGenbank} from "./gbk/genbankParser"
 import igvCss from "./embedCss.js"
 import {sampleInfoTileWidth, sampleInfoTileXShim} from "./sample/sampleInfoConstants.js"
 import QTLSelections from "./qtl/qtlSelections.js"

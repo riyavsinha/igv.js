@@ -1,4 +1,4 @@
-import DecodeError from "../feature/decode/decodeError.js"
+import DecodeError from "../feature/decode/decodeError"
 
 export default function decodeShoebox(tokens, header, maxColumnCount = Number.MAX_SAFE_INTEGER) {
 

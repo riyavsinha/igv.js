@@ -1,6 +1,6 @@
 import BWReader from "./bwReader"
-import pack from "../feature/featurePacker.js"
-import BaseFeatureSource from "../feature/baseFeatureSource.js"
+import pack from "../feature/featurePacker"
+import BaseFeatureSource from "../feature/baseFeatureSource"
 
 interface WigFeature {
     chr: string
@@ -41,7 +41,6 @@ class BWSource extends BaseFeatureSource {
         this.format = config.format || "bigwig"
     }
 
-    // @ts-expect-error - BaseFeatureSource is not typed; override return type differs
     async getFeatures({chr, start, end, bpPerPixel, windowFunction}: GetFeaturesParams): Promise<WigFeature[]> {
 
         await this.reader.loadHeader()

@@ -1,5 +1,5 @@
 import "./utils/mockObjects.js"
-import BGZBlockLoader, {inflateBlocks, findBlockBoundaries} from "../js/bam/bgzBlockLoader.js"
+import BGZBlockLoader, {inflateBlocks, findBlockBoundaries} from "../js/bam/bgzBlockLoader"
 import {assert} from 'chai'
 
 const inflatedBlockSize = 65536

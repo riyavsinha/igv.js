@@ -1,7 +1,7 @@
 import {isSimpleType} from "./util/igvUtils.js"
 import {FeatureUtils, FileUtils, StringUtils} from "../node_modules/igv-utils/src/index.js"
 import {createCheckbox} from "./igv-icons.js"
-import {findFeatureAfterCenter} from "./feature/featureUtils.js"
+import {findFeatureAfterCenter} from "./feature/featureUtils"
 import {isLocalFile} from "./util/sessionResourceValidator.js"
 
 const fixColor = (colorString) => {

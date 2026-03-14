@@ -6,7 +6,7 @@ http://genome.ucsc.edu/cgi-bin/hgBlat
 &output=json
  */
 
-import {decodePSL} from "../feature/decode/ucsc.js"
+import {decodePSL} from "../feature/decode/ucsc"
 
 //const blatServer = "https://genome.ucsc.edu/cgi-bin/hgBlat"
 const defaultBlatServer = "https://igv.org/services/blatUCSC.php"

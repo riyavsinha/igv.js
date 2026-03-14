@@ -832,156 +832,132 @@ For each file in this phase:
 
 ---
 
-## 8. Phase 4: Reader/Source Layer
+## 8. Phase 4: Reader/Source Layer — STATUS: DONE
 
-**~40 files, ~15,000 LOC**
+**~90 files converted (including track classes), ~25,000 LOC**
 
-This is the largest phase. These files implement data access for all supported file formats.
+This was the largest phase, covering all data access layers plus track classes. Executed in 4 layers (leaf-first).
 
-### Subphase 4a: BAM index infrastructure
-
-| File | Notes |
-|------|-------|
-| `js/bam/bamIndex.js` | BAI index parsing |
-| `js/bam/csiIndex.js` | CSI index parsing |
-| `js/bam/indexFactory.js` | Index creation factory |
-| `js/bam/indexUtils.js` | Index utility functions |
-| `js/bam/bgzBlockLoader.js` | BGZF block loading |
-
-### Subphase 4b: BAM data models
+### Layer 1: BAM infrastructure & data models (~20 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/bam/bamAlignment.js` | Single alignment record |
-| `js/bam/alignmentBlock.js` | Alignment block (CIGAR operation) |
-| `js/bam/pairedAlignment.js` | Paired-end alignment |
-| `js/bam/supplementaryAlignment.js` | Supplementary alignment |
-| `js/bam/bamAlignmentRow.js` | Packed alignment row |
-| `js/bam/alignmentContainer.js` | Container for alignments + coverage |
-| `js/bam/packedAlignments.js` | Packed alignment layout |
-| `js/bam/bamFilter.js` | Alignment filtering |
-| `js/bam/orientationTypes.js` | Pair orientation constants |
-| `js/bam/pairedEndStats.js` | Insert size statistics |
+| `js/bam/bamIndex.ts` | BAI index parsing; removed unnecessary `this` alias |
+| `js/bam/csiIndex.ts` | CSI index parsing |
+| `js/bam/indexFactory.ts` | Index creation factory |
+| `js/bam/indexUtils.ts` | Index utility functions |
+| `js/bam/bgzBlockLoader.ts` | BGZF block loading |
+| `js/bam/bamAlignment.ts` | Single alignment record |
+| `js/bam/alignmentBlock.ts` | Alignment block (CIGAR operation) |
+| `js/bam/pairedAlignment.ts` | Paired-end alignment |
+| `js/bam/supplementaryAlignment.ts` | Supplementary alignment |
+| `js/bam/bamAlignmentRow.ts` | Packed alignment row |
+| `js/bam/alignmentContainer.ts` | Container for alignments + coverage |
+| `js/bam/packedAlignments.ts` | Packed alignment layout |
+| `js/bam/bamFilter.ts` | Alignment filtering |
+| `js/bam/orientationTypes.ts` | Pair orientation constants |
+| `js/bam/pairedEndStats.ts` | Insert size statistics |
+| `js/bam/bamUtils.ts` | BAM utility functions |
 
-### Subphase 4c: BAM readers
-
-| File | Notes |
-|------|-------|
-| `js/bam/bamReader.js` | Standard BAM reader |
-| `js/bam/bamReaderNonIndexed.js` | Non-indexed BAM reader |
-| `js/bam/shardedBamReader.js` | Sharded BAM reader |
-| `js/bam/bamWebserviceReader.js` | BAM web service reader |
-| `js/bam/bamUtils.js` | BAM utility functions |
-| `js/bam/bamSource.js` | BAM data source |
-
-### Subphase 4d: Base modifications
-
-All files in `js/bam/mods/`:
+### Layer 2: Decoders, GFF, HiC, TDF, GBK, AED (~30 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `baseModificationCounts.js` | Modification counting |
-| `baseModificationColors.js` | Modification color mapping |
-| `baseModificationKey.js` | Modification key types |
-| `baseModifications.js` | Modification parsing |
+| `js/feature/decode/*.ts` (12 files) | All decoders converted |
+| `js/feature/gff/*.ts` (5 files) | GFF/GTF parsing; fixed `parseInt(String(phase))` |
+| `js/hic/*.ts` (3 files) | Hi-C data access |
+| `js/tdf/tdfReader.ts` | TDF format reader; `type TileIndex = IndexEntry` |
+| `js/tdf/tdfSource.ts` | TDF data source; added `undefined` 4th arg to GenomicInterval |
+| `js/gbk/*.ts` (3 files) | GenBank format |
+| `js/aed/aedFile.ts` | AED format |
+| `js/bam/mods/baseModificationColors.ts` | Modification color mapping |
+| `js/bam/mods/baseModificationKey.ts` | Modification key types |
+| `js/bam/mods/baseModifications.ts` | Modification parsing |
 
-### Subphase 4e: Feature parsing infrastructure
-
-| File | Notes |
-|------|-------|
-| `js/feature/featureParser.js` | Generic feature parser |
-| `js/feature/featureFileReader.js` | Feature file reader |
-| `js/feature/featureCache.js` | Feature caching |
-| `js/feature/featurePacker.js` | Feature row packing |
-| `js/feature/featureUtils.js` | Feature utilities |
-| `js/feature/exonUtils.js` | Exon manipulation |
-
-### Subphase 4f: Decoders and GFF
-
-All files in `js/feature/decode/` and `js/feature/gff/`.
-
-### Subphase 4g: Feature sources
+### Layer 3: Readers, sources & parsers (~27 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/feature/featureSource.js` | Main feature source |
-| `js/feature/textFeatureSource.js` | Text file source |
-| `js/feature/staticFeatureSource.js` | In-memory feature source |
-| `js/feature/listFeatureSource.js` | Feature list source |
-| `js/feature/baseFeatureSource.js` | Base source class |
-| `js/feature/customServiceReader.js` | Custom API reader |
-| `js/feature/ucscServiceReader.js` | UCSC API reader |
-| `js/feature/dataWrapper.js` | Data wrapping utility |
-| `js/feature/tribble.js` | Tribble index reader |
+| `js/bam/bamReader.ts` | Standard BAM reader |
+| `js/bam/bamReaderNonIndexed.ts` | Non-indexed BAM reader |
+| `js/bam/shardedBamReader.ts` | Sharded BAM reader |
+| `js/bam/bamWebserviceReader.ts` | BAM web service reader |
+| `js/bam/bamSource.ts` | BAM data source; **bug fix**: `console.warning()` → `console.warn()` |
+| `js/bam/mods/baseModificationCounts.ts` | Modification counting |
+| `js/bam/mods/baseModificationCoverageRenderer.ts` | Modification coverage rendering |
+| `js/bam/mods/baseModificationRenderer.ts` | Modification rendering |
+| `js/feature/featureFileReader.ts` | Feature file reader |
+| `js/feature/featureParser.ts` | Generic feature parser |
+| `js/feature/featureSource.ts` | Main feature source (factory) |
+| `js/feature/textFeatureSource.ts` | Text file source; **fix**: `replaceAll` → `replace(/ /g, '+')` |
+| `js/feature/listFeatureSource.ts` | Feature list source |
+| `js/feature/staticFeatureSource.ts` | In-memory feature source; **fix**: `replaceAll` → `replace(/ /g, '+')` |
+| `js/feature/customServiceReader.ts` | Custom API reader |
+| `js/feature/ucscServiceReader.ts` | UCSC API reader |
+| `js/feature/segParser.ts` | SEG file parser; **bug fix**: bitwise `&` → logical `&&` |
+| `js/feature/fileFormats.ts` | File format definitions |
+| `js/feature/intervalTree.ts` | Interval tree implementation |
+| `js/feature/render/renderFeature.ts` | Feature rendering |
+| `js/feature/render/renderSnp.ts` | SNP rendering |
+| `js/feature/render/renderFusionJunction.ts` | Fusion junction rendering |
+| `js/variant/vcfParser.ts` | VCF file parser; **fix**: ASI issue with semicolon |
+| `js/cram/cramReader.ts` | CRAM reader |
+| `js/htsget/htsgetBamReader.ts` | htsget BAM reader |
+| `js/htsget/htsgetVariantReader.ts` | htsget variant reader |
+| `js/gbk/genbankFeatureSource.ts` | GenBank feature source |
 
-### Subphase 4h: Variant support
+### Layer 4: Track classes (~10 files) — STATUS: DONE
 
 | File | Notes |
 |------|-------|
-| `js/variant/variant.js` | Variant data model |
-| `js/variant/vcfParser.js` | VCF file parser |
+| `js/bam/coverageTrack.ts` | Full rewrite with `DataRange` interface and typed properties |
+| `js/bam/bamTrack.ts` | Full rewrite with typed properties; `@ts-expect-error` for accessor overrides |
+| `js/bam/alignmentTrack.ts` | Index signature + `@ts-expect-error`; **bug fix**: bitwise `\|` → `\|\|` |
+| `js/feature/featureTrack.ts` | Index signature + `@ts-expect-error` for postInit, description, defaults |
+| `js/feature/wigTrack.ts` | Index signature; cast `fillCircle` overflow calls |
+| `js/feature/segTrack.ts` | Index signature + `@ts-expect-error` for filter; **bug fix**: extra arg to `drawGroupDividers` |
+| `js/feature/spliceJunctionTrack.ts` | Index signature; typed `junctionRenderingContext` as `any` |
+| `js/feature/interactionTrack.ts` | Index signature; typed `getArcType`; `Number()` cast for `scoreShade` |
+| `js/feature/mergedTrack.ts` | Index signature; typed `MergedFeatureCollection` class |
+| `js/variant/variantTrack.ts` | Index signature; fixed `trackClasses` access via `as any`; added missing `position` to sort |
 
-### Subphase 4i: Remaining format support
+### Bugs found & fixed during Phase 4
 
-| Module | Files | Notes |
-|--------|-------|-------|
-| `js/cram/` | 3 files | CRAM reader (wraps @gmod/cram) |
-| `js/htsget/` | 3 files | htsget protocol |
-| `js/tdf/` | 2 files | TDF format |
-| `js/hic/` | 3 files | Hi-C data |
-| `js/gbk/` | 3 files | GenBank format |
-| `js/aed/` | 1 file | AED format |
+1. **`console.warning()` doesn't exist** (bamSource.ts) — should be `console.warn()`
+2. **Bitwise `&` on booleans** (segParser.ts:203) — should be logical `&&`
+3. **Bitwise `|` on booleans** (alignmentTrack.ts:541) — should be logical `||`
+4. **Extra argument to `drawGroupDividers`** (segTrack.ts:408) — called with 8 args, function takes 7; extra `GROUP_MARGIN_HEIGHT` was silently ignored
+5. **`replaceAll` not in ES2020** (textFeatureSource.ts, staticFeatureSource.ts) — replaced with `replace(/ /g, '+')`
+6. **ASI issue** (vcfParser.ts:137) — `new Variant(tokens)` followed by `(variant as any).header` parsed as function call; added semicolon
+7. **Missing `position` in sort object** (variantTrack.ts:738) — sort object was missing required `position` property
+
+### Track class conversion strategy
+
+All 10 track classes extend `TrackBase` (still JS). Key patterns used:
+- `[key: string]: any` index signature on every track class (allows dynamic property access from TrackBase)
+- `@ts-expect-error` before class declarations for static defaults shape mismatches (TS2417)
+- `@ts-expect-error` before accessor overrides where base class has plain properties (TS2611)
+- `@ts-expect-error` before `postInit()` methods with different return types (TS2416)
+- `(this.constructor as any).defaultColor` pattern for static property access in subclasses
 
 ---
 
-## 9. Phase 5: Track Classes
+## 9. Phase 5: Remaining Track Classes & Specialized Modules
 
-**~20 files + renderers, ~12,000 LOC**
+**~30 files remaining**
+
+Track classes from the original Phase 5 plan (featureTrack, wigTrack, segTrack, bamTrack, alignmentTrack, coverageTrack, spliceJunctionTrack, interactionTrack, mergedTrack, variantTrack, and their renderers) were completed as Phase 4 Layer 4.
+
+Remaining work for this phase:
 
 ### Subphase 5a: TrackBase
 
-`js/trackBase.js` is the single most critical file. All 15+ track types extend it.
+`js/trackBase.js` is the single most critical file. All 15+ track types extend it. Converting this will eliminate the need for `[key: string]: any` index signatures and `@ts-expect-error` comments on track subclasses.
 
-Key typing challenges:
-- Dynamic property assignment in `init()` from config + defaults
-- `this.constructor.defaults` pattern (typed as `static defaults` on each subclass)
-- Color function callbacks: `color` can be string or function
-
-See §4.6 for the typing approach.
-
-### Subphase 5b: FeatureTrack and renderers
+### Subphase 5b: Specialized tracks (not yet converted)
 
 | File | Notes |
 |------|-------|
-| `js/feature/featureTrack.js` | Main annotation/feature track |
-| `js/feature/render/renderFeature.js` | Feature rendering |
-| `js/feature/render/renderSnp.js` | SNP rendering |
-| `js/feature/render/renderFusionJunction.js` | Fusion junction rendering |
-
-### Subphase 5c: Other feature-based tracks
-
-| File | Notes |
-|------|-------|
-| `js/feature/wigTrack.js` | Quantitative data track |
-| `js/feature/segTrack.js` | Segmentation track |
-| `js/feature/segParser.js` | SEG file parser |
-| `js/feature/spliceJunctionTrack.js` | RNA-seq junction track |
-| `js/feature/interactionTrack.js` | Long-range interaction track |
-| `js/feature/mergedTrack.js` | Multi-track overlay |
-
-### Subphase 5d: Alignment tracks
-
-| File | Notes |
-|------|-------|
-| `js/bam/bamTrack.js` | BAM track (composite: coverage + alignments) |
-| `js/bam/alignmentTrack.js` | Alignment rendering track |
-| `js/bam/coverageTrack.js` | Coverage histogram track |
-
-### Subphase 5e: Specialized tracks
-
-| File | Notes |
-|------|-------|
-| `js/variant/variantTrack.js` | VCF variant track |
 | `js/gwas/gwasTrack.js` | GWAS Manhattan plot |
 | `js/gwas/gwasParser.js` | GWAS data parser |
 | `js/gwas/gwasColors.js` | GWAS color scheme |
@@ -990,7 +966,7 @@ See §4.6 for the typing approach.
 | `js/qtl/qtlSelections.js` | QTL selection handling |
 | `js/qtl/gtexReader.js` | GTEx web service reader |
 
-### Subphase 5f: Remaining specialized tracks
+### Subphase 5c: Remaining specialized tracks
 
 | Module | Notes |
 |--------|-------|
@@ -1000,7 +976,7 @@ See §4.6 for the typing approach.
 | `js/shoebox/*.js` (3 files) | Shoebox format |
 | `js/blat/*.js` (3 files) | BLAT interface |
 
-### Subphase 5g: Built-in browser tracks
+### Subphase 5d: Built-in browser tracks
 
 | File | Notes |
 |------|-------|

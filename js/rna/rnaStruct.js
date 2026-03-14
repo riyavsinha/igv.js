@@ -1,11 +1,11 @@
-import getDataWrapper from "../feature/dataWrapper.js"
+import getDataWrapper from "../feature/dataWrapper"
 import TrackBase from "../trackBase.js"
 import IGVGraphics from "../igv-canvas.js"
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils.js"
 import TextFeatureSource from "../feature/textFeatureSource.js"
-import ChromAliasManager from "../feature/chromAliasManager.js"
-import FeatureCache from "../feature/featureCache.js"
+import ChromAliasManager from "../feature/chromAliasManager"
+import FeatureCache from "../feature/featureCache"
 
 class RnaStructTrack extends TrackBase {
 

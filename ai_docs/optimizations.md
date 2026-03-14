@@ -162,6 +162,33 @@ A nested function used `.call(this, ...)` to access private `#wgChromosomeNames`
 ### `js/genome/genome.ts` — `var` in `getGenomeCoordinate` [FIXED]
 Changed `var offset` to `const offset`.
 
+---
+
+## Phase 4 Bugs
+
+### `js/bam/bamSource.ts` — `console.warning()` doesn't exist [FIXED]
+Called `console.warning()` which is not a valid Console method. Would throw at runtime. Fixed to `console.warn()`.
+
+### `js/feature/segParser.ts:203` — Bitwise `&` on booleans [FIXED]
+Used `&` (bitwise AND) on boolean operands instead of `&&` (logical AND). The bitwise operator coerces booleans to 0/1 and returns a number, which is truthy for `1` — so the logic happened to work, but the intent was clearly logical AND. Fixed to `&&`.
+
+### `js/bam/alignmentTrack.ts:541` — Bitwise `|` on booleans [FIXED]
+Used `|` (bitwise OR) on boolean operands instead of `||` (logical OR). Same category as above — worked by accident since `1 | 0 = 1` is truthy, but intent was logical OR. Fixed to `||`.
+
+### `js/feature/segTrack.ts:408` — Extra argument to `drawGroupDividers` [FIXED]
+Called `drawGroupDividers` with 8 arguments but the function signature only accepts 7. The extra `GROUP_MARGIN_HEIGHT` argument was silently ignored by JavaScript. Removed the extra argument.
+
+### `js/feature/textFeatureSource.ts` & `js/feature/staticFeatureSource.ts` — `replaceAll` not in ES2020 [FIXED]
+Used `String.prototype.replaceAll()` which is only available in ES2021+, but the project targets ES2020. Fixed to `replace(/ /g, '+')`.
+
+### `js/variant/vcfParser.ts:137` — ASI (Automatic Semicolon Insertion) issue [FIXED]
+`new Variant(tokens)` on one line followed by `(variant as any).header = ...` on the next was parsed as a function call: `new Variant(tokens)(variant as any)`. Added semicolon after the `new` expression.
+
+### `js/variant/variantTrack.ts:738` — Missing `position` in sort object [FIXED]
+The sort object passed to `sortSamplesByGenotype` was missing the required `position` property. The function destructures `{chr, position, start, end, direction}` but the caller only provided `{direction, option, chr, start, end}`. Added `position: Math.floor(genomicLocation)`.
+
+---
+
 ## Phase 3 Recommendations (not yet fixed)
 
 ### `js/genome/indexedFasta.ts` — `desPos` variable assigned but never read

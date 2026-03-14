@@ -3,8 +3,8 @@ import FeatureSource from "../js/feature/featureSource.js"
 import FeatureFileReader from "../js/feature/featureFileReader.js"
 import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"
-import GFFHelper from "../js/feature/gff/gffHelper.js"
-import {decodeGFFAttribute, parseAttributeString} from "../js/feature/gff/parseAttributeString.js"
+import GFFHelper from "../js/feature/gff/gffHelper"
+import {decodeGFFAttribute, parseAttributeString} from "../js/feature/gff/parseAttributeString"
 
 const genome = createGenome()
 

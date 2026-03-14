@@ -2,7 +2,7 @@ import "./utils/mockObjects.js"
 import {assert} from 'chai'
 import FastaSequence from "../js/genome/indexedFasta"
 import NonIndexedFasta from "../js/genome/nonIndexedFasta"
-import {findFeatureAfterCenter} from "../js/feature/featureUtils.js"
+import {findFeatureAfterCenter} from "../js/feature/featureUtils"
 
 suite("testFeatureUtils", function () {
 

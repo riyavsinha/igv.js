@@ -1,6 +1,6 @@
 import "./utils/mockObjects.js"
 import {igvxhr} from "../node_modules/igv-utils/src/index.js"
-import {loadGenbank} from "../js/gbk/genbankParser.js"
+import {loadGenbank} from "../js/gbk/genbankParser"
 import {assert} from 'chai'
 
 

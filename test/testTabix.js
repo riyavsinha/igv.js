@@ -1,5 +1,5 @@
 import "./utils/mockObjects.js"
-import {loadIndex} from "../js/bam/indexFactory.js"
+import {loadIndex} from "../js/bam/indexFactory"
 import FeatureFileReader from "../js/feature/featureFileReader.js"
 import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"

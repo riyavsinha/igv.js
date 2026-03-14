@@ -1,4 +1,4 @@
-import {getCodingLength, getCodingStart, getCodingEnd} from "../feature/exonUtils.js"
+import {getCodingLength, getCodingStart, getCodingEnd} from "../feature/exonUtils"
 import {searchFeatures} from "../searchFeatures"
 
 const log: Console = console
