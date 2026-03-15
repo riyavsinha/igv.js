@@ -11,7 +11,21 @@ import {getChrColor} from "../util/getChrColor.js"
 import {ColorTable, PaletteColorTable} from "../util/colorPalletes.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
-function getArcType(config: any): string {
+import type Browser from "../browser.js"
+import type ReferenceFrame from "../referenceFrame.js"
+import type Genome from "../genome/genome.js"
+import type {TrackConfig} from "../types/config"
+import type {ClickState, DrawConfiguration, MenuItem} from "../types/ui"
+import type {BedpeFeature, BedpeNestedDrawState, BedpeProportionalDrawState, BedpeRectDrawState, PopupDataItem} from "../types/feature"
+
+/** Canvas context extended with SVG-specific methods from canvas2svg */
+type DrawingContext = CanvasRenderingContext2D & {
+    isSVG?: boolean
+    strokeEllipse?(cx: number, cy: number, rx: number, ry: number, rotation: number, startAngle: number, endAngle: number, isCCW?: boolean): void
+    fillEllipse?(cx: number, cy: number, rx: number, ry: number, rotation: number, startAngle: number, endAngle: number, isCCW?: boolean): void
+}
+
+function getArcType(config: TrackConfig): string {
     if (!config.arcType) {
         return "nested"
     }
@@ -39,16 +53,16 @@ class InteractionTrack extends TrackBase {
         thickness: 1,
         alpha: 0.02,
         logScale: true,
-        colorBy: undefined as any,
+        colorBy: undefined as string | undefined,
         transparency: 1,
         normalization: "NONE"
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -105,7 +119,7 @@ class InteractionTrack extends TrackBase {
             delete config._featureSource
         } else {
             if (config.features) {
-                fixFeatures(config.features)
+                fixFeatures(config.features as BedpeFeature[])
             }
             this.featureSource = FeatureSource(config, this.browser.genome)
             this.featureSource!.getWGFeatures = getWGFeatures
@@ -130,8 +144,8 @@ class InteractionTrack extends TrackBase {
             this.featureSource!.visibilityWindow = this.visibilityWindow  // <- this looks odd
         }
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof TrackBase).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof TrackBase).defaultColor
 
         return this
     }
@@ -156,7 +170,7 @@ class InteractionTrack extends TrackBase {
         return features
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
         if (this.arcType === "proportional") {
             this.drawProportional(options)
@@ -167,7 +181,7 @@ class InteractionTrack extends TrackBase {
         }
     }
 
-    drawNested(options: any) {
+    drawNested(options: DrawConfiguration) {
 
         const ctx = options.context
         const pixelWidth = options.pixelWidth
@@ -179,7 +193,7 @@ class InteractionTrack extends TrackBase {
 
         IGVGraphics.fillRect(ctx, 0, options.pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
-        const featureList = options.features
+        const featureList = options.features as BedpeFeature[] | undefined
 
         if (featureList) {
 
@@ -300,7 +314,7 @@ class InteractionTrack extends TrackBase {
             }
             else {
                 let max = 0
-                for (let feature of featureList) {
+                for (let feature of featureList!) {
                     let pixelStart = (feature.start - bpStart) / xScale
                     let pixelEnd = (feature.end - bpStart) / xScale
                     if (pixelStart >= 0 && pixelEnd <= pixelWidth) {
@@ -318,9 +332,9 @@ class InteractionTrack extends TrackBase {
         }
     }
 
-    drawProportional(options: any) {
+    drawProportional(options: DrawConfiguration) {
 
-        const ctx = options.context
+        const ctx = options.context as DrawingContext
         const pixelWidth = options.pixelWidth
         const pixelHeight = options.pixelHeight
         const bpPerPixel = options.bpPerPixel
@@ -332,7 +346,7 @@ class InteractionTrack extends TrackBase {
 
         IGVGraphics.fillRect(ctx, 0, options.pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
-        const featureList = options.features
+        const featureList = options.features as BedpeFeature[] | undefined
 
         if (featureList && featureList.length > 0) {
 
@@ -391,7 +405,7 @@ class InteractionTrack extends TrackBase {
                     ctx.lineWidth = feature.thickness || this.thickness || 1
 
                     if (true === ctx.isSVG) {
-                        ctx.strokeEllipse(xc, y, radiusX, radiusY, 0, 0, Math.PI, counterClockwise)
+                        ctx.strokeEllipse!(xc, y, radiusX, radiusY, 0, 0, Math.PI, counterClockwise)
                     } else {
                         ctx.beginPath()
                         ctx.ellipse(xc, y, radiusX, radiusY, 0, 0, Math.PI, counterClockwise)
@@ -400,11 +414,11 @@ class InteractionTrack extends TrackBase {
 
                     if (this.alpha) {
                         const scoreFactor = this.config.useScore && Number.isFinite(feature.score) ?
-                            Math.max(0.1, Math.round(Number(scoreShade(feature.score)) * 10) / 10) :
+                            Math.max(0.1, Math.round(Number(scoreShade(feature.score!)) * 10) / 10) :
                             1
                         ctx.fillStyle = getAlphaColor(color, scoreFactor * this.alpha)
                         if (true === ctx.isSVG) {
-                            ctx.fillEllipse(xc, y, radiusX, radiusY, 0, 0, Math.PI, counterClockwise)
+                            ctx.fillEllipse!(xc, y, radiusX, radiusY, 0, 0, Math.PI, counterClockwise)
                         } else {
                             ctx.fill()
                         }
@@ -454,7 +468,7 @@ class InteractionTrack extends TrackBase {
         }
     }
 
-    getColor(feature: any, transparency: number = this.transparency) {
+    getColor(feature: BedpeFeature, transparency: number = this.transparency) {
         let color
         if (this.colorBy) {
             const value = feature.getAttributeValue ?
@@ -467,7 +481,7 @@ class InteractionTrack extends TrackBase {
             color = this.color || feature.color || DEFAULT_ARC_COLOR
         }
         if (this.config.useScore && Number.isFinite(feature.score)) {
-            color = getAlphaColor(color, transparency * Number(scoreShade(feature.score)))
+            color = getAlphaColor(color, transparency * Number(scoreShade(feature.score!)))
         }
         return color
     }
@@ -500,7 +514,7 @@ class InteractionTrack extends TrackBase {
 
     menuItemList() {
 
-        let items: any[] = []
+        let items: (string | MenuItem)[] = []
 
         if (this.hasValue && !this._hic) {
             items.push("<hr/>")
@@ -543,12 +557,12 @@ class InteractionTrack extends TrackBase {
         items.push("<hr/>")
         items.push({
             name: 'Set line thickness',
-            click: function setLineThicknessHandler(this: InteractionTrack, ev: any) {
+            click: function setLineThicknessHandler(this: InteractionTrack, ev?: Event) {
                 const inputDialog = this.browser.inputDialog
                 inputDialog.present({
                     label: "Enter line thickness",
                     value: this.thickness || 1,
-                    callback: (value: any) => {
+                    callback: (value: string) => {
                         const newThickness = parseFloat(value)
                         if (isNaN(newThickness)) {
                             window.alert("Invalid line thickness: " + value)
@@ -557,7 +571,7 @@ class InteractionTrack extends TrackBase {
                             this.trackView.repaintViews()
                         }
                     }
-                }, ev)
+                }, ev as MouseEvent)
             }
         })
 
@@ -569,12 +583,12 @@ class InteractionTrack extends TrackBase {
         } else {
             items.push({
                 name: 'Set alpha',
-                click: function (this: InteractionTrack, ev: any) {
+                click: function (this: InteractionTrack, ev?: Event) {
                     const inputDialog = this.browser.inputDialog
                     inputDialog.present({
                         label: "Enter alpha transparency (0-1)",
                         value: this.alpha,
-                        callback: (value: any) => {
+                        callback: (value: string) => {
                             const newAlpha = parseFloat(value)
                             if (isNaN(newAlpha) || newAlpha < 0 || newAlpha > 1) {
                                 window.alert("Invalid alpha: " + value)
@@ -583,7 +597,7 @@ class InteractionTrack extends TrackBase {
                                 this.trackView.repaintViews()
                             }
                         }
-                    }, ev)
+                    }, ev as MouseEvent)
                 }
             })
 
@@ -637,7 +651,7 @@ class InteractionTrack extends TrackBase {
         const element = DOMUtils.div()
         element.innerText = 'Set transparency'
 
-        function dialogPresentationHandler(this: InteractionTrack, e: any) {
+        function dialogPresentationHandler(this: InteractionTrack, e?: Event) {
             const callback = (alpha: number) => {
                 this.transparency = Math.max(0.001, alpha)
                 this.repaintViews()
@@ -654,13 +668,13 @@ class InteractionTrack extends TrackBase {
                     callback
                 }
 
-            this.browser.sliderDialog.present(config, e)
+            this.browser.sliderDialog.present(config, e as MouseEvent)
         }
 
         return {element, dialog: dialogPresentationHandler}
     }
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
         // Experimental JBrowse feature
         if (this.browser.circularView) {
@@ -685,7 +699,7 @@ class InteractionTrack extends TrackBase {
      * Add chords to the circular view for the given viewport, represented by its reference frame
      * @param refFrame
      */
-    addChordsForViewport(refFrame: any) {
+    addChordsForViewport(refFrame: ReferenceFrame) {
 
         let inView
         if ("all" === refFrame.chr) {
@@ -694,7 +708,7 @@ class InteractionTrack extends TrackBase {
             const cachedFeatures =
                 this.featureSource!.featureCache.queryFeatures(refFrame.chr, refFrame.start, refFrame.end)
             // inView features are simply features that have been drawn, i.e. have a drawState
-            inView = cachedFeatures.filter((f: any) => f.drawState)
+            inView = cachedFeatures.filter((f: BedpeFeature) => f.drawState)
         }
 
         if (inView.length === 0) return
@@ -715,7 +729,7 @@ class InteractionTrack extends TrackBase {
         // this.browser.circularView.addChords(chords, {track: chordSetName, color: chordSetColor, trackColor: trackColor})
     }
 
-    doAutoscale(features: any[]) {
+    doAutoscale(features: BedpeFeature[]) {
 
         // if ("proportional" === this.arcType) {
         let max = 0
@@ -731,11 +745,11 @@ class InteractionTrack extends TrackBase {
         // }
     }
 
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: BedpeFeature[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
 
-        const data = []
+        const data: PopupDataItem[] = []
         for (let feature of features) {
 
             const f = feature._ || feature   // For "whole genome" features, which keeps a pointer to the original
@@ -778,11 +792,11 @@ class InteractionTrack extends TrackBase {
         return data
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         // We use the cached features rather than method to avoid async load.  If the
         // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
-        const featureList = clickState.viewport.cachedFeatures
+        const featureList = clickState.viewport.cachedFeatures as unknown as BedpeFeature[] | undefined
         const candidates = []
         if (featureList) {
             const proportional = (this.arcType === "proportional" || this.arcType === "inView" || this.arcType === "partialInView")
@@ -794,7 +808,7 @@ class InteractionTrack extends TrackBase {
                 if (feature.chr1 === feature.chr2 || feature.chr === 'all') {
                     if (proportional) {
                         //(x-xc)^2/radiusX^2 + (y-yc)^2/radiusY^2 <= 1
-                        const {xc, yc, radiusX, radiusY} = feature.drawState
+                        const {xc, yc, radiusX, radiusY} = feature.drawState as BedpeProportionalDrawState
                         const dx = clickState.canvasX - xc
                         const dy = clickState.canvasY - yc
                         const score = (dx / radiusX) * (dx / radiusX) + (dy / radiusY) * (dy / radiusY)
@@ -802,7 +816,7 @@ class InteractionTrack extends TrackBase {
                             candidates.push({score: 1 / score, feature})
                         }
                     } else {
-                        const {xc, yc, r} = feature.drawState
+                        const {xc, yc, r} = feature.drawState as BedpeNestedDrawState
                         const dx = clickState.canvasX - xc
                         const dy = clickState.canvasY - yc
                         const score = Math.abs(Math.sqrt(dx * dx + dy * dy) - r)
@@ -811,7 +825,7 @@ class InteractionTrack extends TrackBase {
                         }
                     }
                 } else {
-                    const {x, y, w, h} = feature.drawState
+                    const {x, y, w, h} = feature.drawState as BedpeRectDrawState
                     const tolerance = 5
                     if (clickState.canvasX >= x - tolerance && clickState.canvasX <= x + w + tolerance &&
                         clickState.canvasY >= y && clickState.canvasY <= y + h) {
@@ -830,12 +844,12 @@ class InteractionTrack extends TrackBase {
     }
 }
 
-function getMidpoints(feature: any, genome: any) {
+function getMidpoints(feature: BedpeFeature, genome: Genome) {
     let m1 = (feature.start1 + feature.end1) / 2
     let m2 = (feature.start2 + feature.end2) / 2
     if (feature.chr === 'all') {
-        m1 = genome.getGenomeCoordinate(feature.chr1, m1)
-        m2 = genome.getGenomeCoordinate(feature.chr2, m2)
+        m1 = genome.getGenomeCoordinate(feature.chr1, m1) ?? m1
+        m2 = genome.getGenomeCoordinate(feature.chr2, m2) ?? m2
     }
     if (m1 > m2) {
         const tmp = m1
@@ -898,28 +912,28 @@ function getAlphaColor(color: string, alpha: number) {
  * @param allFeatures
  * @returns {[]}
  */
-function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
+function getWGFeatures(this: { genome: Genome; maxWGCount: number }, allFeatures: Record<string, BedpeFeature[]>) {
 
-    const makeWGFeature = (f: any) => {
+    const makeWGFeature = (f: BedpeFeature): BedpeFeature => {
         const wg = Object.assign({}, f)
         wg.chr = "all"
-        wg.start = genome.getGenomeCoordinate(f.chr1, f.start1)
-        wg.end = genome.getGenomeCoordinate(f.chr2, f.end2)
+        wg.start = genome.getGenomeCoordinate(f.chr1, f.start1) ?? f.start1
+        wg.end = genome.getGenomeCoordinate(f.chr2, f.end2) ?? f.end2
         return wg
     }
 
     const genome = this.genome
 
     // First pass -- find the max score feature
-    let maxScoreFeature
+    let maxScoreFeature: BedpeFeature | undefined
     let totalFeatureCount = 0
-    for (let c of genome.wgChromosomeNames) {
+    for (let c of genome.wgChromosomeNames!) {
         let chrFeatures = allFeatures[c]
         if (chrFeatures) {
             for (let f of chrFeatures) {
                 if (!f.dup) {
                     totalFeatureCount++
-                    if (f.score && (!maxScoreFeature || f.score > maxScoreFeature.score)) {
+                    if (f.score && (!maxScoreFeature || f.score > (maxScoreFeature.score ?? 0))) {
                         maxScoreFeature = f
                     }
                 }
@@ -928,18 +942,19 @@ function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
     }
 
     const maxCount = this.maxWGCount
-    const nBins = maxScoreFeature && maxScoreFeature.score > 0 && totalFeatureCount > maxCount ? 5 : 1   // TODO make a function of total # of features & maxCount?
+    const maxScore = maxScoreFeature?.score ?? 0
+    const nBins = maxScore > 0 && totalFeatureCount > maxCount ? 5 : 1   // TODO make a function of total # of features & maxCount?
     const featuresPerBin = Math.floor(maxCount / nBins)
-    const binSize = maxScoreFeature && maxScoreFeature.score > 0 ? Math.log(maxScoreFeature.score) / nBins : Number.MAX_SAFE_INTEGER
+    const binSize = maxScore > 0 ? Math.log(maxScore) / nBins : Number.MAX_SAFE_INTEGER
 
-    let binnedFeatures: any[] = []
-    let counts: any[] = []
+    let binnedFeatures: BedpeFeature[][] = []
+    let counts: number[] = []
     for (let i = 0; i < nBins; i++) {
-        counts.push([0])
+        counts.push(0)
         binnedFeatures.push([])
     }
 
-    for (let c of genome.wgChromosomeNames) {
+    for (let c of genome.wgChromosomeNames!) {
         let chrFeatures = allFeatures[c]
         if (chrFeatures) {
             for (let f of chrFeatures) {
@@ -961,7 +976,7 @@ function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
         }
     }
 
-    let wgFeatures: any[]
+    let wgFeatures: BedpeFeature[]
     if (nBins === 1) {
         wgFeatures = binnedFeatures[0]
     } else {
@@ -973,7 +988,7 @@ function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
         if (maxScoreFeature) {
             wgFeatures.push(makeWGFeature(maxScoreFeature))
         }
-        wgFeatures.sort(function (a: any, b: any) {
+        wgFeatures.sort(function (a: BedpeFeature, b: BedpeFeature) {
             return a.start - b.start
         })
     }
@@ -988,7 +1003,7 @@ function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
  * @param data
  * @param str
  */
-function extractInfoColumn(data: any[], str: string) {
+function extractInfoColumn(data: PopupDataItem[], str: string) {
     const kvs = str.split(';')
     for (let t of kvs) {
         const kv = t.split('=')
@@ -1004,7 +1019,7 @@ function extractInfoColumn(data: any[], str: string) {
  *
  * @param features
  */
-function fixFeatures(features: any[]) {
+function fixFeatures(features: BedpeFeature[]) {
     const interChrDups = []
     for (let feature of features) {
         if (feature.chr1 === feature.chr2) {
