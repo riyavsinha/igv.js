@@ -102,6 +102,8 @@ export interface DrawConfiguration {
     drawLabel?: boolean
     /** Whether to label all features regardless of density */
     labelAllFeatures?: boolean
+    /** Transparency alpha for merged/overlay tracks */
+    alpha?: number
     /** Allow additional dynamic properties set by track renderers */
     [key: string]: unknown
 }
@@ -148,7 +150,7 @@ export interface Track {
 
     // Scaling
     autoscale?: boolean
-    autoscaleGroup?: string
+    autoscaleGroup?: string | false
     dataRange?: DataRange
     resolutionAware?: boolean
     windowFunction?: string

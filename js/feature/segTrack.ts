@@ -9,8 +9,28 @@ import SampleInfo from "../sample/sampleInfo.js"
 import HicColorScale from "../hic/hicColorScale"
 import {doSortByAttributes} from "../sample/sampleUtils.js"
 import {drawGroupDividers, GROUP_MARGIN_HEIGHT} from "../sample/sampleUtils.js"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState} from "../types/ui"
+import type {GenomicFeature} from "../types/feature"
 
 const NULL_GROUP = 'None'
+
+interface SegSortConfig {
+    option?: string
+    direction?: string
+    chr?: string
+    start?: number
+    end?: number
+    position?: number
+    attribute?: string
+}
+
+interface SegFilterObject {
+    op: string
+    value?: number
+    scores?: Record<string, number>
+}
 
 class SegTrack extends TrackBase {
     [key: string]: any
@@ -19,7 +39,7 @@ class SegTrack extends TrackBase {
         {
             type: 'seg',
             groupBy: NULL_GROUP,
-            isLog: undefined as any,
+            isLog: undefined as boolean | undefined,
             displayMode: "EXPANDED",
             height: 300,
             maxHeight: 500,
@@ -28,13 +48,13 @@ class SegTrack extends TrackBase {
         }
 
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
         this.groups = new Map()
     }
 
 
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -90,8 +110,8 @@ class SegTrack extends TrackBase {
             this.setTrackProperties(this.header)
         }
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof SegTrack).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof SegTrack).defaultColor
 
         this.didTrackDragEnd = undefined
         this.browser.on('trackdragend', () => this.didTrackDragEnd = true)
@@ -107,7 +127,7 @@ class SegTrack extends TrackBase {
             for (const attribute of this.browser.sampleInfo.attributeNames) {
 
                 const sampleNames = this.sampleKeys
-                if (sampleNames.some((s: any) => {
+                if (sampleNames.some((s: string) => {
                     const attrs = this.browser.sampleInfo.getAttributes(s)
                     return attrs && attrs[attribute]
                 })) {
@@ -182,7 +202,7 @@ class SegTrack extends TrackBase {
 
     getSamples() {
         const groupIndeces = NULL_GROUP !== this.groupBy ?
-            this.sampleKeys.map((sample: any) => this.getGroupIndex(sample)) : undefined
+            this.sampleKeys.map((sample: string) => this.getGroupIndex(sample)) : undefined
         return {
             names: this.sampleKeys || [],
             height: this.sampleHeight,
@@ -201,7 +221,7 @@ class SegTrack extends TrackBase {
      * @returns {boolean}
      */
     // @ts-expect-error - filter method conflicts with TrackBase accessor
-    filter(sampleKey: any) {
+    filter(sampleKey: string) {
         const filterObjects = this._trackFilterObjects || []
 
         if (filterObjects.length === 0) {
@@ -239,7 +259,7 @@ class SegTrack extends TrackBase {
         // Save current filters as part of track state
         if (this._trackFilterObjects && this._trackFilterObjects.length > 0) {
             // Convert filter objects to filter specs (remove computed scores)
-            const filterSpecs = this._trackFilterObjects.map((filterObj: any) => {
+            const filterSpecs = this._trackFilterObjects.map((filterObj: SegFilterObject) => {
                 const {scores, ...filterSpec} = filterObj
                 return filterSpec
             })
@@ -269,7 +289,7 @@ class SegTrack extends TrackBase {
         return features
     }
 
-    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: any[], bpPerPixel: number, bpStart: number}) {
+    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: GenomicFeature[], bpPerPixel: number, bpStart: number}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -419,7 +439,7 @@ class SegTrack extends TrackBase {
         }
     }
 
-    checkForLog(features: any[]) {
+    checkForLog(features: GenomicFeature[]) {
         if (this.isLog === undefined) {
             this.isLog = false
             for (let feature of features) {
@@ -440,7 +460,7 @@ class SegTrack extends TrackBase {
      * @param features
      * @returns {number}
      */
-    computePixelHeight(features: any[]) {
+    computePixelHeight(features: GenomicFeature[]) {
         if (!features) return 0
         const sampleHeight = ("SQUISHED" === this.displayMode) ? this.squishedRowHeight : this.expandedRowHeight
         return this.sampleKeys.length * sampleHeight + (this.groups.size > 1 ? (this.groups.size + 1) * GROUP_MARGIN_HEIGHT : 0)
@@ -449,17 +469,17 @@ class SegTrack extends TrackBase {
     /**
      * Sort samples by the average value over the genomic range in the direction indicated (1 = ascending, -1 descending)
      */
-    async sortByValue(sort: any, featureList?: any[]) {
+    async sortByValue(sort: SegSortConfig, featureList?: GenomicFeature[]) {
 
         const chr = sort.chr
         const start = sort.position !== undefined ? sort.position - 1 : sort.start
-        const end = sort.end === undefined ? start + 1 : sort.end
-        const scores = await this.computeRegionScores({chr, start, end}, featureList)
+        const end = sort.end === undefined ? start! + 1 : sort.end
+        const scores = await this.computeRegionScores({chr, start: start!, end}, featureList)
         const d2 = (sort.direction === "ASC" ? 1 : -1)
 
-        this.sampleKeys.sort(function (a: any, b: any) {
-            let s1 = (scores as Record<string, any>)[a]
-            let s2 = (scores as Record<string, any>)[b]
+        this.sampleKeys.sort(function (a: string, b: string) {
+            let s1 = scores ? scores[a] : undefined
+            let s2 = scores ? scores[b] : undefined
             if (!s1) s1 = d2 * Number.MAX_VALUE
             if (!s2) s2 = d2 * Number.MAX_VALUE
             if (s1 === s2) return 0
@@ -477,16 +497,17 @@ class SegTrack extends TrackBase {
     }
 
 
-    async computeRegionScores(filterObject: any, featureList?: any[]) {
+    async computeRegionScores(filterObject: SegSortConfig, featureList?: GenomicFeature[]): Promise<Record<string, number> | undefined> {
 
         const chr = filterObject.chr
-        let start, end
+        let start: number
+        let end: number
         if (filterObject.position) {
             start = filterObject.position - 1
             end = start + 1
         } else {
-            start = filterObject.start
-            end = filterObject.end
+            start = filterObject.start!
+            end = filterObject.end!
         }
 
         if (!featureList) {
@@ -496,7 +517,7 @@ class SegTrack extends TrackBase {
 
         this.updateSampleKeys(featureList)
 
-        const scores: Record<string, any> = {}
+        const scores: Record<string, number> = {}
         const bpLength = end - start + 1
 
         for (let segment of featureList) {
@@ -597,7 +618,7 @@ class SegTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         const allFeatures = super.clickedFeatures(clickState)
         const y = clickState.y
@@ -608,14 +629,14 @@ class SegTrack extends TrackBase {
 
     }
 
-    hoverText(clickState: any) {
+    hoverText(clickState: ClickState) {
         const features = this.clickedFeatures(clickState)
         if (features && features.length > 0) {
             return `${features[0].sample}: ${features[0].value}`
         }
     }
 
-    popupData(clickState: any, featureList?: any[]) {
+    popupData(clickState: ClickState, featureList?: GenomicFeature[]) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
 
@@ -642,19 +663,19 @@ class SegTrack extends TrackBase {
         return items
     }
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
-        const {genomicLocation, referenceFrame, viewport, event} = clickState
+        const {genomicLocation, referenceFrame, viewport} = clickState
 
-        const sortHandler = (sort: any) => {
-            const features = viewport.cachedFeatures
+        const sortHandler = (sort: SegSortConfig) => {
+            const features = viewport.cachedFeatures as GenomicFeature[] | undefined
             this.sortByValue(sort, features)
         }
 
         // We can't know genomic location intended with precision, define a buffer 5 "pixels" wide in genomic coordinates
         const bpWidth = referenceFrame.toBP(2.5)
 
-        const menuItems = ["DESC", "ASC"].map(direction => {
+        const menuItems: (string | { label: string; click: () => void })[] = ["DESC", "ASC"].map(direction => {
             const dirLabel = direction === "DESC" ? "descending" : "ascending"
             const sortLabel = this.type === 'seg' || this.type === 'shoebox' ?
                 `Sort by value (${dirLabel})` :
@@ -674,7 +695,7 @@ class SegTrack extends TrackBase {
             }
         })
 
-        menuItems.push('<hr/>' as any)
+        menuItems.push('<hr/>')
 
         return menuItems
     }
@@ -683,7 +704,7 @@ class SegTrack extends TrackBase {
         return (this.config.indexed === false || !this.config.indexURL) && this.config.supportsWholeGenome !== false
     }
 
-    updateSampleKeys(featureList: any[]) {
+    updateSampleKeys(featureList: GenomicFeature[]) {
         if (this.explicitSamples) return
 
         let newSamplesFound = false

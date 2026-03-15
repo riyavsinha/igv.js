@@ -59,7 +59,8 @@
       "Bash(done)",
       "Bash(npx mocha)",
       "Bash(npx tsc --noEmit)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(/tmp/check_properties.txt:*)"
     ],
     "additionalDirectories": [
       "/Users/riyavsinha/projects/igv.js",

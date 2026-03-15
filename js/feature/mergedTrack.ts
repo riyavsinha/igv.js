@@ -3,6 +3,18 @@ import paintAxis from "../util/paintAxis.js"
 import {FeatureUtils} from "../../node_modules/igv-utils/src/index.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 import {doAutoscale} from "../util/igvUtils.js"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, DrawConfiguration, Track} from "../types/ui"
+import type {GenomicFeature} from "../types/feature"
+import type ReferenceFrame from "../referenceFrame.js"
+
+/** Viewport shape used by updateScales — duck-typed from TrackViewport */
+interface ScalableViewport {
+    featureCache?: { features: unknown }
+    referenceFrame: ReferenceFrame
+    getWidth(): number
+}
 
 /**
  * Represents 2 or more  tracks overlaid on a common viewport.
@@ -11,12 +23,12 @@ class MergedTrack extends TrackBase {
     [key: string]: any
 
     static defaults = {
-        autoscale: undefined as any,
+        autoscale: undefined as boolean | undefined,
         alpha: 0.5,
         height: 50
     }
 
-    constructor(config: any, browser: any, tracks?: any[]) {
+    constructor(config: TrackConfig, browser: Browser, tracks?: Track[]) {
         super(config, browser)
         this.type = "merged"
         this.paintAxis = paintAxis
@@ -46,7 +58,7 @@ class MergedTrack extends TrackBase {
                 }
             }
             // Default to autoscale unless scale if range or autoscale is not otherwise defined
-            const allTracksSpecified = this.config.tracks.every((config: any) => config.autoscale !== undefined || config.max !== undefined)
+            const allTracksSpecified = this.config.tracks.every((config: TrackConfig) => config.autoscale !== undefined || config.max !== undefined)
             if (!allTracksSpecified) {
                 this.config.autoscale = this.config.max === undefined
             }
@@ -74,7 +86,7 @@ class MergedTrack extends TrackBase {
             for (let t of this.tracks) t.logScale = this.config.logScale
         }
 
-        this.resolutionAware = this.tracks.some((t: any) => t.resolutionAware)
+        this.resolutionAware = this.tracks.some((t: Track) => t.resolutionAware)
 
         return this
     }
@@ -87,7 +99,7 @@ class MergedTrack extends TrackBase {
     }
 
     get flipAxis() {
-        return numericTracks(this.tracks).every((t: any) => t.flipAxis)
+        return numericTracks(this.tracks).every((t: Track) => t.flipAxis)
     }
 
     set logScale(b) {
@@ -98,7 +110,7 @@ class MergedTrack extends TrackBase {
     }
 
     get logScale() {
-        return numericTracks(this.tracks).every((t: any) => t.logScale)
+        return numericTracks(this.tracks).every((t: Track) => t.logScale)
     }
 
     get height() {
@@ -138,7 +150,7 @@ class MergedTrack extends TrackBase {
     get autoscaleGroup() {
         if(this.tracks && this.tracks.length > 0) {
             const g = this.tracks[0].autoscaleGroup
-            return (this.tracks.some((t: any) => g !== t.autoscaleGroup)) ? undefined : g
+            return (this.tracks.some((t: Track) => g !== t.autoscaleGroup)) ? undefined : g
         }
     }
 
@@ -170,14 +182,14 @@ class MergedTrack extends TrackBase {
      * Return a DataRang {min, max} if all constitutive numeric tracks have identical range.  A numeric track is defined
      * as a track with a data range.  Otherwise return undefined.
      *
-     * @returns {{min: any, max: any}|undefined}
+     * @returns {{min: number, max: number}|undefined}
      */
     get dataRange() {
         if(this.tracks) {
             const num = numericTracks(this.tracks)
             if (num.length > 0) {
                 const firstRange = num[0].dataRange
-                if (num.every((t: any) => t.dataRange && t.dataRange.min === firstRange.min && t.dataRange.max === firstRange.max)) {
+                if (num.every((t: Track) => t.dataRange && t.dataRange.min === firstRange!.min && t.dataRange.max === firstRange!.max)) {
                     return firstRange
                 }
             }
@@ -216,21 +228,21 @@ class MergedTrack extends TrackBase {
      */
     async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) {
 
-        const promises = this.tracks.map((t: any) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
+        const promises = this.tracks.map((t: Track) => t.getFeatures!(chr, bpStart, bpEnd, bpPerPixel))
         const featureArrays = await Promise.all(promises)
 
         if (featureArrays.every((arr) => arr.length === 0)){
             return new MergedFeatureCollection([], [])
         }
         else {
-            const trackNames = this.tracks.map((t: any) => t.name)
+            const trackNames = this.tracks.map((t: Track) => t.name)
             return new MergedFeatureCollection(featureArrays, trackNames)
         }
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const mergedFeatures = options.features    // A MergedFeatureCollection
+        const mergedFeatures = options.features as MergedFeatureCollection    // A MergedFeatureCollection
 
         for (let i = 0, len = this.tracks.length; i < len; i++) {
             const trackOptions = Object.assign({}, options)
@@ -244,7 +256,7 @@ class MergedTrack extends TrackBase {
         }
     }
 
-    popupData(clickState: any) {
+    popupData(clickState: ClickState) {
 
         const clickedFeaturesArray = this.clickedFeatures(clickState)
 
@@ -279,12 +291,12 @@ class MergedTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
 
         // We use the cached features rather than method to avoid async load.  If the
         // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
-        const mergedFeaturesCollection = clickState.viewport.cachedFeatures
+        const mergedFeaturesCollection = clickState.viewport.cachedFeatures as MergedFeatureCollection | undefined
 
         if (!mergedFeaturesCollection || !mergedFeaturesCollection.featureArrays || !Array.isArray(mergedFeaturesCollection.featureArrays) || mergedFeaturesCollection.featureArrays.length === 0) {
             return []
@@ -309,7 +321,7 @@ class MergedTrack extends TrackBase {
     }
 
     get supportsWholeGenome() {
-        return this.tracks.every((track: any) => track.supportsWholeGenome)
+        return this.tracks.every((track: Track) => track.supportsWholeGenome)
     }
 
     /**
@@ -325,7 +337,7 @@ class MergedTrack extends TrackBase {
         return state
     }
 
-    updateScales(visibleViewports: any[]) {
+    updateScales(visibleViewports: ScalableViewport[]) {
 
         let scaleChange
 
@@ -338,7 +350,7 @@ class MergedTrack extends TrackBase {
                     const referenceFrame = visibleViewport.referenceFrame
                     const start = referenceFrame.start
                     const end = start + referenceFrame.toBP(visibleViewport.getWidth())
-                    const mergedFeatureCollection = visibleViewport.featureCache.features
+                    const mergedFeatureCollection = visibleViewport.featureCache.features as MergedFeatureCollection
 
                     if (this.autoscale) {
                         allFeatures.push({value: mergedFeatureCollection.getMax(start, end)})
@@ -365,8 +377,8 @@ class MergedTrack extends TrackBase {
                             const referenceFrame = visibleViewport.referenceFrame
                             const start = referenceFrame.start
                             const end = start + referenceFrame.toBP(visibleViewport.getWidth())
-                            const mergedFeatureCollection = visibleViewport.featureCache.features
-                            const featureList = mergedFeatureCollection.featureArrays[idx]
+                            const mergedFeatureCollection = visibleViewport.featureCache.features as MergedFeatureCollection
+                            const featureList = mergedFeatureCollection.featureArrays[idx] as GenomicFeature[]
                             if (featureList) {
                                 for (let f of featureList) {
                                     if (f.end < start) continue
@@ -388,7 +400,7 @@ class MergedTrack extends TrackBase {
         const element = DOMUtils.div()
         element.innerText = 'Set transparency'
 
-        function dialogPresentationHandler(this: MergedTrack, e: any) {
+        function dialogPresentationHandler(this: MergedTrack, e?: Event) {
             const callback = (alpha: number) => {
                 this.alpha = Math.max(0.001, alpha)
                 this.repaintViews()
@@ -404,7 +416,7 @@ class MergedTrack extends TrackBase {
                     callback
                 }
 
-            this.browser.sliderDialog.present(config, e)
+            this.browser.sliderDialog.present(config, e as MouseEvent)
         }
 
         return {element, dialog: dialogPresentationHandler}
@@ -415,7 +427,7 @@ class MergedTrack extends TrackBase {
         let element = document.createElement('div');
         element.textContent = 'Separate tracks';
 
-        async function click(this: MergedTrack, e: any) {
+        async function click(this: MergedTrack) {
 
             // Capture state which will be nulled when track is removed
             const groupAutoscale = this.autoscale
@@ -444,10 +456,10 @@ class MergedTrack extends TrackBase {
 
 
 class MergedFeatureCollection {
-    featureArrays: any[]
-    trackNames: string[]
+    featureArrays: unknown[]
+    trackNames: (string | undefined)[]
 
-    constructor(featureArrays: any[], trackNames: string[]) {
+    constructor(featureArrays: unknown[], trackNames: (string | undefined)[]) {
         this.featureArrays = featureArrays
         //trackNames is needed for the popup data to populate track names
         //preserving the order of the actual tracks
@@ -505,8 +517,8 @@ class MergedFeatureCollection {
  * @param tracks
  * @returns {*}
  */
-const numericTracks = (tracks: any[]) => {
-    return tracks ? tracks.filter((track: any) => undefined !== track.dataRange || undefined !== track.autoscale || undefined !== track.autoscaleGroup) : []
+const numericTracks = (tracks: Track[]) => {
+    return tracks ? tracks.filter((track: Track) => undefined !== track.dataRange || undefined !== track.autoscale || undefined !== track.autoscaleGroup) : []
 }
 
 

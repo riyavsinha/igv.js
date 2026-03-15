@@ -9,6 +9,10 @@ import {createCheckbox} from "../igv-icons.js"
 import {ColorScaleFactory} from "../util/colorScale.js"
 import ColorScaleEditor from "../ui/components/colorScaleEditor.js"
 import {summarizeData} from "./wigSummary"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, DrawConfiguration} from "../types/ui"
+import type {GenomicFeature} from "../types/feature"
 
 class WigTrack extends TrackBase {
     [key: string]: any
@@ -21,19 +25,19 @@ class WigTrack extends TrackBase {
         logScale: false,
         windowFunction: 'mean',
         graphType: 'bar',
-        normalize: undefined as any,
-        scaleFactor: undefined as any,
+        normalize: undefined as boolean | undefined,
+        scaleFactor: undefined as number | undefined,
         overflowColor: `rgb(255, 32, 255)`,
         baselineColor: 'lightGray',
         summarize: true,
-        visibilityWindow: undefined as any
+        visibilityWindow: undefined as number | undefined
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -80,8 +84,8 @@ class WigTrack extends TrackBase {
         if (this.disposed) return   // This track was removed during async load
         if (header) this.setTrackProperties(header)
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof WigTrack).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof WigTrack).defaultColor
 
     }
 
@@ -152,7 +156,7 @@ class WigTrack extends TrackBase {
             items.push('<hr>')
             items.push({
                 label: 'Set color scale', click: function (this: WigTrack) {
-                    ColorScaleEditor.open(this.colorScale, this.browser.columnContainer, (colorScale: any) => {
+                    ColorScaleEditor.open(this.colorScale, this.browser.columnContainer, (colorScale: unknown) => {
                         this._colorScale = colorScale
                         this.trackView.repaintViews()
                     })
@@ -251,9 +255,9 @@ class WigTrack extends TrackBase {
         return ((this.flipAxis ? (yValue - minValue) : (maxValue - yValue)) * yScaleFactor)
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const features = options.features
+        const features = options.features as GenomicFeature[] | undefined
         const ctx = options.context
         const bpPerPixel = options.bpPerPixel
         const bpStart = options.bpStart
@@ -307,9 +311,9 @@ class WigTrack extends TrackBase {
                         IGVGraphics.fillCircle(ctx, px, y, pointSize / 2, {"fillStyle": color, "strokeStyle": color})
 
                         if (f.value > this.dataRange!.max) {
-                            (IGVGraphics.fillCircle as any)(ctx, px, pointSize / 2, pointSize / 2, 3, {fillStyle: this.overflowColor})
+                            IGVGraphics.fillCircle(ctx, px, pointSize / 2, pointSize / 2, {fillStyle: this.overflowColor})
                         } else if (f.value < this.dataRange!.min) {
-                            (IGVGraphics.fillCircle as any)(ctx, px, pixelHeight - pointSize / 2, pointSize / 2, 3, {fillStyle: this.overflowColor})
+                            IGVGraphics.fillCircle(ctx, px, pixelHeight - pointSize / 2, pointSize / 2, {fillStyle: this.overflowColor})
                         }
 
 
@@ -369,7 +373,7 @@ class WigTrack extends TrackBase {
         }
     }
 
-    renderDynSeq(ctx: CanvasRenderingContext2D, feature: any, x: number, width: number, y: number, y0: number, pixelHeight: number) {
+    renderDynSeq(ctx: CanvasRenderingContext2D, feature: GenomicFeature, x: number, width: number, y: number, y0: number, pixelHeight: number) {
         // Use pre-cached sequence data from the feature
         const sequence = feature.sequence
         
@@ -429,7 +433,7 @@ class WigTrack extends TrackBase {
             }
         }
 
-        const pathData = (letterPaths as Record<string, any>)[base] || letterPaths['N']
+        const pathData = (letterPaths as Record<string, { main: string; overlay?: string }>)[base] || letterPaths['N']
         
         ctx.save()
         ctx.fillStyle = color
@@ -491,7 +495,7 @@ class WigTrack extends TrackBase {
         ctx.fill()
     }
 
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
 
@@ -501,7 +505,7 @@ class WigTrack extends TrackBase {
             const popupData = []
 
             // Sort features based on distance from click
-            features.sort(function (a: any, b: any) {
+            features.sort(function (a: GenomicFeature, b: GenomicFeature) {
                 const distA = Math.abs((a.start + a.end) / 2 - genomicLocation)
                 const distB = Math.abs((b.start + b.end) / 2 - genomicLocation)
                 return distA - distB
@@ -511,7 +515,7 @@ class WigTrack extends TrackBase {
             const displayFeatures = features.length > 10 ? features.slice(0, 10) : features
 
             // Resort in ascending order
-            displayFeatures.sort(function (a: any, b: any) {
+            displayFeatures.sort(function (a: GenomicFeature, b: GenomicFeature) {
                 return a.start - b.start
             })
 
@@ -547,7 +551,7 @@ class WigTrack extends TrackBase {
      * @returns {string}
      */
 
-    getColorForFeature(f: any) {
+    getColorForFeature(f: GenomicFeature) {
         let c = (f.value < 0 && this.altColor) ? this.altColor : this.color || WigTrack.defaultColor
         return (typeof c === "function") ? c(f.value) : c
     }
