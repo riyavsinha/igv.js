@@ -5,6 +5,11 @@ import {loadSequence} from "./genome/loadSequence"
 import {defaultNucleotideColors} from "./util/nucleotideColors.js"
 import {createBlatTrack} from "./blat/blatTrack.js"
 import {translationDict} from "./util/translationDict.js"
+import type Browser from "./browser.js"
+import type {TrackConfig} from "./types/config.js"
+import type {ClickState, DrawConfiguration, MenuItem, TrackViewLike} from "./types/ui.js"
+import type {SequenceSource} from "./types/genome.js"
+import type Genome from "./genome/genome.js"
 
 const defaultSequenceTrackOrder = Number.MIN_SAFE_INTEGER
 
@@ -28,8 +33,8 @@ const bppSequenceThreshold = 10
 
 class SequenceTrack {
 
-    config: any
-    browser: any
+    config: TrackConfig
+    browser: Browser
     type: string
     removable: boolean
     name: string
@@ -41,18 +46,18 @@ class SequenceTrack {
     reversed: boolean
     frameTranslate: boolean
     height: number
-    trackView: any
+    trackView!: TrackViewLike
     color?: string
     fasta?: WrappedFasta
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
 
         this.config = config
         this.browser = browser
         this.type = "sequence"
         this.removable = config.removable === true  // defaults to false
-        this.name = config.name
-        this.id = config.id
+        this.name = config.name || ''
+        this.id = config.id || ''
         this.sequenceType = config.sequenceType || "dna"             //   dna | rna | prot
         this.disableButtons = false
         this.order = config.order || defaultSequenceTrackOrder
@@ -105,7 +110,7 @@ class SequenceTrack {
         ]
     }
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState): (string | MenuItem)[] | undefined {
         const viewport = clickState.viewport
         if (viewport.referenceFrame.bpPerPixel <= 1) {
             const pixelWidth = viewport.getWidth()
@@ -113,7 +118,7 @@ class SequenceTrack {
             const chr = viewport.referenceFrame.chr
             const start = Math.floor(viewport.referenceFrame.start)
             const end = Math.ceil(start + bpWindow)
-            const items = [
+            const items: (string | MenuItem)[] = [
                 {
                     label: this.reversed ? 'View visible sequence (reversed)...' : 'View visible sequence...',
                     click: async () => {
@@ -164,7 +169,7 @@ class SequenceTrack {
             })
 
 
-            items.push('<hr/>' as any)
+            items.push('<hr/>')
 
             return items
         } else {
@@ -233,13 +238,14 @@ class SequenceTrack {
         }
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
         const ctx = options.context
+        const seqFeatures = options.features as { sequence: string; bpStart: number } | undefined
 
-        if (options.features) {
+        if (seqFeatures) {
 
-            let sequence = options.features.sequence
+            let sequence = seqFeatures.sequence
             if (!sequence) {
                 return
             }
@@ -250,7 +256,7 @@ class SequenceTrack {
                 }).join('')
             }
 
-            const sequenceBpStart = options.features.bpStart  // genomic position at start of sequence
+            const sequenceBpStart = seqFeatures.bpStart  // genomic position at start of sequence
             const bpEnd = 1 + options.bpStart + (options.pixelWidth * options.bpPerPixel)
 
             for (let bp = Math.floor(options.bpStart); bp <= bpEnd; bp++) {
@@ -271,7 +277,7 @@ class SequenceTrack {
                         const textPixel = aPixel + 0.5 * (pixelWidth - ctx.measureText(baseLetter).width)
 
 
-                        if ('y' === options.axis) {
+                        if ('y' === (options as DrawConfiguration & { axis?: string }).axis) {
                             ctx.save()
                             IGVGraphics.labelTransformWithContext(ctx, textPixel)
                             IGVGraphics.strokeText(ctx, baseLetter, textPixel, SEQUENCE_HEIGHT, {strokeStyle: color})
@@ -335,7 +341,7 @@ class SequenceTrack {
         return false
     }
 
-    computePixelHeight(ignore: any) {
+    computePixelHeight(_features: unknown) {
         this.height = this.frameTranslate ? TRANSLATED_HEIGHT : DEFAULT_HEIGHT
         return this.height
     }
@@ -356,8 +362,8 @@ class SequenceTrack {
      *
      * @returns {*|{}}
      */
-    getState(): any {
-        const config: any = {
+    getState(): { type: string; order?: number; revealed?: boolean } {
+        const config: { type: string; order?: number; revealed?: boolean } = {
             type: "sequence"
         }
         if (this.order !== defaultSequenceTrackOrder) {
@@ -378,27 +384,27 @@ class SequenceTrack {
  */
 class WrappedFasta {
 
-    config: any
-    genome: any
-    fasta: any
+    config: TrackConfig
+    genome: Genome
+    fasta!: SequenceSource
     chrNameMap: Map<string, string> = new Map()
 
-    constructor(config: any, genome: any) {
+    constructor(config: TrackConfig, genome: Genome) {
         this.config = config
         this.genome = genome
     }
 
     async init() {
-        this.fasta = await loadSequence(this.config)
+        this.fasta = await loadSequence(this.config) as SequenceSource
         this.chrNameMap = new Map()
-        for (let name of this.fasta.chromosomeNames) {
+        for (let name of this.fasta.chromosomeNames || []) {
             this.chrNameMap.set(this.genome.getChromosomeName(name), name)
         }
     }
 
     async getSequence(chr: string, start: number, end: number) {
         const chrName = this.chrNameMap.has(chr) ? this.chrNameMap.get(chr) : chr
-        return this.fasta.getSequence(chrName, start, end)
+        return this.fasta.getSequence(chrName!, start, end)
     }
 
 }

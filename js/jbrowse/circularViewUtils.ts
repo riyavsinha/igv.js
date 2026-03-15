@@ -4,7 +4,7 @@ import {createSupplementaryAlignments} from "../bam/supplementaryAlignment"
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
 import {getChrColor} from "../util/getChrColor.js"
 
-interface Chord {
+export interface Chord {
     uniqueId: string
     refName: string
     start: number

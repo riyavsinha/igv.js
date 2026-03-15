@@ -8,11 +8,26 @@ import {makePairedAlignmentChords, makeSupplementalAlignmentChords, sendChords} 
 import PairedEndStats from "./pairedEndStats"
 import AlignmentTrack from "./alignmentTrack.js"
 import CoverageTrack from "./coverageTrack.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {ClickState, DrawConfiguration, MenuItem, DataRange} from "../types/ui.js"
+import type {PopupData} from "../types/feature.js"
+import type AlignmentContainer from "./alignmentContainer.js"
+import type {Alignment} from "./alignmentContainer.js"
+import type {Chord} from "../jbrowse/circularViewUtils.js"
+import type TrackViewport from "../trackViewport.js"
+
+interface SortObject {
+    chr: string
+    position: number
+    option?: string
+    direction: boolean
+}
 
 class BAMTrack extends TrackBase {
     [key: string]: any
 
-    static defaults: Record<string, any> = {
+    static defaults: Record<string, number | boolean> = {
         alleleFreqThreshold: 0.2,
         visibilityWindow: 30000,
         showCoverage: true,
@@ -23,28 +38,28 @@ class BAMTrack extends TrackBase {
     }
 
     coverageTrack!: CoverageTrack
-    alignmentTrack: any
-    sortObject: any
-    _pairedEndStats: any
+    alignmentTrack!: AlignmentTrack
+    sortObject: SortObject | undefined
+    _pairedEndStats: PairedEndStats | undefined
     _height: number | undefined
     showCoverage: boolean | undefined
     showAlignments: boolean | undefined
     coverageTrackHeight: number | undefined
     maxTemplateLength: number | undefined
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any): void {
+    init(config: TrackConfig): void {
 
         this.type = "alignment"
-        this.featureSource = new BamSource(config, this.browser) as any
+        this.featureSource = new BamSource(config as unknown as ConstructorParameters<typeof BamSource>[0], this.browser) as unknown as typeof this.featureSource
 
-        const coverageTrackConfig: any = Object.assign({parent: this}, config)
+        const coverageTrackConfig = Object.assign({parent: this}, config)
         this.coverageTrack = new CoverageTrack(coverageTrackConfig, this)
 
-        const alignmentTrackConfig: any = Object.assign({parent: this}, config)
+        const alignmentTrackConfig = Object.assign({parent: this}, config)
         this.alignmentTrack = new AlignmentTrack(alignmentTrackConfig, this.browser)
 
         super.init(config)
@@ -70,7 +85,7 @@ class BAMTrack extends TrackBase {
     }
 
 
-    setHighlightedReads(highlightedReads: any, highlightColor: string): void {
+    setHighlightedReads(highlightedReads: string[], highlightColor: string): void {
         this.alignmentTrack.setHighlightedReads(highlightedReads, highlightColor)
         this.updateViews()
     }
@@ -98,12 +113,12 @@ class BAMTrack extends TrackBase {
         return this._height!
     }
 
-    sort(options: any): void {
+    sort(options: SortObject): void {
         options = this.assignSort(options)
 
         for (let vp of this.trackView.viewports) {
             if (vp.containsPosition(options.chr, options.position)) {
-                const alignmentContainer: any = vp.cachedFeatures
+                const alignmentContainer = vp.cachedFeatures as AlignmentContainer | undefined
                 if (alignmentContainer) {
                     alignmentContainer.sortRows(options)
                     vp.repaint()
@@ -112,31 +127,31 @@ class BAMTrack extends TrackBase {
         }
     }
 
-    assignSort(options: any): any {
+    assignSort(options: { chr?: string; position?: number; direction?: string | boolean; locus?: string; option?: string }): SortObject {
         // convert old syntax
         if (options.locus) {
-            const range: any = StringUtils.parseLocusString(options.locus)
+            const range = StringUtils.parseLocusString(options.locus) as { chr: string; start: number; end?: number }
             options.chr = range.chr
             options.position = range.start
         } else {
-            options.position--
+            options.position!--
         }
-        options.direction = options.direction === "ASC" || options.direction === true
+        const direction = options.direction === "ASC" || options.direction === true
 
         // chr aliasing
-        options.chr = this.browser.genome.getChromosomeName(options.chr)
-        this.sortObject = options
+        const chr = this.browser.genome.getChromosomeName(options.chr!)
+        this.sortObject = { chr, position: options.position!, option: options.option, direction }
 
         return this.sortObject
     }
 
-    async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number, viewport: any): Promise<any> {
+    async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number, viewport: unknown): Promise<AlignmentContainer> {
 
-        const alignmentContainer: any = await this.featureSource!.getAlignments(chr, bpStart, bpEnd)
+        const alignmentContainer = await (this.featureSource as unknown as BamSource).getAlignments(chr, bpStart, bpEnd)
         alignmentContainer.viewport = viewport
 
         if (alignmentContainer.hasPairs && !this._pairedEndStats && !this.config.maxFragmentLength) {
-            const pairedEndStats: any = new PairedEndStats(alignmentContainer.allAlignments(), this.config as any)
+            const pairedEndStats = new PairedEndStats(alignmentContainer.allAlignments(), this.config as unknown as ConstructorParameters<typeof PairedEndStats>[1])
             if (pairedEndStats.totalCount > 99) {
                 this._pairedEndStats = pairedEndStats
             }
@@ -145,7 +160,7 @@ class BAMTrack extends TrackBase {
         // Must pack before sorting
         alignmentContainer.pack(this.alignmentTrack)
 
-        const sort: any = this.sortObject
+        const sort = this.sortObject
         if (sort) {
             if (sort.chr === chr && sort.position >= bpStart && sort.position <= bpEnd) {
                 alignmentContainer.sortRows(sort)
@@ -158,12 +173,12 @@ class BAMTrack extends TrackBase {
     }
 
 
-    computePixelHeight(alignmentContainer: any): number {
+    computePixelHeight(alignmentContainer: AlignmentContainer): number {
         return (this.showCoverage ? this.coverageTrackHeight! : 0) +
             (this.showAlignments ? this.alignmentTrack.computePixelHeight(alignmentContainer) : 0)
     }
 
-    draw(options: any): void {
+    draw(options: DrawConfiguration): void {
 
         IGVGraphics.fillRect(options.context, 0, options.pixelTop, options.pixelWidth, options.pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -175,7 +190,7 @@ class BAMTrack extends TrackBase {
         }
 
         if (true === this.showAlignments) {
-            this.alignmentTrack.setTop(this.coverageTrack, this.showCoverage)
+            this.alignmentTrack.setTop(this.coverageTrack, !!this.showCoverage)
             this.alignmentTrack.draw(options)
         }
     }
@@ -185,11 +200,11 @@ class BAMTrack extends TrackBase {
         this.coverageTrack.paintAxis(ctx, pixelWidth, this.coverageTrackHeight)
     }
 
-    contextMenuItemList(config: any): any[] {
+    contextMenuItemList(config: ClickState): (string | MenuItem)[] {
         return this.alignmentTrack.contextMenuItemList(config)
     }
 
-    popupData(clickState: any): any {
+    popupData(clickState: ClickState): Promise<PopupData[] | undefined> | PopupData[] {
         if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
             return this.coverageTrack.popupData(clickState)
         } else {
@@ -197,9 +212,9 @@ class BAMTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any): any[] {
+    clickedFeatures(clickState: ClickState): unknown[] {
 
-        let clickedObject: any
+        let clickedObject: unknown
         if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
             clickedObject = this.coverageTrack.getClickedObject(clickState)
         } else {
@@ -208,24 +223,24 @@ class BAMTrack extends TrackBase {
         return clickedObject ? [clickedObject] : []
     }
 
-    hoverText(clickState: any): string | undefined {
+    hoverText(clickState: ClickState): string | undefined {
         if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
-            const clickedObject: any = this.coverageTrack.getClickedObject(clickState)
-            if (clickedObject) {
+            const clickedObject = this.coverageTrack.getClickedObject(clickState) as { hoverText?: () => string } | undefined
+            if (clickedObject && clickedObject.hoverText) {
                 return clickedObject.hoverText()
             }
         }
 
     }
 
-    menuItemList(): any[] {
+    menuItemList(): (string | MenuItem)[] {
 
         // Start with coverage track items
-        let menuItems: any[] = []
+        let menuItems: (string | MenuItem)[] = []
 
-        menuItems = menuItems.concat(this.numericDataMenuItems())
+        menuItems = menuItems.concat(this.numericDataMenuItems() as (string | MenuItem)[])
 
-        menuItems = menuItems.concat(this.alignmentTrack.menuItemList())
+        menuItems = menuItems.concat(this.alignmentTrack.menuItemList() as (string | MenuItem)[])
 
         // Show coverage / alignment options
         const adjustTrackHeight = (): void => {
@@ -268,9 +283,9 @@ class BAMTrack extends TrackBase {
     }
 
 
-    getState(): any {
+    getState(): Record<string, unknown> {
 
-        const config: any = super.getState()
+        const config = super.getState() as Record<string, unknown>
 
         // Shared state
         if (this.sortObject) {
@@ -288,16 +303,16 @@ class BAMTrack extends TrackBase {
         return config
     }
 
-    getCachedAlignmentContainers(): any[] {
-        return this.trackView.viewports.map((vp: any) => vp.cachedFeatures)
+    getCachedAlignmentContainers(): unknown[] {
+        return this.trackView.viewports.map((vp: TrackViewport) => vp.cachedFeatures)
     }
 
     // @ts-expect-error - override property as accessor (TrackBase not yet converted)
-    get dataRange(): any {
+    get dataRange(): DataRange | undefined {
         return this.coverageTrack.dataRange
     }
 
-    set dataRange(dataRange: any) {
+    set dataRange(dataRange: DataRange | undefined) {
         this.coverageTrack.dataRange = dataRange
     }
 
@@ -318,12 +333,12 @@ class BAMTrack extends TrackBase {
         this.coverageTrack.autoscale = autoscale
     }
 
-    addPairedChordsForViewport(viewport: any): void {
+    addPairedChordsForViewport(viewport: TrackViewport): void {
 
         const maxTemplateLength: number = this.maxTemplateLength!
-        const inView: any[] = []
-        const refFrame: any = viewport.referenceFrame
-        for (let a of viewport.cachedFeatures.allAlignments()) {
+        const inView: Alignment[] = []
+        const refFrame = viewport.referenceFrame
+        for (let a of (viewport.cachedFeatures as AlignmentContainer).allAlignments()) {
             if (a.end >= refFrame.start
                 && a.start <= refFrame.end) {
                 if (a.paired) {
@@ -339,15 +354,15 @@ class BAMTrack extends TrackBase {
                 }
             }
         }
-        const chords: any[] = makePairedAlignmentChords(inView)
+        const chords: Chord[] = makePairedAlignmentChords(inView)
         sendChords(chords, this, refFrame, 0.02)
     }
 
-    addSplitChordsForViewport(viewport: any): void {
+    addSplitChordsForViewport(viewport: TrackViewport): void {
 
-        const inView: any[] = []
-        const refFrame: any = viewport.referenceFrame
-        for (let a of viewport.cachedFeatures.allAlignments()) {
+        const inView: Alignment[] = []
+        const refFrame = viewport.referenceFrame
+        for (let a of (viewport.cachedFeatures as AlignmentContainer).allAlignments()) {
 
             const sa: boolean = a.hasTag('SA')
             if (a.end >= refFrame.start && a.start <= refFrame.end && sa) {
@@ -355,7 +370,7 @@ class BAMTrack extends TrackBase {
             }
         }
 
-        const chords: any[] = makeSupplementalAlignmentChords(inView)
+        const chords: Chord[] = makeSupplementalAlignmentChords(inView)
         sendChords(chords, this, refFrame, 0.02)
     }
 

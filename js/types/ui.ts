@@ -27,7 +27,9 @@ export interface TrackViewportLike {
 /** Minimal trackView shape needed by click/popup handlers */
 export interface TrackViewLike {
     track: TrackLike
+    viewports: { setContentHeight(h: number): void }[]
     repaintViews(): void
+    setTrackHeight(h: number, force?: boolean): void
     checkContentHeight?(): void
     updateViews?(force?: boolean): void
 }
