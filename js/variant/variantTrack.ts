@@ -10,6 +10,32 @@ import trackClasses from "../util/trackClassRegistry.js"
 import {doSortByAttributes} from "../sample/sampleUtils.js"
 import {packFeatures} from "../feature/featureUtils"
 import {createElementWithString} from "../ui/utils/dom-utils.js"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, TrackViewportLike} from "../types/ui"
+import type {Call} from "./variant.js"
+
+/** A variant feature as it appears after packing — may be a wrapper with ._f pointing to the real Variant */
+interface PackedVariant extends VariantLike {
+    row?: number
+    _f?: VariantLike
+}
+
+/** Shared shape of Variant and SVComplement as used by draw/popup methods */
+interface VariantLike {
+    chr: string
+    start: number
+    end: number
+    row?: number
+    calls?: Call[]
+    type?: string
+    referenceBases?: string
+    alternateBases?: string
+    alleleFreq(): string | undefined
+    isFiltered(): boolean
+    getAttributeValue?(key: string): string | number | undefined
+    [key: string]: unknown
+}
 
 const isString = StringUtils.isString
 
@@ -43,19 +69,19 @@ class VariantTrack extends TrackBase {
         hetvarColor: "rgb(34,12,253)",
         refColor: "rgb(0,0,220)",
         altColor: "rgb(255,0,0)",
-        visibilityWindow: undefined as any,
-        labelDisplayMode: undefined as any,
+        visibilityWindow: undefined as number | undefined,
+        labelDisplayMode: undefined as string | undefined,
         type: "variant"
     }
 
     _sortDirections = new Map()
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
     // Note -- init gets called during base class construction.  Confusing
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -145,8 +171,8 @@ class VariantTrack extends TrackBase {
             }
         }
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof VariantTrack).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof VariantTrack).defaultColor
 
         return this
     }
@@ -243,7 +269,7 @@ class VariantTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features: any[]) {
+    computePixelHeight(features: unknown[]) {
 
         if (!features || 0 === features.length) return TOP_MARGIN
 
@@ -261,7 +287,7 @@ class VariantTrack extends TrackBase {
         this.nVariantRows = count
     }
 
-    draw({context, pixelWidth, pixelHeight, bpPerPixel, bpStart, pixelTop, features}: {context: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number, bpPerPixel: number, bpStart: number, pixelTop: number, features: any[]}) {
+    draw({context, pixelWidth, pixelHeight, bpPerPixel, bpStart, pixelTop, features}: {context: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number, bpPerPixel: number, bpStart: number, pixelTop: number, features: PackedVariant[]}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -291,7 +317,7 @@ class VariantTrack extends TrackBase {
                 if (v.start > bpEnd) break
 
                 const variantHeight = ("SQUISHED" === this.displayMode) ? this.squishedVariantHeight : this.expandedVariantHeight
-                const y = TOP_MARGIN + ("COLLAPSED" === this.displayMode ? 0 : v.row * (variantHeight + vGap))
+                const y = TOP_MARGIN + ("COLLAPSED" === this.displayMode ? 0 : v.row! * (variantHeight + vGap))
                 const h = variantHeight
 
                 // Compute pixel width.   Minimum width is 3 pixels,  if > 5 pixels create gap between variants
@@ -315,7 +341,7 @@ class VariantTrack extends TrackBase {
                     console.log(e)
                 }
                 if ("AF" === this.colorBy && af) {
-                    const hAlt = Math.min(1, af) * h
+                    const hAlt = Math.min(1, Number(af)) * h
                     const hRef = h - hAlt
                     context.fillStyle = variant.isFiltered() ? this.refColorFiltered : this.refColor
                     context.fillRect(x, y, w, hRef)
@@ -351,9 +377,9 @@ class VariantTrack extends TrackBase {
                     for (let sample of this.sampleKeys) {
 
                         const index = this.header.sampleNameMap.get(sample)
-                        const call = variant.calls[index]
+                        const call = variant.calls![index]
                         if (call) {
-                            const row = "COLLAPSED" === this.displayMode ? 0 : variant.row
+                            const row = "COLLAPSED" === this.displayMode ? 0 : (variant.row ?? 0)
                             const py = this.sampleYOffset + sampleNumber * this.sampleHeight + row * (callHeight + vGap)
                             let allVar = true  // until proven otherwise
                             let allRef = true
@@ -412,14 +438,14 @@ class VariantTrack extends TrackBase {
         return this._altColorFiltered
     }
 
-    getColorForFeature(variant: any) {
+    getColorForFeature(variant: VariantLike) {
 
-        const v = variant._f || variant
+        const v = (variant._f as VariantLike | undefined) || variant
         let variantColor
 
         if (this.colorBy && 'none' !== this.colorBy) {
 
-            const value = v.getAttributeValue(this.colorBy)
+            const value = v.getAttributeValue!(this.colorBy)
             variantColor = value !== undefined ? this.getVariantColorTable(this.colorBy).getColor(value) : "gray"
 
         } else if (this.color) {
@@ -440,9 +466,9 @@ class VariantTrack extends TrackBase {
     }
 
 
-    getVariantStrokecolor(variant: any) {
+    getVariantStrokecolor(variant: VariantLike) {
 
-        const v = variant._f || variant
+        const v = (variant._f as VariantLike | undefined) || variant
         let variantStrokeColor
 
         if (this.strokecolor) {
@@ -453,10 +479,10 @@ class VariantTrack extends TrackBase {
         return variantStrokeColor
     }
 
-    callContextHook(variant: any, context: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+    callContextHook(variant: VariantLike, context: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
         if (this._context_hook) {
             if (typeof this._context_hook === "function") {
-                const v = variant._f || variant
+                const v = (variant._f as VariantLike | undefined) || variant
 
                 context.save()
                 this._context_hook(v, context, x, y, w, h)
@@ -465,7 +491,7 @@ class VariantTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         let featureList = super.clickedFeatures(clickState)
 
@@ -505,16 +531,16 @@ class VariantTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState: any, featureList?: any[]) {
+    popupData(clickState: ClickState, featureList?: unknown[]) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation
         const genomeID = this.browser.genome.id
 
         let popupData = []
-        for (let v of featureList) {
+        for (let v of featureList as VariantLike[]) {
 
-            const f = v._f || v    // Get real variant from psuedo-variant, e.g. whole genome or SV mate
+            const f = (v._f as VariantLike | undefined) || v    // Get real variant from psuedo-variant, e.g. whole genome or SV mate
 
             if (popupData.length > 0) {
                 popupData.push({html: '<hr style="border-top-width:2px ;border-color: #c9c3ba" />'})
@@ -606,7 +632,7 @@ class VariantTrack extends TrackBase {
                 menuItems.push('<hr/>')
                 const element = createElementWithString('<div class="igv-track-menu-category igv-track-menu-border-top">')
                 element!.textContent = 'Color by:'
-                menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
+                menuItems.push({name: undefined, element, click: undefined, init: undefined})
                 for (let key of colorByItems.keys()) {
                     const selected = (this.colorBy === key)
                     menuItems.push(this.colorByCB({key, label: colorByItems.get(key)}, selected))
@@ -715,7 +741,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
         const list = []
 
@@ -745,7 +771,7 @@ class VariantTrack extends TrackBase {
                         }
                         const viewport = clickState.viewport
                         const features = viewport.cachedFeatures
-                        this.sortSamplesByGenotype(sort, features)
+                        this.sortSamplesByGenotype(sort, features as PackedVariant[])
 
                         this.config.sort = sort
                     }
@@ -772,7 +798,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    async sortSamplesByGenotype({chr, position, start, end, direction}: {chr: string, position: number, start: number, end: number, direction: string | number}, featureList: any[]) {
+    async sortSamplesByGenotype({chr, position, start, end, direction}: {chr: string, position: number, start: number, end: number, direction: string | number}, featureList: PackedVariant[]) {
 
         if (start === undefined) start = position - 1
         if (end === undefined) end = position
@@ -789,7 +815,7 @@ class VariantTrack extends TrackBase {
         for (let variant of featureList) {
             if (variant.end < start) continue
             if (variant.start > end) break
-            for (let call of variant.calls) {
+            for (let call of variant.calls!) {
                 const sample = call.sample
                 const callScore = call.zygosityScore()
                 scores.set(sample, scores.has(sample) ? scores.get(sample) + callScore : callScore)
@@ -820,7 +846,7 @@ class VariantTrack extends TrackBase {
     }
 
 
-    sendChordsForViewport(viewport: any) {
+    sendChordsForViewport(viewport: TrackViewportLike) {
         const refFrame = viewport.referenceFrame
         let inView
         if ("all" === refFrame.chr) {
@@ -854,7 +880,7 @@ class VariantTrack extends TrackBase {
                 this.trackView.repaintViews()
             }
 
-            return {name: undefined as any, element, click: clickHandler, init: undefined as any}
+            return {name: undefined, element, click: clickHandler, init: undefined}
         } else {
             function dialogPresentationHandler(this: VariantTrack, ev: Event) {
                 this.browser.inputDialog.present({
@@ -872,7 +898,7 @@ class VariantTrack extends TrackBase {
                 }, ev as MouseEvent)
             }
 
-            return {name: undefined as any, element, dialog: dialogPresentationHandler, init: undefined as any}
+            return {name: undefined, element, dialog: dialogPresentationHandler, init: undefined}
         }
     }
 
@@ -955,13 +981,14 @@ class VariantTrack extends TrackBase {
         setTimeout(async () => {
             try {
                 const newConfig = Object.assign({}, this.config)
-                Object.setPrototypeOf(this, (trackClasses as any).CNVPytorTrack.prototype)
+                const CNVPytorTrack = trackClasses.CNVPytorTrack as { prototype: object; DEFAULT_TRACK_HEIGHT: number }
+                Object.setPrototypeOf(this, CNVPytorTrack.prototype)
 
                 this.init(newConfig)
                 await this.postInit()
 
                 this.trackView.clearCachedFeatures()
-                this.trackView.setTrackHeight(this.config.height || (trackClasses as any).CNVPytorTrack.DEFAULT_TRACK_HEIGHT)
+                this.trackView.setTrackHeight(this.config.height || CNVPytorTrack.DEFAULT_TRACK_HEIGHT)
                 this.trackView.checkContentHeight()
                 this.trackView.updateViews()
 
@@ -989,14 +1016,14 @@ class VariantTrack extends TrackBase {
 }
 
 
-function expandGenotype(call: any, variant: any) {
+function expandGenotype(call: Call, variant: VariantLike) {
 
     if (call.genotype) {
         let gt = ''
         if (variant.alternateBases === ".") {
             gt = "No Call"
         } else {
-            const altArray = variant.alternateBases.split(",")
+            const altArray = variant.alternateBases!.split(",")
             for (let allele of call.genotype) {
                 if (gt.length > 0) {
                     gt += " | "
@@ -1006,7 +1033,7 @@ function expandGenotype(call: any, variant: any) {
                 } else if (allele === 0) {
                     gt += variant.referenceBases
                 } else {
-                    let alt = altArray[allele - 1].replace("<", "&lt;")
+                    let alt = altArray[(allele as number) - 1].replace("<", "&lt;")
                     gt += alt
                 }
             }

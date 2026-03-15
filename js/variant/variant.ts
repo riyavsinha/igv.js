@@ -55,11 +55,11 @@ class Variant {
     }
 
 
-    getAttributeValue(key: string): any {
+    getAttributeValue(key: string): string | number | undefined {
         if (STANDARD_FIELDS.has(key)) {
             key = STANDARD_FIELDS.get(key)!
         }
-        return this.hasOwnProperty(key) ? (this as any)[key] : this.info[key]
+        return this.hasOwnProperty(key) ? (this as Record<string, unknown>)[key] as string | number | undefined : this.info[key]
     }
 
 
@@ -98,8 +98,8 @@ class Variant {
 
                 const altTokens: string[] = altBases.split(",").filter(token => token.length > 0)
                 this.alleles = []
-                this.start = undefined as any
-                this.end = undefined as any
+                this.start = undefined!
+                this.end = undefined!
 
                 for (let alt of altTokens) {
 
@@ -276,11 +276,11 @@ class SVComplement {
         return this.mate.filter
     }
 
-    get calls(): any {
+    get calls(): Call[] | undefined {
         return this.mate.calls
     }
 
-    getAttributeValue(key: string): any {
+    getAttributeValue(key: string): string | number | undefined {
         return this.mate.getAttributeValue(key)
     }
 
@@ -484,7 +484,7 @@ function determineType(ref: string, altAlleles: string | undefined): string {
     }
 }
 
-function arrayToString(value: any, delim?: string): string {
+function arrayToString(value: string | string[], delim?: string): string {
 
     if (delim === undefined) delim = ","
 

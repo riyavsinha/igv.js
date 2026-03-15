@@ -3,16 +3,37 @@ import TrackBase from "../trackBase.js"
 import IGVGraphics from "../igv-canvas.js"
 import {IGVMath} from "../../node_modules/igv-utils/src/index.js"
 import {searchFeatures} from "../search"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, DrawConfiguration} from "../types/ui"
+
+/** QTL/eQTL feature with SNP association data */
+interface QTLFeature {
+    chr: string
+    start: number
+    end: number
+    snp?: string
+    gencodeId?: string
+    geneSymbol?: string
+    phenotype?: string
+    pValue: number
+    /** Pixel coordinates set during draw */
+    px?: number
+    py?: number
+    radius?: number
+    popupData?(clickState: ClickState): unknown[]
+    [key: string]: unknown
+}
 
 class QTLTrack extends TrackBase {
     [key: string]: any
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
 
         super(config, browser)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
         super.init(config)
 
         this.type = "qtl"
@@ -85,7 +106,7 @@ class QTLTrack extends TrackBase {
         return features
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
         const {context, referenceFrame, pixelWidth, pixelHeight} = options
 
@@ -94,7 +115,8 @@ class QTLTrack extends TrackBase {
         }
         IGVGraphics.strokeLine(context, 0, pixelHeight - 1, pixelWidth, pixelHeight - 1, {'strokeStyle': this.divider})
 
-        referenceFrame.feature && referenceFrame.feature.match(/RS[0-9]+/)
+        // Dead code — referenceFrame.feature doesn't exist and result was never used
+        // referenceFrame.feature && referenceFrame.feature.match(/RS[0-9]+/)
 
         const drawEqtls = (drawSelected: boolean) => {
 
@@ -102,7 +124,7 @@ class QTLTrack extends TrackBase {
             const bpStart = options.bpStart
             const yScale = (this.dataRange!.max - this.dataRange!.min) / pixelHeight
 
-            for (let eqtl of options.features) {
+            for (let eqtl of options.features as QTLFeature[]) {
 
                 const px = (eqtl.start - bpStart + 0.5) / options.bpPerPixel
                 if (px < 0) continue
@@ -114,10 +136,10 @@ class QTLTrack extends TrackBase {
                 if (this.browser.qtlSelections.qtl) {
                     isSelected = compareQTLs(this.browser.qtlSelections.qtl, eqtl)
                 } else if (this.browser.qtlSelections.snps.size > 0) {
-                    isSelected = this.browser.qtlSelections.hasSnp(eqtl.snp) &&
-                        this.browser.qtlSelections.hasPhenotype(phenotype)
+                    isSelected = this.browser.qtlSelections.hasSnp(eqtl.snp!) &&
+                        this.browser.qtlSelections.hasPhenotype(phenotype!)
                 } else {
-                    isSelected = this.browser.qtlSelections.hasPhenotype(phenotype)
+                    isSelected = this.browser.qtlSelections.hasPhenotype(phenotype!)
                 }
 
                 if (!drawSelected || isSelected) {
@@ -140,7 +162,7 @@ class QTLTrack extends TrackBase {
 
                         let color
                         if (drawSelected && isSelected) {
-                            color = this.browser.qtlSelections.colorForGene(phenotype)
+                            color = this.browser.qtlSelections.colorForGene(phenotype!)
                             IGVGraphics.setProperties(context, {fillStyle: color, strokeStyle: "black"})
                         } else {
                             color = capped ? "rgb(150, 150, 150)" : "rgb(180, 180, 180)"
@@ -163,9 +185,9 @@ class QTLTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: QTLFeature[]) {
 
-        if (features === undefined) features = clickState.viewport.cachedFeatures
+        if (features === undefined) features = clickState.viewport.cachedFeatures as QTLFeature[] | undefined
         if (!features || features.length === 0) return []
 
         const tolerance = 3
@@ -190,9 +212,9 @@ class QTLTrack extends TrackBase {
         return popupData
     }
 
-    _clickedFeatures(clickState: any, features: any[]) {
-        const dist = (f: any, cs: any): number => {
-            return Math.sqrt((f.px - cs.canvasX) * (f.px - cs.canvasX) + (f.py - cs.canvasY) * (f.py - cs.canvasY))
+    _clickedFeatures(clickState: ClickState, features: QTLFeature[]) {
+        const dist = (f: QTLFeature, cs: ClickState): number => {
+            return Math.sqrt((f.px! - cs.canvasX) * (f.px! - cs.canvasX) + (f.py! - cs.canvasY) * (f.py! - cs.canvasY))
         }
 
         const tolerance = 6
@@ -208,7 +230,7 @@ class QTLTrack extends TrackBase {
 
     }
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
         const menuData = []
 
@@ -216,7 +238,7 @@ class QTLTrack extends TrackBase {
         // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
         const features = clickState.viewport.cachedFeatures
         if (features) {
-            const clickedFeatures = this._clickedFeatures(clickState, features)
+            const clickedFeatures = this._clickedFeatures(clickState, features as QTLFeature[])
             if (clickedFeatures.length > 0) {
                 menuData.push({
                     label: `Highlight associated features`,
@@ -224,7 +246,7 @@ class QTLTrack extends TrackBase {
                         this.browser.qtlSelections.clear()
                         for (let f of clickedFeatures) {
                             this.browser.qtlSelections.qtl = f
-                            this.browser.qtlSelections.addPhenotype(f.phenotype)
+                            this.browser.qtlSelections.addPhenotype(f.phenotype!)
                         }
                         this.browser.repaintViews()
                     }
@@ -241,18 +263,18 @@ class QTLTrack extends TrackBase {
         menuItems.push(...this.numericDataMenuItems())
         menuItems.push('<hr/>')
 
-        function dialogPresentationHandler(this: QTLTrack, ev: any) {
+        function dialogPresentationHandler(this: QTLTrack, ev?: Event) {
 
             this.browser.inputDialog.present({
                 label: 'Search for snp or phenotype',
                 value: '',
-                callback: async (term: any) => {
+                callback: async (term: string) => {
 
                     if (term) {
                         term = term.trim().toUpperCase()
 
                         // Find qtls from this track matching either snp or phenotype
-                        const matching = (f: any) => {
+                        const matching = (f: QTLFeature) => {
                             return ((f.phenotype && f.phenotype.toUpperCase()) === term || (f.snp && f.snp.toUpperCase() === term)) &&
                                 -Math.log(f.pValue) / Math.LN10 > this.dataRange!.min
                         }
@@ -312,7 +334,7 @@ class QTLTrack extends TrackBase {
                         }
                     }
                 }
-            }, ev)
+            }, ev as MouseEvent)
         }
 
         menuItems.push({label: 'Search for...', dialog: dialogPresentationHandler})
@@ -320,7 +342,7 @@ class QTLTrack extends TrackBase {
         return menuItems
     }
 
-    doAutoscale(featureList: any[]) {
+    doAutoscale(featureList: QTLFeature[]) {
 
         let max = this.config.max || 25 // default
         if(featureList.length > 0) {
@@ -336,7 +358,7 @@ class QTLTrack extends TrackBase {
 }
 
 
-function compareQTLs(a: any, b: any): boolean {
+function compareQTLs(a: QTLFeature, b: QTLFeature): boolean {
     return a.chr === b.chr && a.start === b.start && a.pValue === b.pValue
 }
 
