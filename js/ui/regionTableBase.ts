@@ -9,13 +9,13 @@ class RegionTableBase {
     columnFormat: any[]
     tableRowSelectionList: number[]
     tableDOM: HTMLElement
-    gotoButton: HTMLElement
-    boundDismissHandler: (event: MouseEvent) => void
-    boundGotoButtonHandler: () => void
-    _headerDOM: HTMLElement
-    _tableColumnTitlesDOM: HTMLElement
-    _tableRowContainerDOM: HTMLElement
-    _footerDOM: HTMLElement
+    gotoButton!: HTMLElement
+    boundDismissHandler!: (event: MouseEvent) => void
+    boundGotoButtonHandler!: () => void
+    _headerDOM!: HTMLElement
+    _tableColumnTitlesDOM!: HTMLElement
+    _tableRowContainerDOM!: HTMLElement
+    _footerDOM!: HTMLElement
 
     constructor(config: any) {
 

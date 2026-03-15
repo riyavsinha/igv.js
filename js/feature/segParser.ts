@@ -46,8 +46,8 @@ class SegParser {
     chrColumn: number;
     startColumn: number;
     endColumn: number;
-    dataColumn: number;
-    header: SegHeader;
+    dataColumn: number | undefined;
+    header: SegHeader | undefined;
 
     constructor(type?: string) {
         this.type = type || 'seg'   // One of seg, mut, or maf
@@ -87,7 +87,7 @@ class SegParser {
                 break
             }
         }
-        return this.header
+        return this.header!
     }
 
     async parseFeatures(dataWrapper: DataWrapper): Promise<SegFeature[]> {
@@ -98,18 +98,18 @@ class SegParser {
             this.header = await this.parseHeader(dataWrapper)  // This will only work for non-indexed files
         }
         if ('seg' === this.type) {
-            this.dataColumn = this.header.headings.length - 1
+            this.dataColumn = this.header!.headings.length - 1
         }
-        if (this.header.headings.length > 5) {
-            extraHeaders = this.extractExtraColumns(this.header.headings)
+        if (this.header!.headings.length > 5) {
+            extraHeaders = this.extractExtraColumns(this.header!.headings)
         }
-        const valueColumnName: string = this.header.headings[this.dataColumn]
+        const valueColumnName: string = this.header!.headings[this.dataColumn!]
 
         let line: string | undefined
         while ((line = await dataWrapper.nextLine()) !== undefined) {
             const tokens: string[] = line.split("\t")
-            const value: number | string = ('seg' === this.type) ? Number(tokens[this.dataColumn]) : tokens[this.dataColumn]
-            if (tokens.length > this.dataColumn) {
+            const value: number | string = ('seg' === this.type) ? Number(tokens[this.dataColumn!]) : tokens[this.dataColumn!]
+            if (tokens.length > this.dataColumn!) {
                 const feature = new SegFeature({
                     sample: tokens[this.sampleColumn],
                     chr: tokens[this.chrColumn],
@@ -148,8 +148,8 @@ class SegFeature {
     end: number;
     value: number | string;
     valueColumnName: string;
-    attributeNames: string[];
-    attributeValues: string[];
+    attributeNames: string[] | undefined;
+    attributeValues: string[] | undefined;
 
     constructor({sample, chr, start, end, value, valueColumnName}: SegFeatureParams) {
         this.sample = sample
@@ -169,7 +169,7 @@ class SegFeature {
         if (this.attributeNames) {
             const idx: number = this.attributeNames.indexOf(name)
             if (idx >= 0) {
-                return this.attributeValues[idx]
+                return this.attributeValues![idx]
             }
         }
         return undefined
@@ -201,7 +201,7 @@ class SegFeature {
         if (this.attributeNames && this.attributeNames.length > 0) {
             for (let i = 0; i < this.attributeNames.length; i++) {
                 if (!filteredProperties.has(this.attributeNames[i]) && this.valueColumnName !== this.attributeNames[i]) {
-                    pd.push({name: StringUtils.capitalize(this.attributeNames[i]), value: this.attributeValues[i]})
+                    pd.push({name: StringUtils.capitalize(this.attributeNames[i]), value: this.attributeValues![i]})
                 }
             }
         }
@@ -214,10 +214,10 @@ class SegFeature {
         if (this.attributeNames && this.attributeNames.length > 0) {
             for (let i = 0; i < this.attributeNames.length; i++) {
                 if (!ref && "Reference_Allele" === this.attributeNames[i]) {
-                    ref = this.attributeValues[i]
+                    ref = this.attributeValues![i]
                 }
-                if (!alt && this.attributeNames[i].startsWith("Tumor_Seq_Allele") && this.attributeValues[i] !== ref) {
-                    alt = this.attributeValues[i]
+                if (!alt && this.attributeNames[i].startsWith("Tumor_Seq_Allele") && this.attributeValues![i] !== ref) {
+                    alt = this.attributeValues![i]
                 }
                 if (ref && alt) {
                     return TrackBase.getCravatLink(this.chr, this.start + 1, ref, alt, genomeId)

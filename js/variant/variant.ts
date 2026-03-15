@@ -30,10 +30,10 @@ class Variant {
     filter: string
     info: { [key: string]: string }
     type: string | undefined
-    start: number
-    end: number
+    start!: number
+    end!: number
     alleles: string[] | undefined
-    calls: any
+    calls: Call[] | undefined
 
     constructor(tokens: string[]) {
         this.chr = tokens[0] // TODO -- use genome aliases

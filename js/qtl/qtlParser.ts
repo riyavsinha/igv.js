@@ -66,11 +66,11 @@ class QTLParser {
     phenotypeColumn: number = -1
     delimiter: string = '\t'
     config: any
-    columns: string[]
-    chrColumn: number
-    snpColumn: number
-    posColumn: number
-    pValueColumn: number
+    columns: string[] = []
+    chrColumn: number = -1
+    snpColumn: number = -1
+    posColumn: number = -1
+    pValueColumn: number = -1
 
     constructor(config: any) {
         this.config = config

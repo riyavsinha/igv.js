@@ -9,7 +9,7 @@ class ImageTrack extends TrackBase {
     locus: any
     type: string | undefined
     resolutionAware: boolean | undefined
-    _images: any[];
+    _images: any[] = [];
     [key: string]: any
 
     constructor(config: any, browser: any) {

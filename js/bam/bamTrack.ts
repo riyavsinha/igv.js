@@ -22,7 +22,7 @@ class BAMTrack extends TrackBase {
         baseModificationThreshold: 0
     }
 
-    coverageTrack: CoverageTrack
+    coverageTrack!: CoverageTrack
     alignmentTrack: any
     sortObject: any
     _pairedEndStats: any

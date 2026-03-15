@@ -30,7 +30,7 @@ class FeatureCache {
     treeMap: { [chr: string]: any }
     range: CacheRange | undefined
     count: number
-    allFeatures: { [chr: string]: Feature[] }
+    allFeatures!: { [chr: string]: Feature[] }
 
     constructor(featureList?: Feature[], range?: CacheRange) {
 

@@ -19,8 +19,8 @@ class SampleInfoViewport {
     ctx: CanvasRenderingContext2D
     contentTop: number
     hitList: Record<string, string> | undefined
-    boundMouseMoveHandler: (event: MouseEvent) => void
-    boundMouseClickHandler: (event: MouseEvent) => void
+    boundMouseMoveHandler!: (event: MouseEvent) => void
+    boundMouseClickHandler!: (event: MouseEvent) => void
 
     constructor(trackView: any, column: HTMLElement, width: number) {
 

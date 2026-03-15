@@ -102,26 +102,26 @@ class Browser {
     dataRangeDialog: any
     genericColorPicker: any
     sliderDialog: any
-    referenceFrameList: any[]
+    referenceFrameList: any[] = []
     genome: any
-    centerLineList: any[]
+    centerLineList: any[] = []
     circularView: any
     circularViewControl: any
-    roiSets: any[]
+    roiSets: any[] = []
     vpMouseDown: any
     dragObject: any
-    isScrolling: boolean
+    isScrolling: boolean = false
     dragTrack: any
-    boundWindowResizeHandler: (...args: any[]) => void
-    boundRootMouseUpHandler: (e: Event) => void
-    boundRootMouseLeaveHandler: (e: Event) => void
-    boundColumnContainerMouseMoveHandler: (e: Event) => void
-    boundColumnContainerTouchMoveHandler: (e: Event) => void
-    boundColumnContainerMouseLeaveHandler: (e: Event) => void
-    boundColumnContainerMouseUpHandler: (e: Event) => void
-    boundColumnContainerTouchEndHandler: (e: Event) => void
-    keyUpHandler: (event: KeyboardEvent) => void
-    trackHeight: number
+    boundWindowResizeHandler!: (...args: any[]) => void
+    boundRootMouseUpHandler!: (e: Event) => void
+    boundRootMouseLeaveHandler!: (e: Event) => void
+    boundColumnContainerMouseMoveHandler!: (e: Event) => void
+    boundColumnContainerTouchMoveHandler!: (e: Event) => void
+    boundColumnContainerMouseLeaveHandler!: (e: Event) => void
+    boundColumnContainerMouseUpHandler!: (e: Event) => void
+    boundColumnContainerTouchEndHandler!: (e: Event) => void
+    keyUpHandler!: (event: KeyboardEvent) => void
+    trackHeight: number | undefined
 
     constructor(config: any, parentDiv: HTMLElement) {
 

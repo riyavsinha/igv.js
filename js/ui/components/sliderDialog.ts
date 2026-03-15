@@ -14,8 +14,8 @@ class SliderDialog {
     ok: HTMLElement
     cancel: HTMLElement
     callback: ((value: number) => void) | undefined
-    _scaleFactor: number
-    _precision: number
+    _scaleFactor: number = 1
+    _precision: number = 2
 
     constructor(parent: HTMLElement) {
 

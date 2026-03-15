@@ -21,7 +21,7 @@ class TrackView {
     track: any
     axis: any
     axisCanvas: HTMLCanvasElement | undefined
-    viewports: any[]
+    viewports!: any[]
     sampleInfoViewport: any
     sampleNameViewport: any
     outerScroll: any

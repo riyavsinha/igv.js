@@ -70,8 +70,8 @@ class FeatureParser {
     config: FeatureParserConfig
     header: FeatureHeader
     skipRows: number
-    decode: DecoderFunction
-    delimiter: string | RegExp
+    decode!: DecoderFunction
+    delimiter: string | RegExp = "\t"
     headerLine: boolean | undefined
 
     constructor(config: FeatureParserConfig) {
@@ -92,9 +92,6 @@ class FeatureParser {
             this.setDecoder(this.header.format)
         }
 
-        if (!this.delimiter) {
-            this.delimiter = "\t"
-        }
     }
 
     async parseHeader(dataWrapper: any): Promise<FeatureHeader> {

@@ -7,7 +7,7 @@ class CursorGuide {
     columnContainer: HTMLElement
     horizontalGuide: HTMLElement
     verticalGuide: HTMLElement
-    boundMouseMoveHandler: (event: MouseEvent) => void
+    boundMouseMoveHandler!: (event: MouseEvent) => void
     customMouseHandler: ((data: { start: number; bp: number; end: number; interpolant: number }) => void) | undefined
 
     constructor(columnContainer: HTMLElement, browser: any) {

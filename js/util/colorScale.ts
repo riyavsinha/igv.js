@@ -81,12 +81,12 @@ class BinnedColorScale {
 
 class GradientColorScale {
     type: string
-    min: number
-    max: number
-    _lowColor: string
-    _highColor: string
-    lowComponents: number[]
-    highComponents: number[]
+    min!: number
+    max!: number
+    _lowColor!: string
+    _highColor!: string
+    lowComponents!: number[]
+    highComponents!: number[]
 
     constructor(config: GradientColorScaleConfig) {
         this.type = 'gradient'

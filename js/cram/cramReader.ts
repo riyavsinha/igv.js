@@ -73,7 +73,7 @@ class CramReader {
     genome: any;
     cramFile: any;
     indexedCramFile: any;
-    header: CramHeader;
+    header!: CramHeader;
     filter: any;
 
     constructor(config: CramConfig, genome: any, browser: any) {

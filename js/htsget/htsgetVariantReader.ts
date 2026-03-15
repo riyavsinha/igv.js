@@ -12,7 +12,7 @@ interface VcfHeader {
 class HtsgetVariantReader extends HtsgetReader {
 
     parser: VcfParser;
-    header: VcfHeader;
+    header: VcfHeader | undefined;
     chromAliasManager: ChromAliasManager | undefined;
     config: any;
 
@@ -34,7 +34,7 @@ class HtsgetVariantReader extends HtsgetReader {
                 this.chromAliasManager = new ChromAliasManager(this.header.sequenceNames, this.genome)
             }
         }
-        return this.header
+        return this.header!
     }
 
     async readFeatures(chr: string, start: number, end: number): Promise<any[]> {

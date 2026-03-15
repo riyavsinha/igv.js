@@ -9,7 +9,7 @@ class GWASParser {
     posCol: number
     chrCol: number
     valueCol: number
-    columns: string[]
+    columns: string[] = []
 
     constructor(config: any) {
         // Defaults - can be overriden by header

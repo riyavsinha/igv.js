@@ -6,7 +6,7 @@ class ViewportCenterLine {
     referenceFrame: any
     column: HTMLElement
     container: HTMLElement
-    isVisible: boolean
+    isVisible: boolean = false
 
     constructor(browser: any, referenceFrame: any, column: HTMLElement) {
 

@@ -40,12 +40,12 @@ interface Exon {
 
 class GFFFeature {
 
-    chr: string
-    start: number
-    end: number
+    chr!: string
+    start!: number
+    end!: number
     name: string | undefined
-    type: string
-    source: string
+    type!: string
+    source!: string
     score: number | undefined
     phase: string | undefined
     strand: string | undefined

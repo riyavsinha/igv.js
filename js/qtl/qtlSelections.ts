@@ -5,8 +5,8 @@ import IGVColor from "../../node_modules/igv-utils/src/igv-color.js"
  */
 class QTLSelections {
 
-    phenotypeColors: Map<string, string>
-    snps: Set<string>
+    phenotypeColors!: Map<string, string>
+    snps!: Set<string>
     qtl: any | null
 
     constructor() {

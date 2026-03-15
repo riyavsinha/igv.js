@@ -14,8 +14,8 @@ interface BamHeader {
 class HtsgetBamReader extends HtsgetReader {
 
     chrNames: Set<string> = new Set()
-    header: BamHeader;
-    chromAliasManager: ChromAliasManager | null;
+    header: BamHeader | undefined;
+    chromAliasManager: ChromAliasManager | null = null;
     filter: any;
     config: any;
 

@@ -23,7 +23,7 @@ interface DataWrapper {
 
 class VcfParser {
 
-    header: VcfHeader;
+    header: VcfHeader | undefined;
 
     construtor() {
     }
@@ -123,10 +123,10 @@ class VcfParser {
      * @param data
      * @returns {Array}
      */
-    async parseFeatures(dataWrapper: DataWrapper): Promise<any[]> {
+    async parseFeatures(dataWrapper: DataWrapper): Promise<(Variant | SVComplement)[]> {
 
-        const allFeatures: any[] = []
-        const sampleNames: string[] | undefined = this.header.sampleNameMap ? Array.from(this.header.sampleNameMap.keys()) : undefined
+        const allFeatures: (Variant | SVComplement)[] = []
+        const sampleNames: string[] | undefined = this.header?.sampleNameMap ? Array.from(this.header.sampleNameMap.keys()) : undefined
         const nExpectedColumns: number = 8 + (sampleNames ? sampleNames.length + 1 : 0)
         let line: string | undefined
         while ((line = await dataWrapper.nextLine()) !== undefined) {
@@ -135,7 +135,7 @@ class VcfParser {
                 const tokens: string[] = line.trim().split("\t")
                 if (tokens.length === nExpectedColumns) {
                     const variant = new Variant(tokens);
-                    (variant as any).header = this.header       // Keep a pointer to the header to interpret fields for popup text
+                    (variant as any).header = this.header!       // Keep a pointer to the header to interpret fields for popup text
                     //variant.line = line              // Uncomment for debugging
                     allFeatures.push(variant)
 
@@ -182,7 +182,7 @@ function extractFormatFields(tokens: string[]): FormatFields {
     return callFields
 }
 
-function svComplement(v: any): any {
+function svComplement(v: Variant): SVComplement {
 
     return new SVComplement(v)
 

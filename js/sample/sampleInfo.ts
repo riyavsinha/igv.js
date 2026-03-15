@@ -13,13 +13,13 @@ class SampleInfo {
     static colorForNA: string = appleCrayonRGB('magnesium')
     static sampleInfoFileHeaders: string[] = ['#sampleTable', '#sampleMapping', '#colors']
 
-    sampleInfoFiles: string[]
-    attributeNames: string[]
-    sampleDictionary: Record<string, any>
-    sampleMappingDictionary: Record<string, string>
-    colorDictionary: Record<string, any>
-    attributeRangeLUT: Record<string, any>
-    initialized: boolean
+    sampleInfoFiles!: string[]
+    attributeNames!: string[]
+    sampleDictionary!: Record<string, any>
+    sampleMappingDictionary!: Record<string, string>
+    colorDictionary!: Record<string, any>
+    attributeRangeLUT!: Record<string, any>
+    initialized!: boolean
 
     constructor(browser: any) {
         const found = browser.tracks.some((t: any) => typeof t.getSamples === 'function')

@@ -381,7 +381,7 @@ class WrappedFasta {
     config: any
     genome: any
     fasta: any
-    chrNameMap: Map<string, string>
+    chrNameMap: Map<string, string> = new Map()
 
     constructor(config: any, genome: any) {
         this.config = config
