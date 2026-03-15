@@ -1,11 +1,12 @@
+import type Browser from "../browser.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
 class CircularViewControl {
 
     button: HTMLDivElement
-    browser: any
+    browser: Browser
 
-    constructor(parent: HTMLElement, browser: any) {
+    constructor(parent: HTMLElement, browser: Browser) {
 
         this.button = DOMUtils.div({class: 'igv-navbar-button'})
         parent.appendChild(this.button)
@@ -17,7 +18,7 @@ class CircularViewControl {
 
         this.browser = browser
 
-        this.setVisibility(browser.config.showCircularViewButton)
+        this.setVisibility(browser.config.showCircularViewButton ?? false)
 
         this.setState(browser.circularViewVisible)
 

@@ -29,8 +29,7 @@ class MergedTrack extends TrackBase {
     }
 
 
-    // @ts-expect-error - postInit return type differs from TrackBase
-    async postInit() {
+    async postInit(): Promise<TrackBase> {
 
         if (this.config.tracks) {
             // Track configurations, this indicates a configured merged track as opposed to dynamic merge through the UI
@@ -76,6 +75,8 @@ class MergedTrack extends TrackBase {
         }
 
         this.resolutionAware = this.tracks.some((t: any) => t.resolutionAware)
+
+        return this
     }
 
     set flipAxis(b) {

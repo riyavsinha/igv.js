@@ -89,7 +89,7 @@ class CNVPytorTrack extends TrackBase {
             const refGenome = this.browser.config.genome
             
             // Initializing CNVpytorVCF class
-            const cnvpytor_obj = new CNVpytorVCF(allVariants, this.bin_size, refGenome)
+            const cnvpytor_obj = new CNVpytorVCF(allVariants, this.bin_size, refGenome as string)
             let wigFeatures
             let bafFeatures
             this.wigFeatures_obj = {}
@@ -198,7 +198,7 @@ class CNVPytorTrack extends TrackBase {
 
     getAliasChromsList(chroms: string[]): string[] {
         const nested = chroms.map((chr: string) => {
-            let records = this.browser.genome.chromAlias.aliasRecordCache.get(chr)
+            let records = (this.browser.genome.chromAlias as any)?.aliasRecordCache?.get(chr)
             return Object.values(records) as string[]
         })
         return nested.flat()
@@ -343,7 +343,7 @@ class CNVPytorTrack extends TrackBase {
             if(Object.keys(this.hasChroms).length > 0) {
                 let chroms: string[] = [ ...new Set(this.browser.referenceFrameList.map((val: { chr: string }) => val.chr)) as Set<string>]
                 if(chroms[0] == "all"){
-                    chroms = this.browser.genome.chromosomeNames
+                    chroms = this.browser.genome.chromosomeNames ?? []
                 }
 
                 this.wigFeatures_obj = {...this.wigFeatures_obj, ...await this.cnvpytor_obj.get_rd_signal(bin_size, chroms)}
@@ -420,7 +420,7 @@ class CNVPytorTrack extends TrackBase {
             if (this.hasChroms[this.bin_size].size != 0){
                 let chroms: string[] = [ ...new Set(this.browser.referenceFrameList.map((val: { chr: string }) => val.chr)) as Set<string>]
                 if(chroms[0] == "all"){
-                    chroms = this.browser.genome.chromosomeNames
+                    chroms = this.browser.genome.chromosomeNames ?? []
                 }
                 let newChroms = chroms.filter((val: string) => !this.hasChroms[this.bin_size].has(val))
 

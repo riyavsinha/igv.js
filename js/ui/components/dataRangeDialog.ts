@@ -1,10 +1,11 @@
+import type Browser from "../../browser.js"
 import makeDraggable from "../utils/draggable.js"
 import {attachDialogCloseHandlerWithParent} from "../utils/ui-utils.js"
 import InputDialog from "./inputDialog.js"
 
 class DataRangeDialog {
 
-    browser: any
+    browser: Browser
     container: HTMLDivElement
     minimum: HTMLDivElement
     minimumInput: HTMLInputElement
@@ -13,7 +14,7 @@ class DataRangeDialog {
     okButton: HTMLDivElement
     cancelButton: HTMLDivElement
 
-    constructor(browser: any, parent: HTMLElement) {
+    constructor(browser: Browser, parent: HTMLElement) {
         this.browser = browser
 
         // Create dialog container

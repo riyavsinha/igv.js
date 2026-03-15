@@ -199,7 +199,7 @@ class FeatureTrack extends TrackBase {
         if (bpPerPixel < aminoAcidSequenceRenderThreshold) {
             // Restrict the range requested to the limits: 1-chromosome.bpLength
             const chromosome = this.browser.genome.getChromosome(referenceFrame.chr)
-            const chromosomeEnd = chromosome.bpLength
+            const chromosomeEnd = chromosome!.bpLength
             options.sequenceInterval = this.browser.genome.getSequenceInterval(referenceFrame.chr,
                 bpStart > 0 ? bpStart : 0, bpEnd > chromosomeEnd ? chromosomeEnd : bpEnd)
         }

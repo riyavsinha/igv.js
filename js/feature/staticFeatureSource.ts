@@ -2,9 +2,10 @@ import FeatureCache from "./featureCache"
 import {computeWGFeatures, findFeatureAfterCenter, packFeatures} from "./featureUtils"
 import BaseFeatureSource from "./baseFeatureSource"
 import ChromAliasManager from "./chromAliasManager"
+import type {GenomicFeature} from "../types/feature"
 
 interface StaticFeatureSourceConfig {
-    features: any[]
+    features: GenomicFeature[]
     searchable?: boolean
     searchableFields?: string[]
     mappings?: Record<string, string>
@@ -31,7 +32,7 @@ class StaticFeatureSource extends BaseFeatureSource {
         this.updateFeatures(config.features)
     }
 
-    updateFeatures(features: any[]): void {
+    updateFeatures(features: GenomicFeature[]): void {
         features = fixFeatures(features, this.genome)
         packFeatures(features)
         if (this.config.mappings) {
@@ -76,7 +77,7 @@ class StaticFeatureSource extends BaseFeatureSource {
         return true
     }
 
-    addFeaturesToDB(featureList: any[], config: StaticFeatureSourceConfig): void {
+    addFeaturesToDB(featureList: GenomicFeature[], config: StaticFeatureSourceConfig): void {
         if (!this.featureMap) {
             this.featureMap = new Map()
         }
@@ -86,7 +87,8 @@ class StaticFeatureSource extends BaseFeatureSource {
                 let key: string | undefined
 
                 if (typeof feature.getAttributeValue === 'function') {
-                    key = feature.getAttributeValue(field)
+                    const val = feature.getAttributeValue(field)
+                    key = val !== undefined ? String(val) : undefined
                 }
                 if (!key) {
                     key = feature[field]
@@ -109,7 +111,7 @@ class StaticFeatureSource extends BaseFeatureSource {
 }
 
 
-function fixFeatures(features: any[], genome: any): any[] {
+function fixFeatures(features: GenomicFeature[], genome: any): GenomicFeature[] {
 
     if (genome) {
         for (let feature of features) {
@@ -121,9 +123,9 @@ function fixFeatures(features: any[], genome: any): any[] {
 }
 
 
-function mapProperties(features: any[], mappings: Record<string, string>): void {
+function mapProperties(features: GenomicFeature[], mappings: Record<string, string>): void {
     let mappingKeys: string[] = Object.keys(mappings)
-    features.forEach(function (f: any) {
+    features.forEach(function (f: GenomicFeature) {
         mappingKeys.forEach(function (key: string) {
             f[key] = f[mappings[key]]
         })

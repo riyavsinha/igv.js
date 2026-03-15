@@ -155,7 +155,7 @@ class IdeogramViewport extends TrackViewport {
         function clickHandler(this: IdeogramViewport, event: MouseEvent): void {
 
             const {xNormalized, width} = DOMUtils.translateMouseCoordinates(event, this.ideogram_ctx!.canvas)
-            const {bpLength} = this.browser.genome.getChromosome(this.referenceFrame.chr)
+            const {bpLength} = this.browser.genome.getChromosome(this.referenceFrame.chr)!
             const locusLength = this.referenceFrame.bpPerPixel * width
             const chrCoveragePercentage = locusLength / bpLength
 

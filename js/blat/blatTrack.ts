@@ -1,4 +1,5 @@
 import FeatureTrack from "../feature/featureTrack.js"
+import TrackBase from "../trackBase.js"
 import BlatTable from "./blatTable.js"
 import {blat} from "./blatClient.js"
 import StaticFeatureSource from "../feature/staticFeatureSource.js"
@@ -27,12 +28,11 @@ class BlatTrack extends FeatureTrack {
         }
     }
 
-    // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
         if(!this.featureSource) {
             // This will be the case when restoring from a session
             const db = this.browser.genome.ucscID   // TODO -- blat specific property
-            const url = this.browser.config["blatServerURL"]
+            const url = this.browser.config["blatServerURL"] as string
             const features = await blat({url, userSeq: this.sequence, db})
             this._features = features;
             this.featureSource = new StaticFeatureSource({features}, this.browser.genome)
@@ -41,6 +41,7 @@ class BlatTrack extends FeatureTrack {
         this._initialColor = this.color || (this.constructor as any).defaultColor
         this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
 
+        return this
     }
 
     openTableView() {

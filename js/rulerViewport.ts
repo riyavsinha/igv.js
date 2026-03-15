@@ -116,7 +116,7 @@ class RulerViewport extends TrackViewport {
                 const {chr} = this.browser.genome.getChromosomeCoordinate(bp)
 
                 if (1 === this.browser.referenceFrameList.length) {
-                    searchString = chr
+                    searchString = chr!
                 } else {
                     const index = this.browser.referenceFrameList.indexOf(this.referenceFrame)
                     const loci = this.browser.referenceFrameList.map(({locusSearchString}: any) => locusSearchString)

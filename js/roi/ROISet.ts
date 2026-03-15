@@ -2,6 +2,9 @@ import FeatureSource from '../feature/featureSource.js'
 import {appleCrayonRGBA, rgbaStringTokens} from '../util/colorPalletes.js'
 import {computeWGFeatures} from "../feature/featureUtils"
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
+import type {ROIConfig} from "../types/config.js"
+import type Genome from "../genome/genome.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 const appleCrayonColorName = 'nickel'
 
@@ -24,7 +27,7 @@ class ROISet {
     headerColor: string;
     [key: string]: any
 
-    constructor(config: any, genome: any) {
+    constructor(config: ROIConfig, genome: Genome) {
 
         this.url = config.url
 
@@ -72,23 +75,23 @@ class ROISet {
 
     }
 
-    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
+    async getFeatures(chr: string, start: number, end: number): Promise<GenomicFeature[]> {
         return this.featureSource.getFeatures({chr, start, end})
     }
 
-    async getAllFeatures(): Promise<Record<string, any[]>> {
+    async getAllFeatures(): Promise<Record<string, GenomicFeature[]>> {
         return typeof this.featureSource.getAllFeatures === 'function' ? await this.featureSource.getAllFeatures() : {}
     }
 
-    addFeature(feature: any): void {
+    addFeature(feature: GenomicFeature): void {
         this.featureSource.addFeature(feature)
     }
 
-    removeFeature(feature: any): void {
+    removeFeature(feature: GenomicFeature): void {
         this.featureSource.removeFeature(feature)
     }
 
-    toJSON(): any {
+    toJSON(): ROIConfig {
         if (this.url) {
             return {
                 name: this.name,
@@ -99,7 +102,7 @@ class ROISet {
             }
         } else {
             const featureMap = this.featureSource.getAllFeatures()
-            const features: any[] = []
+            const features: GenomicFeature[] = []
             for (let chr of Object.keys(featureMap)) {
                 for (let f of featureMap[chr]) {
                     features.push(f)
@@ -143,10 +146,10 @@ function screenCoordinates(regionStartBP: number, regionEndBP: number, bpStart: 
 
 class DynamicFeatureSource {
 
-    featureMap: Record<string, any[]>
+    featureMap: Record<string, GenomicFeature[]>
     genome: any
 
-    constructor(features: any[], genome: any) {
+    constructor(features: GenomicFeature[], genome: any) {
         this.featureMap = {}
         this.genome = genome
 
@@ -164,11 +167,11 @@ class DynamicFeatureSource {
         }
 
         for (let key of Object.keys(this.featureMap)) {
-            this.featureMap[key].sort((a: any, b: any) => a.start - b.start)
+            this.featureMap[key].sort((a: GenomicFeature, b: GenomicFeature) => a.start - b.start)
         }
     }
 
-    async getFeatures({chr, start, end}: { chr: string, start: number, end: number }): Promise<any[]> {
+    async getFeatures({chr, start, end}: { chr: string, start: number, end: number }): Promise<GenomicFeature[]> {
         if (chr.toLowerCase() === 'all') {
             return await computeWGFeatures(this.featureMap, this.genome, undefined)
         } else {
@@ -178,7 +181,7 @@ class DynamicFeatureSource {
         }
     }
 
-    getAllFeatures(): Record<string, any[]> {
+    getAllFeatures(): Record<string, GenomicFeature[]> {
         return this.featureMap
     }
 
@@ -186,14 +189,14 @@ class DynamicFeatureSource {
         return true
     }
 
-    addFeature(feature: any): void {
+    addFeature(feature: GenomicFeature): void {
         let featureList = this.featureMap[feature.chr]
         if (!featureList) {
             featureList = []
             this.featureMap[feature.chr] = featureList
         }
         featureList.push(feature)
-        featureList.sort((a: any, b: any) => a.start - b.start)
+        featureList.sort((a: GenomicFeature, b: GenomicFeature) => a.start - b.start)
     }
 
     removeFeature({chr, start, end}: { chr: string, start: number, end: number }): void {

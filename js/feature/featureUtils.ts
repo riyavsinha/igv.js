@@ -19,7 +19,7 @@ interface Feature {
 
 interface Genome {
     wgChromosomeNames: string[]
-    getGenomeCoordinate(chr: string, pos: number): number
+    getGenomeCoordinate(chr: string, pos: number): number | undefined
     getChromosomeName(chr: string): string
 }
 
@@ -55,12 +55,12 @@ async function computeWGFeatures(
         if (f.chr2 && f.end2) {
             const c1: string = aliasTable.get(f.chr1!) || f.chr1!
             const c2: string = aliasTable.get(f.chr2) || f.chr2
-            wg.start = genome.getGenomeCoordinate(c1, f.start1!)
-            wg.end = genome.getGenomeCoordinate(c2, f.end2)
+            wg.start = genome.getGenomeCoordinate(c1, f.start1!) ?? 0
+            wg.end = genome.getGenomeCoordinate(c2, f.end2) ?? 0
         } else {
             const c: string = aliasTable.get(f.chr) || f.chr
-            wg.start = genome.getGenomeCoordinate(c, f.start)
-            wg.end = genome.getGenomeCoordinate(c, f.end)
+            wg.start = genome.getGenomeCoordinate(c, f.start) ?? 0
+            wg.end = genome.getGenomeCoordinate(c, f.end) ?? 0
         }
         wg._f = f
         // Don't draw exons in whole genome view

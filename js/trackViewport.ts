@@ -830,7 +830,7 @@ class TrackViewport extends Viewport {
                         const chr = this.browser.genome.getChromosomeCoordinate(centerBP).chr
 
                         if (1 === this.browser.referenceFrameList.length) {
-                            string = chr
+                            string = chr!
                         } else {
                             const loci = this.browser.referenceFrameList.map(({locusSearchString}: any) => locusSearchString)
                             const index = this.browser.referenceFrameList.indexOf(this.referenceFrame)

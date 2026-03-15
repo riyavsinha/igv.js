@@ -1,3 +1,4 @@
+import type Browser from "../browser.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 import Panel from "./components/panel.js"
 import Dialog from "./components/dialog.js"
@@ -14,10 +15,10 @@ const autoScaleGroupColorHash: Record<string, string> =
 
 class MenuUtils {
 
-    browser: any
-    dialog: any
+    browser: Browser
+    dialog!: Dialog
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
         this.browser = browser
         this.initialize()
     }

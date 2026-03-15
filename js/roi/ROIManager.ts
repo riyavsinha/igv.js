@@ -6,10 +6,14 @@ import ROIMenu from "./ROIMenu.js"
 import ROITable from "./ROITable.js"
 import {FileUtils} from "../../node_modules/igv-utils/src/index.js"
 import {createRegionKey, parseRegionKey} from "./roiUtils.js"
+import type Browser from "../browser.js"
+import type {ROIConfig} from "../types/config.js"
+import type Genome from "../genome/genome.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 class ROIManager {
 
-    browser: any
+    browser: Browser
     roiMenu: ROIMenu
     roiTable: ROITable
     top: number
@@ -18,7 +22,7 @@ class ROIManager {
     boundLocusChangeHandler: () => void;
     [key: string]: any
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
 
         this.browser = browser
         this.roiMenu = new ROIMenu(browser, browser.columnContainer)
@@ -72,7 +76,7 @@ class ROIManager {
         this.roiTable.toggleROIButton.textContent = false === isVisible ? 'Show Overlays' : 'Hide Overlays'
     }
 
-    async loadROI(config: any, genome: any): Promise<void> {
+    async loadROI(config: ROIConfig | ROIConfig[], genome: Genome): Promise<void> {
 
         const configs = Array.isArray(config) ? config : [config]
 
@@ -86,7 +90,7 @@ class ROIManager {
                 config.name = FileUtils.getFilename(config.url)
             }
             if (config.url && !config.format) {
-                config.format = await inferFileFormat(config)
+                config.format = await inferFileFormat(config) ?? undefined
             }
             this.roiSets.push(new ROISet(config, genome))
         }
@@ -112,9 +116,9 @@ class ROIManager {
 
     }
 
-    async getTableRecords(): Promise<Array<{ setName: string, feature: any }>> {
+    async getTableRecords(): Promise<Array<{ setName: string, feature: GenomicFeature }>> {
 
-        const records: Array<{ setName: string, feature: any }> = []
+        const records: Array<{ setName: string, feature: GenomicFeature }> = []
 
         for (let roiSet of this.roiSets) {
             const setName = (roiSet.name || '')
@@ -146,7 +150,7 @@ class ROIManager {
         return this.roiTable.isVisible()
     }
 
-    async updateUserDefinedROISet(feature: any): Promise<void> {
+    async updateUserDefinedROISet(feature: GenomicFeature): Promise<void> {
 
         let userDefinedROISet = await this.getUserDefinedROISet()
 
@@ -187,7 +191,7 @@ class ROIManager {
         }
     }
 
-    async renderROISet({browser, pixelTop, roiSet}: { browser: any, pixelTop: number, roiSet: ROISet }): Promise<void> {
+    async renderROISet({browser, pixelTop, roiSet}: { browser: Browser, pixelTop: number, roiSet: ROISet }): Promise<void> {
 
         const columns = browser.columnContainer.querySelectorAll('.igv-column')
 
@@ -232,7 +236,7 @@ class ROIManager {
         }
     }
 
-    createRegionElement(columnContainer: HTMLElement, pixelTop: number, pixelX: number, pixelWidth: number, roiSet: ROISet, regionKey: string, feature: any): HTMLElement {
+    createRegionElement(columnContainer: HTMLElement, pixelTop: number, pixelX: number, pixelWidth: number, roiSet: ROISet, regionKey: string, feature: GenomicFeature): HTMLElement {
 
         const regionElement = DOMUtils.div({class: 'igv-roi-region'})
 
@@ -328,11 +332,11 @@ class ROIManager {
 
     initializeUserDefinedROISet(): ROISet {
 
-        const config =
+        const config: ROIConfig =
             {
                 name: 'user defined',
                 isUserDefined: true,
-                features: [] as any[]
+                features: []
             }
         const userDefinedROISet = new ROISet(config, this.browser.genome)
         this.roiSets.push(userDefinedROISet)

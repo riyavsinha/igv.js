@@ -523,7 +523,7 @@ class SegTrack extends TrackBase {
 
         sortDirection = sortDirection || this.sortDirections.get(attribute) || 1
 
-        this.sampleKeys = this.browser.sampleInfo.sortSampleKeysByAttribute(this.sampleKeys, attribute, sortDirection)
+        this.sampleKeys = this.browser.sampleInfo.sortSampleKeysByAttribute(this.sampleKeys, attribute, sortDirection!)
 
         if (NULL_GROUP !== this.groupBy) {
             // If grouping by attribute, we need to re-group the samples

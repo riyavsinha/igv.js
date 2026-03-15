@@ -1,16 +1,17 @@
 
+import type Browser from "../browser.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
 class CursorGuide {
 
-    browser: any
+    browser: Browser
     columnContainer: HTMLElement
     horizontalGuide: HTMLElement
     verticalGuide: HTMLElement
     boundMouseMoveHandler!: (event: MouseEvent) => void
     customMouseHandler: ((data: { start: number; bp: number; end: number; interpolant: number }) => void) | undefined
 
-    constructor(columnContainer: HTMLElement, browser: any) {
+    constructor(columnContainer: HTMLElement, browser: Browser) {
         this.browser = browser
         this.columnContainer = columnContainer
 
@@ -22,11 +23,11 @@ class CursorGuide {
 
         this.addMouseHandler(browser)
 
-        this.setVisibility(browser.config.showCursorGuide)
+        this.setVisibility(browser.config.showCursorGuide ?? false)
 
     }
 
-    addMouseHandler(browser: any): void {
+    addMouseHandler(browser: Browser): void {
 
         this.boundMouseMoveHandler = mouseMoveHandler.bind(this)
         this.columnContainer.addEventListener('mousemove', this.boundMouseMoveHandler)
@@ -57,7 +58,7 @@ class CursorGuide {
 
                     if (!(undefined === index)) {
 
-                        const rulerViewport = browser.getRulerTrackView().viewports[index]
+                        const rulerViewport = browser.getRulerTrackView()!.viewports[index]
                         const result = rulerViewport.mouseMove(event)
 
                         if (result) {
@@ -102,8 +103,9 @@ class CursorGuide {
         this.verticalGuide.style.display = 'none'
         this.horizontalGuide.style.display = 'none'
 
-        if (this.browser.getRulerTrackView()) {
-            for (let viewport of this.browser.getRulerTrackView().viewports) {
+        const rulerTrackView = this.browser.getRulerTrackView()
+        if (rulerTrackView) {
+            for (let viewport of rulerTrackView.viewports) {
                 viewport.tooltip.style.display = 'none'
             }
         }

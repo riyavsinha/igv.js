@@ -1,3 +1,6 @@
+import type Browser from "./browser.js"
+import type {BrowserConfig} from "./types/config.js"
+import type Genome from "./genome/genome.js"
 import GenomeUtils from "./genome/genomeUtils.js"
 import ChromosomeSelectWidget from "./ui/chromosomeSelectWidget.js"
 import {createIcon} from "./ui/utils/icons.js"
@@ -16,30 +19,30 @@ import ZoomWidget from "./ui/zoomWidget.js"
 
 class ResponsiveNavbar {
 
-    browser: any
-    config: any
+    browser: Browser
+    config: BrowserConfig
     currentClass: string
     navigation: HTMLDivElement
     navbarLeftContainer: HTMLDivElement
     currentGenome: HTMLDivElement
-    chromosomeSelectWidget: any
+    chromosomeSelectWidget: ChromosomeSelectWidget
     searchInput: HTMLInputElement
-    windowSizePanel: any
+    windowSizePanel: WindowSizePanel
     navbarRightContainer: HTMLDivElement
     toggleButtonContainer: HTMLDivElement
-    overlayTrackButton: any
-    multiTrackSelectButton: any
-    cursorGuideButton: any
-    centerLineButton: any
-    trackLabelControl: any
-    roiTableControl: any
-    sampleInfoControl: any
-    sampleNameControl: any
-    saveImageControl: any
-    zoomWidget: any
+    overlayTrackButton: OverlayTrackButton
+    multiTrackSelectButton: MultiTrackSelectButton
+    cursorGuideButton: CursorGuideButton
+    centerLineButton: CenterLineButton
+    trackLabelControl: TrackLabelControl
+    roiTableControl: ROITableControl
+    sampleInfoControl: SampleInfoControl
+    sampleNameControl: SampleNameControl
+    saveImageControl: SaveImageControl | undefined
+    zoomWidget: ZoomWidget
     textButtonContainerWidth: number | undefined
 
-    constructor(config: any, browser: any) {
+    constructor(config: BrowserConfig, browser: Browser) {
 
         this.browser = browser;
         this.config = config;
@@ -211,7 +214,7 @@ class ResponsiveNavbar {
         this.zoomWidget.zoomContainer.classList.add(zoomContainerClass);
     }
 
-    updateGenome(genome: any): void {
+    updateGenome(genome: Genome): void {
         let genomeLabel = (genome.id && genome.id.length < 20
             ? genome.id
             : `${genome.id.substring(0, 8)}...${genome.id.substring(genome.id.length - 8)}`);

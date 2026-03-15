@@ -218,6 +218,13 @@ This file was clearly ported from Python and retained many Python-isms:
 
 ---
 
+## Typing Pass Bugs
+
+### `js/sample/sampleInfo.ts` — `found.length > 0` on boolean always false [FIXED]
+`Array.some()` returns a boolean, but the constructor checked `if (found.length > 0)`, which is always falsy since booleans don't have a `.length` property. This made the `browser.sampleInfoControl.setButtonVisibility(true)` call dead code. Fixed to `if (found)` with optional chaining on `sampleInfoControl?.setButtonVisibility(true)` since the browser may not have the control initialized yet (e.g., in tests).
+
+---
+
 ## Phase 3 Recommendations (not yet fixed)
 
 ### `js/genome/indexedFasta.ts` — `desPos` variable assigned but never read

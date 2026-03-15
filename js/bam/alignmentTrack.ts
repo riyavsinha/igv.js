@@ -963,7 +963,7 @@ class AlignmentTrack extends TrackBase {
                         }
                         this.trackView.repaintViews()
                     }
-                }, ev)
+                }, ev as MouseEvent)
             }
 
             return {name: undefined as any, element, dialog: dialogPresentationHandler, init: undefined as any}
@@ -1020,7 +1020,7 @@ class AlignmentTrack extends TrackBase {
                             doGroupBy()
                         }
                     }
-                }, ev)
+                }, ev as MouseEvent)
             } else {
 
                 if (menuItem.key === 'none') {

@@ -6,6 +6,8 @@ import {
 } from "../util/colorPalletes.js"
 import {distinctColorsPalette} from './sampleInfoPaletteLibrary.js'
 import TrackBase from "../trackBase.js"
+import type Browser from "../browser.js"
+import type {SampleInfoConfig} from "../types/config.js"
 
 class SampleInfo {
 
@@ -21,10 +23,10 @@ class SampleInfo {
     attributeRangeLUT!: Record<string, any>
     initialized!: boolean
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
         const found = browser.tracks.some((t: any) => typeof t.getSamples === 'function')
-        if (found.length > 0) {
-            browser.sampleInfoControl.setButtonVisibility(true)
+        if (found) {
+            browser.sampleInfoControl?.setButtonVisibility(true)
         }
         this.initialize()
     }
@@ -57,12 +59,12 @@ class SampleInfo {
         return this.sampleDictionary[key]
     }
 
-    getAttributeValue(sampleName: string, attribute: string): any {
+    getAttributeValue(sampleName: string, attribute: string): string | number | undefined {
         const attributes = this.getAttributes(sampleName)
         return attributes ? attributes[attribute] : undefined
     }
 
-    async loadSampleInfo(config: any): Promise<void> {
+    async loadSampleInfo(config: SampleInfoConfig): Promise<void> {
 
         if (config.url) {
             await this.loadSampleInfoFile(config.url)

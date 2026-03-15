@@ -256,7 +256,7 @@ class TrackView {
 
             const moreColorsPresentationColor = 'color' === colorSelection ? (this.track.color || this.track.constructor.defaultColor) : (this.track.altColor || this.track.constructor.defaultColor)
             this.browser.genericColorPicker.configure(initialTrackColor, colorHandlers[colorSelection], moreColorsPresentationColor)
-            this.browser.genericColorPicker.present(event)
+            this.browser.genericColorPicker.present(event as MouseEvent)
 
         }
 

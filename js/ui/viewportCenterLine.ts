@@ -1,14 +1,16 @@
+import type Browser from "../browser.js"
+import type ReferenceFrame from "../referenceFrame.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
 class ViewportCenterLine {
 
-    browser: any
-    referenceFrame: any
+    browser: Browser
+    referenceFrame: ReferenceFrame
     column: HTMLElement
     container: HTMLElement
     isVisible: boolean = false
 
-    constructor(browser: any, referenceFrame: any, column: HTMLElement) {
+    constructor(browser: Browser, referenceFrame: ReferenceFrame, column: HTMLElement) {
 
         this.browser = browser
         this.referenceFrame = referenceFrame

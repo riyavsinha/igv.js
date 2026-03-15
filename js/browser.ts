@@ -50,35 +50,8 @@ import {loadHub} from "./ucsc/hub/hub.js"
 import {EventEmitter} from "./events.js"
 import Locus from "./locus.js"
 import {isLocalFile, isGoogleDriveURL} from "./util/sessionResourceValidator.js"
-import type {BrowserConfig, TrackConfig} from "./types/config"
-
-
-interface SearchConfig {
-    type: string
-    url: string
-    coords: number
-    chromosomeField: string
-    startField: string
-    endField: string
-    geneField: string
-    snpField: string
-    resultsField?: string
-}
-
-interface VpMouseDown {
-    viewport: TrackViewport
-    lastMouseX: number
-    mouseDownX: number
-    lastMouseY: number
-    mouseDownY: number
-    referenceFrame: ReferenceFrame
-    r?: number
-}
-
-interface DragObject {
-    viewport: TrackViewport
-    start: number
-}
+import type {BrowserConfig, SearchConfig, SessionLoadOptions, SessionObject, TrackConfig, SampleInfoConfig, ROIConfig} from "./types/config"
+import type {VpMouseDown, DragObject} from "./types/browser"
 
 // css - $igv-scrollbar-outer-width: 14px;
 const igv_scrollbar_outer_width: number = 14
@@ -97,51 +70,51 @@ class Browser {
 
     [key: string]: any
 
-    qtlSelections: any = new QTLSelections()
-    config: any
+    qtlSelections: QTLSelections = new QTLSelections()
+    config: BrowserConfig
     guid: string
     namespace: string
     parent: HTMLElement
-    eventEmitter: any
+    eventEmitter: EventEmitter
     root: HTMLElement
-    alert: any
+    alert: Alert
     spinnerElement: HTMLElement
     columnContainer: HTMLElement
-    menuPopup: any
-    menuUtils: any
-    trackViews: any[]
+    menuPopup: MenuPopup
+    menuUtils: MenuUtils
+    trackViews: TrackView[]
     constants: { dragThreshold: number; scrollThreshold: number; defaultColor: string; doubleClickDelay: number }
-    sampleInfo: any
-    roiManager: any
+    sampleInfo: SampleInfo
+    roiManager: ROIManager
     previousTrackColors: string[]
-    flanking: any
-    crossDomainProxy: any
-    formats: any
-    trackDefaults: any
-    nucleotideColors: any
-    doShowTrackLabels: any
-    doShowCenterLine: any
-    doShowCursorGuide: any
-    showSampleNames: any
+    flanking: number | undefined
+    crossDomainProxy: string | undefined
+    formats: Record<string, unknown> | undefined
+    trackDefaults: Record<string, Record<string, unknown>> | undefined
+    nucleotideColors!: Record<string, string>
+    doShowTrackLabels: boolean | undefined
+    doShowCenterLine: boolean | undefined
+    doShowCursorGuide: boolean | undefined
+    showSampleNames: boolean | undefined
     sampleNameViewportWidth: number | undefined
-    searchConfig: any
-    navbar: any
-    cursorGuide: any
-    inputDialog: any
-    dataRangeDialog: any
-    genericColorPicker: any
-    sliderDialog: any
-    referenceFrameList: any[] = []
-    genome: any
-    centerLineList: any[] = []
+    searchConfig: SearchConfig | undefined
+    navbar!: ResponsiveNavbar
+    cursorGuide!: CursorGuide
+    inputDialog!: InputDialog
+    dataRangeDialog!: DataRangeDialog
+    genericColorPicker!: GenericColorPicker
+    sliderDialog!: SliderDialog
+    referenceFrameList: ReferenceFrame[] = []
+    genome!: Genome
+    centerLineList: ViewportCenterLine[] = []
     circularView: any
-    circularViewControl: any
-    roiSets: any[] = []
-    vpMouseDown: any
-    dragObject: any
+    circularViewControl: CircularViewControl | undefined
+    roiSets: TrackROISet[] = []
+    vpMouseDown: VpMouseDown | undefined
+    dragObject: DragObject | undefined
     isScrolling: boolean = false
-    dragTrack: any
-    boundWindowResizeHandler!: (...args: any[]) => void
+    dragTrack: TrackView | undefined
+    boundWindowResizeHandler!: () => Promise<void>
     boundRootMouseUpHandler!: (e: Event) => void
     boundRootMouseLeaveHandler!: (e: Event) => void
     boundColumnContainerMouseMoveHandler!: (e: Event) => void
@@ -152,7 +125,7 @@ class Browser {
     keyUpHandler!: (event: KeyboardEvent) => void
     trackHeight: number | undefined
 
-    constructor(config: any, parentDiv: HTMLElement) {
+    constructor(config: BrowserConfig, parentDiv: HTMLElement) {
 
         this.config = config
         this.guid = DOMUtils.guid()
@@ -250,13 +223,13 @@ class Browser {
         return this.roiManager.roiTableIsVisible()
     }
 
-    initialize(config: any): void {
+    initialize(config: BrowserConfig): void {
 
         this.flanking = config.flanking
         this.crossDomainProxy = config.crossDomainProxy
         this.formats = config.formats
         this.trackDefaults = config.trackDefaults
-        this.nucleotideColors = config.nucleotideColors || defaultNucleotideColors
+        this.nucleotideColors = (config.nucleotideColors || defaultNucleotideColors) as Record<string, string>
         for (let key of Object.keys(this.nucleotideColors)) {
             this.nucleotideColors[key.toLowerCase()] = this.nucleotideColors[key]
         }
@@ -290,9 +263,9 @@ class Browser {
         }
     }
 
-    createStandardControls(config: any): void {
+    createStandardControls(config: BrowserConfig): void {
 
-        this.setTrackLabelVisibility(config.showTrackLabels)
+        this.setTrackLabelVisibility(config.showTrackLabels ?? true)
 
         this.navbar = new ResponsiveNavbar(config, this)
 
@@ -351,13 +324,13 @@ class Browser {
     }
 
     currentLoci(): string | string[] {
-        const noCommaLocusString = (rf: any): string => `${rf.chr}:${rf.start + 1}-${rf.end}`
+        const noCommaLocusString = (rf: ReferenceFrame): string => `${rf.chr}:${rf.start + 1}-${rf.end}`
         if (undefined === this.referenceFrameList || 0 === this.referenceFrameList.length) {
             return ""
         } else if (1 === this.referenceFrameList.length) {
             return noCommaLocusString(this.referenceFrameList[0])
         } else {
-            return this.referenceFrameList.map((rf: any) => noCommaLocusString(rf))
+            return this.referenceFrameList.map((rf: ReferenceFrame) => noCommaLocusString(rf))
         }
     }
 
@@ -452,7 +425,7 @@ class Browser {
     }
 
 
-    async loadSession(options: any): Promise<void> {
+    async loadSession(options: SessionLoadOptions): Promise<void> {
 
         this.sampleInfo.initialize()
 
@@ -469,7 +442,7 @@ class Browser {
         await this.loadSessionObject(session)
     }
 
-    static async loadSessionFile(options: any): Promise<any> {
+    static async loadSessionFile(options: SessionLoadOptions): Promise<any> {
 
         const urlOrFile = options.url || options.file
 
@@ -480,22 +453,22 @@ class Browser {
         } else {
             let filename = options.filename
             if (!filename) {
-                filename = (options.url ? FileUtils.getFilename(options.url) : options.file.name)
+                filename = (options.url ? FileUtils.getFilename(options.url) : options.file!.name)
             }
 
             if (filename.endsWith(".xml")) {
                 const knownGenomes = GenomeUtils.KNOWN_GENOMES
-                const string = await igvxhr.loadString(urlOrFile)
+                const string = await igvxhr.loadString(urlOrFile as string)
                 config = new XMLSession(string, knownGenomes!)
 
             } else if (filename.endsWith("hub.txt")) {
-                const hub = await loadHub(urlOrFile, options)
+                const hub = await loadHub(urlOrFile as string, options)
                 const genomeConfig = hub.getGenomeConfig()
                 config = {
                     reference: genomeConfig
                 }
             } else {
-                config = await igvxhr.loadJson(urlOrFile)
+                config = await igvxhr.loadJson(urlOrFile as string)
             }
         }
 
@@ -633,7 +606,7 @@ class Browser {
         const trackConfigurations = session.tracks ? genomeTracks.concat(session.tracks) : genomeTracks
 
         // Ensure that we always have a sequence track with no explicit URL (=> the reference genome sequence track)
-        const pushSequenceTrack = trackConfigurations.filter((track: any) => 'sequence' === track.type && !track.url && !track.fastaURL).length === 0
+        const pushSequenceTrack = trackConfigurations.filter((track: TrackConfig) => 'sequence' === track.type && !track.url && !track.fastaURL).length === 0
         if (pushSequenceTrack && false !== this.config.showSequence) {
             trackConfigurations.push({type: "sequence", order: defaultSequenceTrackOrder, removable: false})
         }
@@ -665,7 +638,7 @@ class Browser {
             alert(message)
         }
 
-        const nonLocalTrackConfigurations = trackConfigurations.filter((config: any) =>
+        const nonLocalTrackConfigurations = trackConfigurations.filter((config: TrackConfig) =>
             undefined === config.file &&
             undefined === config.indexFile &&
             // Filter out tracks with Google Drive URLs in url/indexURL fields
@@ -846,7 +819,7 @@ class Browser {
 
         this.navbar.navbarDidResize()
 
-        toggleTrackLabels(this.trackViews, this.doShowTrackLabels)
+        toggleTrackLabels(this.trackViews, this.doShowTrackLabels ?? false)
 
         if (this.doShowCenterLine && GenomeUtils.isWholeGenomeView(referenceFrameList[0].chr)) {
             this.navbar.centerLineButton.boundMouseClickHandler()
@@ -865,14 +838,14 @@ class Browser {
         if (isWholeGenomeView) {
             this.navbar.centerLineButton.setVisibility(false)
         } else {
-            this.navbar.centerLineButton.setVisibility(this.config.showCenterGuideButton)
+            this.navbar.centerLineButton.setVisibility(this.config.showCenterGuideButton ?? true)
         }
 
         for (let centerLine of this.centerLineList) {
             if (isWholeGenomeView) {
                 this.setCenterLineVisibility(!isWholeGenomeView)
             } else {
-                this.setCenterLineVisibility(this.doShowCenterLine)
+                this.setCenterLineVisibility(this.doShowCenterLine ?? false)
             }
         }
 
@@ -1017,7 +990,7 @@ class Browser {
         // Add track view AFTER postInit, to avoid adding a track that fails during postInit
         const trackView = new TrackView(this, this.columnContainer, track)
         this.trackViews.push(trackView)
-        toggleTrackLabels(this.trackViews, this.doShowTrackLabels)
+        toggleTrackLabels(this.trackViews, this.doShowTrackLabels ?? false)
 
         if (typeof track.hasSamples === 'function' && track.hasSamples()) {
 
@@ -1036,7 +1009,7 @@ class Browser {
 
     }
 
-    async loadROI(config: any): Promise<any> {
+    async loadROI(config: ROIConfig | ROIConfig[]): Promise<any> {
         return this.roiManager.loadROI(config, this.genome)
     }
 
@@ -1066,8 +1039,8 @@ class Browser {
         }
     }
 
-    getRulerTrackView(): any {
-        const list = this.trackViews.filter(({track}: any) => 'ruler' === track.id)
+    getRulerTrackView(): TrackView | undefined {
+        const list = this.trackViews.filter(({track}: {track: TrackBase}) => 'ruler' === track.id)
         return list.length > 0 ? list[0] : undefined
     }
 
@@ -1143,7 +1116,7 @@ class Browser {
         } else {
 
             if (config.roi && config.roi.length > 0) {
-                track.roiSets = config.roi.map((r: any) => new TrackROISet(r, this.genome))
+                track.roiSets = config.roi.map((r: ROIConfig) => new TrackROISet(r, this.genome))
             }
 
             return track
@@ -1152,9 +1125,9 @@ class Browser {
 
     reorderTracks(): void {
 
-        this.trackViews.sort(function (a: any, b: any) {
+        this.trackViews.sort(function (a: TrackView, b: TrackView) {
 
-            const firstSortOrder = (tv: any): number => {
+            const firstSortOrder = (tv: TrackView): number => {
                 return 'ideogram' === tv.track.id ? 1 :
                     'ruler' === tv.track.id ? 2 :
                         3
@@ -1231,11 +1204,11 @@ class Browser {
     }
 
     getTrackOrder(): string[] {
-        return this.trackViews.filter((tv: any) => tv.track && tv.track.name).map((tv: any) => tv.track.name)
+        return this.trackViews.filter((tv: TrackView) => tv.track && tv.track.name).map((tv: TrackView) => tv.track.name)
     }
 
-    getSelectedTrackViews(): any[] {
-        return this.trackViews.filter((trackView: any) => true === trackView.track.selected)
+    getSelectedTrackViews(): TrackView[] {
+        return this.trackViews.filter((trackView: TrackView) => true === trackView.track.selected)
     }
 
     removeTrackByName(name: string): void {
@@ -1247,7 +1220,7 @@ class Browser {
         }
     }
 
-    removeTrack(track: any): void {
+    removeTrack(track: TrackBase): void {
         for (let trackView of this.trackViews) {
             if (track === trackView.track) {
                 this._removeTrack(trackView.track)
@@ -1256,7 +1229,7 @@ class Browser {
         }
     }
 
-    _removeTrack(track: any): void {
+    _removeTrack(track: TrackBase): void {
         if (track.disposed) return
         this.trackViews.splice(this.trackViews.indexOf(track.trackView), 1)
         this.fireEvent('trackremoved', [track])
@@ -1282,33 +1255,33 @@ class Browser {
         }
     }
 
-    get ideogramTrackView(): any {
+    get ideogramTrackView(): TrackView | undefined {
         return this.trackViews[0]
     }
 
-    get rulerTrackView(): any {
+    get rulerTrackView(): TrackView | undefined {
         return this.trackViews[1]
     }
 
-    findTracks(property: string | ((track: any) => boolean), value?: any): any[] {
+    findTracks(property: string | ((track: TrackBase) => boolean), value?: unknown): TrackBase[] {
 
         let f = typeof property === 'function' ?
-            (trackView: any) => property(trackView.track) :
-            (trackView: any) => value === trackView.track[property as string]
+            (trackView: TrackView) => property(trackView.track) :
+            (trackView: TrackView) => value === trackView.track[property as string]
 
-        return this.trackViews.filter(f).map((tv: any) => tv.track)
+        return this.trackViews.filter(f).map((tv: TrackView) => tv.track)
     }
 
-    get tracks(): any[] {
-        return this.trackViews.map((tv: any) => tv.track).filter((t: any) => t !== undefined)
+    get tracks(): TrackBase[] {
+        return this.trackViews.map((tv: TrackView) => tv.track).filter((t: TrackBase) => t !== undefined)
     }
 
     setTrackHeight(newHeight: number): void {
 
         this.trackHeight = newHeight
 
-        this.trackViews.forEach(function (trackView: any) {
-            trackView.setTrackHeight(newHeight)
+        this.trackViews.forEach(function (trackView: TrackView) {
+            trackView.setTrackHeight(newHeight, false)
         })
 
     }
@@ -1319,7 +1292,7 @@ class Browser {
 
     async layoutChange(): Promise<void> {
 
-        const status = this.referenceFrameList.find((referenceFrame: any) => referenceFrame.bpPerPixel < 0)
+        const status = this.referenceFrameList.find((referenceFrame: ReferenceFrame) => referenceFrame.bpPerPixel < 0)
 
         if (status) {
             const viewportWidth = this.calculateViewportWidth(this.referenceFrameList.length)
@@ -1362,8 +1335,8 @@ class Browser {
             }
         } else {
             // Group autoscale is done here as it involves multiple tracks.  Individual track autoscale is done in TrackView
-            const groupAutoscaleTrackViews: { [key: string]: any[] } = {}
-            const otherTrackViews: any[] = []
+            const groupAutoscaleTrackViews: { [key: string]: TrackView[] } = {}
+            const otherTrackViews: TrackView[] = []
 
             // Isolate group autoscale trackViews
             for (const trackView of trackViews) {
@@ -1381,17 +1354,17 @@ class Browser {
             // Calculate group autoscale dataRange
             if (Object.entries(groupAutoscaleTrackViews).length > 0) {
                 for (const [group, trackViews] of Object.entries(groupAutoscaleTrackViews)) {
-                    const inViewFeatures = await Promise.all(trackViews.map((trackView: any) => trackView.getInViewFeatures()))
+                    const inViewFeatures = await Promise.all(trackViews.map((trackView: TrackView) => trackView.getInViewFeatures()))
                     const dataRange = doAutoscale(inViewFeatures.flat())
                     for (const trackView of trackViews) {
                         trackView.track.dataRange = Object.assign({}, dataRange)
                         trackView.track.autoscale = false
                     }
-                    await Promise.all(trackViews.map((trackView: any) => trackView.updateViews()))
+                    await Promise.all(trackViews.map((trackView: TrackView) => trackView.updateViews()))
                 }
             }
 
-            await Promise.all(otherTrackViews.map((trackView: any) => trackView.updateViews()))
+            await Promise.all(otherTrackViews.map((trackView: TrackView) => trackView.updateViews()))
         }
 
     }
@@ -1414,7 +1387,7 @@ class Browser {
             referenceFrame.end = referenceFrame.start + referenceFrame.bpPerPixel * width
         }
 
-        const loc = this.referenceFrameList.map((rf: any) => rf.getLocusString()).join(' ')
+        const loc = this.referenceFrameList.map((rf: ReferenceFrame) => rf.getLocusString()).join(' ')
 
         const chrName = referenceFrameList.length === 1 ? this.genome.getChromosomeDisplayName(this.referenceFrameList[0].chr) : ''
 
@@ -1487,7 +1460,7 @@ class Browser {
     }
 
 
-    async zoomWithScaleFactor(scaleFactor: number, centerBPOrUndefined?: number, referenceFrameOrUndefined?: any): Promise<void> {
+    async zoomWithScaleFactor(scaleFactor: number, centerBPOrUndefined?: number, referenceFrameOrUndefined?: ReferenceFrame): Promise<void> {
 
         if (this.config.disableZoom === true) return   // Useful when an embedding application wants to control zooming
 
@@ -1504,7 +1477,7 @@ class Browser {
         this.fireEvent("zoom", [referenceFrames])
     }
 
-    async addMultiLocusPanel(chr: string, start: number, end: number, referenceFrameLeft?: any): Promise<void> {
+    async addMultiLocusPanel(chr: string, start: number, end: number, referenceFrameLeft?: ReferenceFrame): Promise<void> {
 
         if (!this.referenceFrameList) return
 
@@ -1546,14 +1519,14 @@ class Browser {
         await this.updateViews(true)
     }
 
-    createCenterLineList(columnContainer: HTMLElement): any[] {
+    createCenterLineList(columnContainer: HTMLElement): ViewportCenterLine[] {
 
         const centerLines = columnContainer.querySelectorAll('.igv-center-line')
         for (let i = 0; i < centerLines.length; i++) {
             centerLines[i].remove()
         }
 
-        const centerLineList: any[] = []
+        const centerLineList: ViewportCenterLine[] = []
         const viewportColumns = columnContainer.querySelectorAll('.igv-column')
         for (let i = 0; i < viewportColumns.length; i++) {
             centerLineList.push(new ViewportCenterLine(this, this.referenceFrameList[i], viewportColumns[i] as HTMLElement))
@@ -1562,7 +1535,7 @@ class Browser {
         return centerLineList
     }
 
-    async removeMultiLocusPanel(referenceFrame: any): Promise<void> {
+    async removeMultiLocusPanel(referenceFrame: ReferenceFrame): Promise<void> {
 
         // find the $column corresponding to this referenceFrame and remove it
         const index = this.referenceFrameList.indexOf(referenceFrame)
@@ -1578,8 +1551,9 @@ class Browser {
 
         this.referenceFrameList.splice(index, 1)
 
-        if (1 === this.referenceFrameList.length && this.getRulerTrackView()) {
-            for (let rulerViewport of this.getRulerTrackView().viewports) {
+        const rulerTV = this.getRulerTrackView()
+        if (1 === this.referenceFrameList.length && rulerTV) {
+            for (let rulerViewport of rulerTV.viewports) {
                 rulerViewport.dismissLocusLabel()
             }
         }
@@ -1590,7 +1564,7 @@ class Browser {
 
     }
 
-    async gotoMultilocusPanel(referenceFrame: any): Promise<void> {
+    async gotoMultilocusPanel(referenceFrame: ReferenceFrame): Promise<void> {
 
         const referenceFrameIndex = this.referenceFrameList.indexOf(referenceFrame)
 
@@ -1609,7 +1583,7 @@ class Browser {
         // Discard viewports
         for (let trackView of this.trackViews) {
             const retain = trackView.viewports[referenceFrameIndex]
-            trackView.viewports.filter((viewport: any, i: number) => i !== referenceFrameIndex).forEach((viewport: any) => viewport.dispose())
+            trackView.viewports.filter((viewport: TrackViewport, i: number) => i !== referenceFrameIndex).forEach((viewport: TrackViewport) => viewport.dispose())
             trackView.viewports = [retain]
         }
 
@@ -1617,7 +1591,7 @@ class Browser {
         referenceFrame.bpPerPixel = (referenceFrame.end - referenceFrame.start) / viewportWidth
         this.referenceFrameList = [referenceFrame]
 
-        this.trackViews.forEach(({viewports}: any) => viewports.forEach((viewport: any) => viewport.setWidth(viewportWidth)))
+        this.trackViews.forEach(({viewports}: TrackView) => viewports.forEach((viewport: TrackViewport) => viewport.setWidth(viewportWidth)))
 
         this.centerLineList = this.createCenterLineList(this.columnContainer)
 
@@ -1666,7 +1640,7 @@ class Browser {
         if (loci && loci.length > 0) {
 
             // create reference frame list based on search loci
-            this.referenceFrameList = createReferenceFrameList(loci, this.genome, this.flanking, this.minimumBases(), this.calculateViewportWidth(loci.length), this.isSoftclipped())
+            this.referenceFrameList = createReferenceFrameList(loci, this.genome, this.flanking ?? 0, this.minimumBases(), this.calculateViewportWidth(loci.length), this.isSoftclipped())
 
             // discard track viewport DOM elements
             for (let trackView of this.trackViews) {
@@ -1698,7 +1672,7 @@ class Browser {
         }
     }
 
-    async loadSampleInfo(sampleInfoConfig: any): Promise<void> {
+    async loadSampleInfo(sampleInfoConfig: SampleInfoConfig): Promise<void> {
 
 
         await this.sampleInfo.loadSampleInfo(sampleInfoConfig)
@@ -1713,7 +1687,7 @@ class Browser {
             sampleInfoViewport.setWidth(this.getSampleInfoColumnWidth())
         }
 
-        const found = this.findTracks((t: any) => typeof t.getSamples === 'function')
+        const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
         if (found.length > 0) {
             this.sampleInfoControl.performClickWithState(this, true)
             this.sampleInfoControl.setButtonVisibility(true)
@@ -1734,7 +1708,7 @@ class Browser {
             sampleInfoViewport.setWidth(this.getSampleInfoColumnWidth())
         }
 
-        const found = this.findTracks((t: any) => typeof t.getSamples === 'function')
+        const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
         if (found.length > 0) {
             this.sampleInfoControl.performClickWithState(this, false)
             this.sampleInfoControl.setButtonVisibility(false)
@@ -1753,7 +1727,7 @@ class Browser {
             return 0
         } else {
 
-            const found = this.findTracks((t: any) => typeof t.getSamples === 'function')
+            const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
             const isFound = found.length > 0
             const hasAttributes = this.sampleInfo.hasAttributes()
             const doShowSampleInfo = this.sampleInfoControl.showSampleInfo
@@ -1770,20 +1744,20 @@ class Browser {
 
     // IGV events (not DOM events)
 
-    on(eventName: string, fn: (...args: any[]) => void): void {
+    on(eventName: string, fn: (...args: unknown[]) => void): void {
         this.eventEmitter.on(eventName, fn)
     }
 
-    un(eventName: string, fn: (...args: any[]) => void): void {
+    un(eventName: string, fn: (...args: unknown[]) => void): void {
         this.eventEmitter.off(eventName, fn)
     }
 
 
-    off(eventName: string, fn: (...args: any[]) => void): void {
+    off(eventName: string, fn: (...args: unknown[]) => void): void {
         this.eventEmitter.off(eventName, fn)
     }
 
-    fireEvent(eventName: string, args?: any[], thisObj?: any): any {
+    fireEvent(eventName: string, args?: unknown[], thisObj?: unknown): unknown {
         return this.eventEmitter.emit(eventName, args, thisObj)
     }
 
@@ -1797,9 +1771,9 @@ class Browser {
         }
     }
 
-    toJSON(): any {
+    toJSON(): SessionObject {
 
-        const json: any = {
+        const json: SessionObject = {
             "version": version()
         }
 
@@ -1845,7 +1819,7 @@ class Browser {
         // }
 
         // Tracks
-        const trackJson: any[] = []
+        const trackJson: TrackConfig[] = []
         const errors: string[] = []
         for (const {track} of this.trackViews) {
             try {
@@ -1900,7 +1874,7 @@ class Browser {
         return filename || defaultFallback
     }
 
-    #createGoogleDriveItemIfPresent(config: any, trackName: string, urlField: string, filenameField: string, defaultFileName: string): { trackName: string; fileName: string } | null {
+    #createGoogleDriveItemIfPresent(config: TrackConfig, trackName: string, urlField: string, filenameField: string, defaultFileName: string): { trackName: string; fileName: string } | null {
         const url = config[urlField]
         if (url && isGoogleDriveURL(url)) {
             const fileName = this.#getGoogleDriveDisplayName(config[filenameField], defaultFileName)
@@ -1912,7 +1886,7 @@ class Browser {
         return null
     }
 
-    #extractGoogleDriveItemsFromConfig(config: any): { trackName: string; fileName: string }[] {
+    #extractGoogleDriveItemsFromConfig(config: TrackConfig): { trackName: string; fileName: string }[] {
         const items: { trackName: string; fileName: string }[] = []
         const trackName = config.name || 'Unnamed track'
 
@@ -1931,9 +1905,9 @@ class Browser {
         return items
     }
 
-    #extractProblematicResources(trackConfigurations: any[], localSampleInfoFiles: any[] = [], googleDriveSampleInfoFiles: any[] = []): { localFileItems: any[]; googleDriveItems: any[] } {
-        const localFileItems: any[] = []
-        const googleDriveItems: any[] = []
+    #extractProblematicResources(trackConfigurations: TrackConfig[], localSampleInfoFiles: string[] = [], googleDriveSampleInfoFiles: { trackName: string; fileName: string }[] = []): { localFileItems: { trackName: string; fileName: string }[]; googleDriveItems: { trackName: string; fileName: string }[] } {
+        const localFileItems: { trackName: string; fileName: string }[] = []
+        const googleDriveItems: { trackName: string; fileName: string }[] = []
 
         // Collect local files from track configurations
         for (const config of trackConfigurations) {
@@ -1972,23 +1946,24 @@ class Browser {
         return { localFileItems, googleDriveItems }
     }
 
-    _validateAndWarnResources(json: any): void {
+    _validateAndWarnResources(json: SessionObject): void {
         // 1. Validate reference genome (blocking errors)
         const refErrors: string[] = []
+        const reference = json.reference as Record<string, any> | undefined
 
-        if (json.reference.fastaURL) {
-            if (isLocalFile(json.reference.fastaURL)) {
-                refErrors.push(`Local file: ${json.reference.fastaURL.name}`)
-            } else if (isGoogleDriveURL(json.reference.fastaURL)) {
-                refErrors.push(`Google Drive URL: ${json.reference.fastaURL}`)
+        if (reference?.fastaURL) {
+            if (isLocalFile(reference.fastaURL)) {
+                refErrors.push(`Local file: ${reference.fastaURL.name}`)
+            } else if (isGoogleDriveURL(reference.fastaURL)) {
+                refErrors.push(`Google Drive URL: ${reference.fastaURL}`)
             }
         }
 
-        if (json.reference.indexURL) {
-            if (isLocalFile(json.reference.indexURL)) {
-                refErrors.push(`Local file: ${json.reference.indexURL.name}`)
-            } else if (isGoogleDriveURL(json.reference.indexURL)) {
-                refErrors.push(`Google Drive URL: ${json.reference.indexURL}`)
+        if (reference?.indexURL) {
+            if (isLocalFile(reference.indexURL)) {
+                refErrors.push(`Local file: ${reference.indexURL.name}`)
+            } else if (isGoogleDriveURL(reference.indexURL)) {
+                refErrors.push(`Google Drive URL: ${reference.indexURL}`)
             }
         }
 
@@ -2001,8 +1976,8 @@ class Browser {
         }
 
         // 2. Collect warnings from tracks and sample info
-        const localSampleInfoFiles: any[] = []
-        const googleDriveSampleInfoFiles: any[] = []
+        const localSampleInfoFiles: string[] = []
+        const googleDriveSampleInfoFiles: { trackName: string; fileName: string }[] = []
 
         // Check sample info
         if (this.config.sampleinfo) {
@@ -2058,7 +2033,7 @@ class Browser {
         return surl
     }
 
-    mouseDownOnViewport(e: MouseEvent | TouchEvent, viewport: any): void {
+    mouseDownOnViewport(e: MouseEvent | TouchEvent, viewport: TrackViewport): void {
 
         var coords: { x: number; y: number }
         coords = DOMUtils.pageCoordinates(e)
@@ -2086,23 +2061,23 @@ class Browser {
         }
     }
 
-    isTrackPanning(): any {
+    isTrackPanning(): DragObject | undefined {
         return this.dragObject
     }
 
     isSoftclipped(): boolean {
-        const result = this.trackViews.find((tv: any) => tv.track.showSoftClips === true)
+        const result = this.trackViews.find((tv: TrackView) => tv.track.showSoftClips === true)
         return result !== undefined
     }
 
 
-    startTrackDrag(trackView: any): void {
+    startTrackDrag(trackView: TrackView): void {
 
         this.dragTrack = trackView
 
     }
 
-    updateTrackDrag(dragDestination: any): void {
+    updateTrackDrag(dragDestination: TrackView): void {
 
         if (dragDestination && this.dragTrack) {
 
@@ -2276,7 +2251,7 @@ class Browser {
     set circularViewVisible(isVisible: boolean) {
         if (this.circularView) {
             this.circularView.visible = isVisible
-            this.circularViewControl.setState(isVisible)
+            this.circularViewControl?.setState(isVisible)
         }
     }
 
@@ -2433,7 +2408,7 @@ keyUpHandler(this: Browser, event: KeyboardEvent): Promise<void> {
             if (typeof track.nextFeatureAfter === 'function') {
 
                 const referenceFrame = this.referenceFrameList[0]
-                const viewportWidth = referenceFrame.viewport ? referenceFrame.viewport.getWidth() : this.calculateViewportWidth(this.referenceFrameList.length)
+                const viewportWidth = (referenceFrame as any).viewport ? (referenceFrame as any).viewport.getWidth() : this.calculateViewportWidth(this.referenceFrameList.length)
 
 
                 // Check visibility window
@@ -2497,7 +2472,7 @@ keyUpHandler(this: Browser, event: KeyboardEvent): Promise<void> {
 
 function
 
-toggleTrackLabels(trackViews: any[], isVisible: boolean): void {
+toggleTrackLabels(trackViews: TrackView[], isVisible: boolean): void {
 
     for (let {viewports} of trackViews) {
         for (let viewport of viewports) {

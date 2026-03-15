@@ -8,8 +8,8 @@ interface TDFConfig {
 
 interface Genome {
     wgChromosomeNames?: string[]
-    getChromosome(chr: string): { bpLength: number }
-    getGenomeCoordinate(chr: string, pos: number): number
+    getChromosome(chr: string): { bpLength: number } | undefined
+    getGenomeCoordinate(chr: string, pos: number): number | undefined
     [key: string]: any
 }
 
@@ -145,15 +145,15 @@ class TDFSource extends BaseFeatureSource {
             const chrNames = this.genome.wgChromosomeNames
             if (chrNames) {
                 for (let c of genome.wgChromosomeNames!) {
-                    const len = genome.getChromosome(c).bpLength
+                    const len = genome.getChromosome(c)!.bpLength
                     bpPerPixel = len / 1000
                     const chrFeatures = await this._getFeatures(c, 0, len, bpPerPixel, windowFunction)
                     if (chrFeatures) {
                         for (let f of chrFeatures) {
                             const wg: TDFFeature = Object.assign({}, f)
                             wg.chr = "all"
-                            wg.start = genome.getGenomeCoordinate(f.chr, f.start)
-                            wg.end = genome.getGenomeCoordinate(f.chr, f.end)
+                            wg.start = genome.getGenomeCoordinate(f.chr, f.start) ?? 0
+                            wg.end = genome.getGenomeCoordinate(f.chr, f.end) ?? 0
                             wg._f = f
                             wgFeatures.push(wg)
                         }
@@ -240,7 +240,7 @@ function zoomLevelForScale(chr: string, bpPerPixel: number, genome: Genome): num
     // display in a 700 pixel window.  The fully zoomed out view of a chromosome is zoom level "0".
     // Zoom level 1 is magnified 2X,  and so forth
 
-    const chrSize = genome.getChromosome(chr).bpLength
+    const chrSize = genome.getChromosome(chr)!.bpLength
 
     return Math.ceil(Math.log(Math.max(0, (chrSize / (bpPerPixel * 700)))) / log2)
 }

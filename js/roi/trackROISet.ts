@@ -1,6 +1,9 @@
 import FeatureSource from '../feature/featureSource.js'
 import IGVGraphics from "../igv-canvas.js"
 import { ROI_DEFAULT_COLOR, screenCoordinates } from "./ROISet.js"
+import type {ROIConfig} from "../types/config.js"
+import type Genome from "../genome/genome.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 class TrackROISet {
 
@@ -8,17 +11,17 @@ class TrackROISet {
     featureSource: any
     color: string
 
-    constructor(config: any, genome: any) {
+    constructor(config: ROIConfig, genome: Genome) {
         this.name = config.name
         this.featureSource = config.featureSource || FeatureSource(config, genome)
         this.color = config.color || ROI_DEFAULT_COLOR
     }
 
-    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
+    async getFeatures(chr: string, start: number, end: number): Promise<GenomicFeature[]> {
         return this.featureSource.getFeatures({chr, start, end})
     }
 
-    draw(drawConfiguration: any): void {
+    draw(drawConfiguration: { context: CanvasRenderingContext2D, bpPerPixel: number, bpStart: number, pixelTop: number, pixelHeight: number, pixelWidth: number, features: GenomicFeature[] }): void {
 
         const { context, bpPerPixel, bpStart, pixelTop, pixelHeight, pixelWidth, features, } = drawConfiguration
 
