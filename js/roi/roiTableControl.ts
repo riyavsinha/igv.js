@@ -1,12 +1,13 @@
 import NavbarButton from "../ui/navbarButton.js"
 import {roiImage, roiImageHover} from "../ui/navbarIcons/roi.js"
 import { buttonLabel } from "../ui/navbarIcons/buttonLabel.js"
+import type Browser from "../browser.js"
 
 class ROITableControl extends NavbarButton {
 
     [key: string]: any
 
-    constructor(parent: HTMLElement, browser: any)  {
+    constructor(parent: HTMLElement, browser: Browser)  {
 
         super(parent, browser, ['ROI', 'Regions of Interest Table'], buttonLabel, roiImage, roiImageHover, false)
 

@@ -6,6 +6,14 @@ import type {ROIConfig} from "../types/config.js"
 import type Genome from "../genome/genome.js"
 import type {GenomicFeature} from "../types/feature.js"
 
+/** Feature source interface for ROI sets — covers both FeatureSource() results and DynamicFeatureSource */
+interface ROIFeatureSource {
+    getFeatures(opts: { chr: string; start: number; end: number }): Promise<GenomicFeature[]>
+    getAllFeatures?(): Record<string, GenomicFeature[]>
+    addFeature?(feature: GenomicFeature): void
+    removeFeature?(feature: GenomicFeature | { chr: string; start: number; end: number }): void
+}
+
 const appleCrayonColorName = 'nickel'
 
 const ROI_DEFAULT_ALPHA = 1 / 16
@@ -22,7 +30,7 @@ class ROISet {
     name: string | undefined
     isUserDefined: boolean | undefined
     isVisible: boolean | undefined
-    featureSource: any
+    featureSource: ROIFeatureSource
     color: string
     headerColor: string;
     [key: string]: any
@@ -39,7 +47,7 @@ class ROISet {
 
         if (config.featureSource) {
             // This is unusual, but permitted
-            this.featureSource = config.featureSource
+            this.featureSource = config.featureSource as ROIFeatureSource
         } else if (config.features) {
             // Normalize features: use "description" as "name" if name is not already set
             for (let feature of config.features) {
@@ -84,11 +92,11 @@ class ROISet {
     }
 
     addFeature(feature: GenomicFeature): void {
-        this.featureSource.addFeature(feature)
+        this.featureSource.addFeature!(feature)
     }
 
     removeFeature(feature: GenomicFeature): void {
-        this.featureSource.removeFeature(feature)
+        this.featureSource.removeFeature!(feature)
     }
 
     toJSON(): ROIConfig {
@@ -101,7 +109,7 @@ class ROISet {
                 isVisible: this.isVisible
             }
         } else {
-            const featureMap = this.featureSource.getAllFeatures()
+            const featureMap = this.featureSource.getAllFeatures!()
             const features: GenomicFeature[] = []
             for (let chr of Object.keys(featureMap)) {
                 for (let f of featureMap[chr]) {
@@ -147,9 +155,9 @@ function screenCoordinates(regionStartBP: number, regionEndBP: number, bpStart: 
 class DynamicFeatureSource {
 
     featureMap: Record<string, GenomicFeature[]>
-    genome: any
+    genome: Genome
 
-    constructor(features: GenomicFeature[], genome: any) {
+    constructor(features: GenomicFeature[], genome: Genome) {
         this.featureMap = {}
         this.genome = genome
 
@@ -173,7 +181,7 @@ class DynamicFeatureSource {
 
     async getFeatures({chr, start, end}: { chr: string, start: number, end: number }): Promise<GenomicFeature[]> {
         if (chr.toLowerCase() === 'all') {
-            return await computeWGFeatures(this.featureMap, this.genome, undefined)
+            return await computeWGFeatures(this.featureMap, this.genome as Parameters<typeof computeWGFeatures>[1], undefined)
         } else {
             // TODO -- this use of filter is O(N), and might not scale well for large feature lists.
             const featureList = this.featureMap[chr]

@@ -5,6 +5,9 @@ import { createRegionKey, parseRegionKey } from './roiUtils.js'
 import RegionTableBase from '../ui/regionTableBase.js'
 import {parseLocusString} from "../search"
 import {appleCrayonRGB} from "../util/colorPalletes.js"
+import type Browser from "../browser.js"
+import type ROIManager from "./ROIManager.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 interface ColumnFormat {
     label: string
@@ -13,7 +16,7 @@ interface ColumnFormat {
 
 interface ROIRecord {
     setName: string
-    feature: any
+    feature: GenomicFeature
 }
 
 class ROITable extends RegionTableBase {
@@ -24,9 +27,9 @@ class ROITable extends RegionTableBase {
     boundToggleDisplayButtonHandler!: (event: Event) => void;
     [key: string]: any
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
 
-        const config: any =
+        const config: Record<string, unknown> =
             {
                 browser: browser,
                 parent: browser.columnContainer,
@@ -162,7 +165,7 @@ class ROITable extends RegionTableBase {
     }
 
     // This is a rather roundabot way to get the manager
-    get roiManager(): any {
+    get roiManager(): ROIManager {
         return this.browser.roiManager
     }
 

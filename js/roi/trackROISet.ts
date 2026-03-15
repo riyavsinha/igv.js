@@ -4,16 +4,17 @@ import { ROI_DEFAULT_COLOR, screenCoordinates } from "./ROISet.js"
 import type {ROIConfig} from "../types/config.js"
 import type Genome from "../genome/genome.js"
 import type {GenomicFeature} from "../types/feature.js"
+import type {FeatureSource as IFeatureSource} from "../types/reader.js"
 
 class TrackROISet {
 
     name: string | undefined
-    featureSource: any
+    featureSource: IFeatureSource
     color: string
 
     constructor(config: ROIConfig, genome: Genome) {
         this.name = config.name
-        this.featureSource = config.featureSource || FeatureSource(config, genome)
+        this.featureSource = (config.featureSource as IFeatureSource) || FeatureSource(config, genome)
         this.color = config.color || ROI_DEFAULT_COLOR
     }
 

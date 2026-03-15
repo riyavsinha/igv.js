@@ -2,17 +2,23 @@ import * as DOMUtils from "../ui/utils/dom-utils.js"
 import * as UIUtils from "../ui/utils/ui-utils.js"
 import {isSecureContext} from "../util/igvUtils.js"
 import {createBlatTrack} from "../blat/blatTrack.js"
+import type Browser from "../browser.js"
+import type ROISet from "./ROISet.js"
+import type ROIManager from "./ROIManager.js"
+import type {GenomicFeature} from "../types/feature.js"
+import type {MenuItem} from "../types/ui.js"
+import type {Track} from "../types/ui.js"
 
 const maxSequenceSize = 1000000
 const maxBlatSize = 25000
 
 class ROIMenu {
 
-    browser: any
+    browser: Browser
     container: HTMLElement
     body: HTMLElement
 
-    constructor(browser: any, parent: HTMLElement) {
+    constructor(browser: Browser, parent: HTMLElement) {
 
         this.browser = browser
 
@@ -33,13 +39,13 @@ class ROIMenu {
         this.container.style.display = 'none'
     }
 
-    async present(feature: any, roiSet: any, event: Event, roiManager: any, columnContainer: HTMLElement, regionElement: HTMLElement): Promise<void> {
+    async present(feature: GenomicFeature, roiSet: ROISet, event: MouseEvent, roiManager: ROIManager, columnContainer: HTMLElement, regionElement: HTMLElement): Promise<void> {
         const menuItems = this.menuItems(feature, roiSet, event, roiManager, columnContainer, regionElement)
         this.browser.menuPopup.presentTrackContextMenu(event, menuItems)
     }
 
-    menuItems(feature: any, roiSet: any, event: Event, roiManager: any, columnContainer: HTMLElement, regionElement: HTMLElement): any[] {
-        const items: any[] = feature.name ? [`<b>${feature.name}</b><br/>`]  : []
+    menuItems(feature: GenomicFeature, roiSet: ROISet, event: MouseEvent, roiManager: ROIManager, columnContainer: HTMLElement, regionElement: HTMLElement): (string | MenuItem)[] {
+        const items: (string | MenuItem)[] = feature.name ? [`<b>${feature.name}</b><br/>`]  : []
         if ('name' in roiSet) items.push(`<b>ROI Set: ${roiSet.name}</b>`)
         if (items.length > 0) items.push(`<hr/>`)
 
@@ -70,7 +76,7 @@ class ROIMenu {
         return items
     }
 
-    #addDeleteMenuItem(items: any[], feature: any, roiSet: any, roiManager: any, columnContainer: HTMLElement, regionElement: HTMLElement): void {
+    #addDeleteMenuItem(items: (string | MenuItem)[], feature: GenomicFeature, roiSet: ROISet, roiManager: ROIManager, columnContainer: HTMLElement, regionElement: HTMLElement): void {
 
         items.push('<hr/>')
         items.push(
@@ -92,14 +98,14 @@ class ROIMenu {
                     if (Object.keys(userDefinedFeatures).length === 0) {
                         roiManager.deleteUserDefinedROISet()
                     }
-                    roiManager.deleteRegionWithKey(regionElement.dataset.region, columnContainer)
+                    roiManager.deleteRegionWithKey(regionElement.dataset.region!, columnContainer)
                     roiManager.repaintTable()
                 }
             }
         )
     }
 
-    #addCopySequenceMenuItem(items: any[], feature: any): void {
+    #addCopySequenceMenuItem(items: (string | MenuItem)[], feature: GenomicFeature): void {
         items.push({
             label: 'Copy reference sequence',
             click: async () => {
@@ -110,15 +116,15 @@ class ROIMenu {
                 }
                 try {
                     await navigator.clipboard.writeText(sequence)
-                } catch (e: any) {
+                } catch (e: unknown) {
                     console.error(e)
-                    this.browser.alert.present(undefined, `Failed to copy the sequence to the clipboard. (${e.message})`)
+                    this.browser.alert.present(`Failed to copy the sequence to the clipboard. (${(e as Error).message})`)
                 }
             }
         })
     }
 
-    #addDescriptionMenuItem(items: any[], feature: any, event: Event): void {
+    #addDescriptionMenuItem(items: (string | MenuItem)[], feature: GenomicFeature, event: MouseEvent): void {
         items.push(
             {
                 label: 'Set description ...',
@@ -140,9 +146,9 @@ class ROIMenu {
         )
     }
 
-    #addSortMenuItems(items: any[], feature: any): void {
+    #addSortMenuItems(items: (string | MenuItem)[], feature: GenomicFeature): void {
 
-        const found = this.browser.findTracks((track: any) => typeof track.sortByValue === 'function')
+        const found = this.browser.findTracks((track: Track) => typeof track.sortByValue === 'function')
         if (found.length > 0) {
 
             items.push(`<hr/>`)
@@ -150,21 +156,21 @@ class ROIMenu {
             const { chr, start, end } = feature
             items.push({
                     label: 'Sort by value (ascending)',
-                    click: () => Promise.all(found.map((track: any) => track.sortByValue({ option: 'VALUE', direction: 'ASC', chr, start, end })))
+                    click: () => Promise.all(found.map((track: Track) => track.sortByValue({ option: 'VALUE', direction: 'ASC', chr, start, end })))
                 })
 
             items.push('<hr style="border: none; height: 1px; background-color: white; margin-top: 1px; margin-bottom: 1px;" />')
 
             items.push({
                     label: 'Sort by value (descending)',
-                    click: () => Promise.all(found.map((track: any) => track.sortByValue({ option: 'VALUE', direction: 'DESC', chr, start, end })))
+                    click: () => Promise.all(found.map((track: Track) => track.sortByValue({ option: 'VALUE', direction: 'DESC', chr, start, end })))
                 })
         }
     }
 
 
 
-    #addBlatMenuItem(items: any[], feature: any): void {
+    #addBlatMenuItem(items: (string | MenuItem)[], feature: GenomicFeature): void {
         items.push({
             label: 'BLAT reference sequence',
             click: async () => {

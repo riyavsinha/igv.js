@@ -8,6 +8,7 @@ import {FileUtils} from "../../node_modules/igv-utils/src/index.js"
 import {createRegionKey, parseRegionKey} from "./roiUtils.js"
 import type Browser from "../browser.js"
 import type {ROIConfig} from "../types/config.js"
+import type {Track} from "../types/ui.js"
 import type {C2SContext} from "../canvas2svg.js"
 import type Genome from "../genome/genome.js"
 import type {GenomicFeature} from "../types/feature.js"
@@ -290,10 +291,10 @@ class ROIManager {
 
         const browser = this.browser
 
-        const tracks = browser.findTracks((track: any) => new Set(['ideogram', 'ruler']).has(track.type))
+        const tracks = browser.findTracks((track: Track) => new Set(['ideogram', 'ruler']).has(track.type!))
 
         const [rectA, rectB] = tracks
-            .map((track: any) => track.trackView.viewports[0].viewportElement)
+            .map((track: Track) => (track.trackView!.viewports[0] as unknown as { viewportElement: HTMLElement }).viewportElement)
             .map((element: HTMLElement) => getElementVerticalDimension(element))
 
         //Covers cases in which ruler and/or ideogram are hidden
@@ -357,7 +358,7 @@ class ROIManager {
 
     }
 
-    toJSON(): any[] {
+    toJSON(): ROIConfig[] {
         return this.roiSets.map(roiSet => roiSet.toJSON())
     }
 
