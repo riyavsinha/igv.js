@@ -2327,11 +2327,11 @@ resize(this: Browser, event?: Event): Promise<void> {
 
 function
 
-handleMouseMove(this: Browser, e: MouseEvent | TouchEvent): void {
+handleMouseMove(this: Browser, e: Event): void {
 
     e.preventDefault()
 
-    const {x, y} = DOMUtils.pageCoordinates(e)
+    const {x, y} = DOMUtils.pageCoordinates(e as MouseEvent | TouchEvent)
 
     if (this.vpMouseDown) {
 

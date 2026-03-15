@@ -105,7 +105,7 @@ class ShoeboxTrack extends TrackBase {
 
         const browser = this.browser
 
-        function dialogHandler(e: any) {
+        function dialogHandler(this: ShoeboxTrack, e: any) {
 
             const callback = () => {
 
@@ -152,7 +152,7 @@ class ShoeboxTrack extends TrackBase {
         element.textContent = 'Set data range';
 
         // Note -- menu item handlers must be functions, not arrow functions
-        function dataRangeHandler(e: any) {
+        function dataRangeHandler(this: ShoeboxTrack, e: any) {
             if (this.trackView.track.selected) {
                 this.browser.dataRangeDialog.configure(this.trackView.browser.getSelectedTrackViews())
             } else {

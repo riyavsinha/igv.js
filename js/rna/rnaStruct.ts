@@ -201,7 +201,7 @@ class RnaStructTrack extends TrackBase {
         return [
             {
                 name: "Toggle arc direction",
-                click: function toggleArcDirectionHandler() {
+                click: function toggleArcDirectionHandler(this: RnaStructTrack) {
                     this.arcOrientation = "UP" === this.arcOrientation ? "DOWN" : "UP"
                     this.trackView.repaintViews()
                 }

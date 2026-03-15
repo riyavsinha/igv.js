@@ -655,7 +655,7 @@ class VariantTrack extends TrackBase {
             menuItems.push({ element: createElementWithString('<div class="igv-track-menu-border-top">') })
             menuItems.push({
                 element: createCheckbox("Show Genotypes", this.showGenotypes),
-                click: function showGenotypesHandler() {
+                click: function showGenotypesHandler(this: VariantTrack) {
                     this.showGenotypes = !this.showGenotypes
                     this.trackView.checkContentHeight()
                     this.trackView.repaintViews()
@@ -677,7 +677,7 @@ class VariantTrack extends TrackBase {
             menuItems.push(
                 {
                     element: createCheckbox(lut[displayMode], displayMode === this.displayMode),
-                    click: function displayModeHandler() {
+                    click: function displayModeHandler(this: VariantTrack) {
                         this.displayMode = displayMode
                         this.trackView.checkContentHeight()
                         this.trackView.repaintViews()
@@ -691,7 +691,7 @@ class VariantTrack extends TrackBase {
             menuItems.push('<hr>')
             menuItems.push({
                 label: 'Add SVs to circular view',
-                click: function circularViewHandler() {
+                click: function circularViewHandler(this: VariantTrack) {
                     const inView = []
                     for (let viewport of this.trackView.viewports) {
                         this.sendChordsForViewport(viewport)
@@ -705,7 +705,7 @@ class VariantTrack extends TrackBase {
             menuItems.push('<hr>')
             menuItems.push({
                 label: 'Convert to CNVpytor track',
-                click: function cnvPytorHandler() {
+                click: function cnvPytorHandler(this: VariantTrack) {
                     this.convertToPytor()
                 }
             })
@@ -847,7 +847,7 @@ class VariantTrack extends TrackBase {
         const element = createCheckbox(menuItem.label, showCheck)
 
         if (menuItem.key !== 'info') {
-            function clickHandler() {
+            function clickHandler(this: VariantTrack) {
                 const colorBy = ('none' === menuItem.key) ? undefined : menuItem.key
                 this.colorBy = colorBy
                 this.config.colorBy = colorBy
@@ -856,7 +856,7 @@ class VariantTrack extends TrackBase {
 
             return {name: undefined as any, element, click: clickHandler, init: undefined as any}
         } else {
-            function dialogPresentationHandler(ev: Event) {
+            function dialogPresentationHandler(this: VariantTrack, ev: Event) {
                 this.browser.inputDialog.present({
                     label: 'Info field',
                     value: '',

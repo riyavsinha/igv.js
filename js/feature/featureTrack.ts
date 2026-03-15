@@ -372,7 +372,7 @@ class FeatureTrack extends TrackBase {
 
             for (const colorScheme of ["function", "class"]) {
 
-                function colorSchemeHandler() {
+                function colorSchemeHandler(this: FeatureTrack) {
                     this.colorBy = colorScheme
                     this.trackView.repaintViews()
                 }
@@ -395,7 +395,7 @@ class FeatureTrack extends TrackBase {
 
         for (const displayMode of ["COLLAPSED", "SQUISHED", "EXPANDED"]) {
 
-            function displayModeHandler() {
+            function displayModeHandler(this: FeatureTrack) {
                 this.displayMode = displayMode
                 this.config.displayMode = displayMode
                 this.trackView.checkContentHeight()

@@ -92,7 +92,7 @@ class BlatTrack extends FeatureTrack {
 
         menuItems.push('<hr/>')
 
-        function click() {
+        function click(this: BlatTrack) {
             this.openTableView()
         }
         menuItems.push({ label: 'Open table view', click } as any)

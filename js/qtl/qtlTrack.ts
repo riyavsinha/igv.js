@@ -41,7 +41,7 @@ class QTLTrack extends TrackBase {
         this.featureSource = FeatureSource(config, this.browser.genome)
     }
 
-    paintAxis(ctx: any, pixelWidth: number, pixelHeight: number) {
+    paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
 
         const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
 
@@ -241,7 +241,7 @@ class QTLTrack extends TrackBase {
         menuItems.push(...this.numericDataMenuItems())
         menuItems.push('<hr/>')
 
-        function dialogPresentationHandler(ev: any) {
+        function dialogPresentationHandler(this: QTLTrack, ev: any) {
 
             this.browser.inputDialog.present({
                 label: 'Search for snp or phenotype',

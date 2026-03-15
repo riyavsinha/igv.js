@@ -1,3 +1,4 @@
+import type BAMTrack from "./bamTrack"
 import BaseModificationRenderer from "./mods/baseModificationRenderer"
 import IGVGraphics from "../igv-canvas.js"
 import PairedAlignment from "./pairedAlignment"
@@ -166,7 +167,7 @@ class AlignmentTrack extends TrackBase {
         return this.parent.baseModificationThreshold
     }
 
-    setTop(coverageTrack: any, showCoverage: boolean) {
+    setTop(coverageTrack: { height: number }, showCoverage: boolean) {
         this.top = (0 === coverageTrack.height || false === showCoverage) ? 0 : (5 + coverageTrack.height)
     }
 
@@ -347,7 +348,7 @@ class AlignmentTrack extends TrackBase {
         ctx.restore()
 
         // alignment is a PairedAlignment
-        function drawPairConnector(alignment: any, yRect: number, alignmentHeight: number) {
+        function drawPairConnector(this: AlignmentTrack, alignment: any, yRect: number, alignmentHeight: number) {
 
             var connectorColor = this.getConnectorColor(alignment.firstAlignment),
                 xBlockStart = (alignment.connectingStart - bpStart) / bpPerPixel,
@@ -365,7 +366,7 @@ class AlignmentTrack extends TrackBase {
 
         }
 
-        function drawSingleAlignment(alignment: any, y: number, alignmentHeight: number) {
+        function drawSingleAlignment(this: AlignmentTrack, alignment: any, y: number, alignmentHeight: number) {
 
 
             if ((alignment.start + alignment.lengthOnRef) < bpStart || alignment.start > bpEnd) {
@@ -505,7 +506,7 @@ class AlignmentTrack extends TrackBase {
             }
 
 
-            function drawBlock(block: any, b: number) {
+            function drawBlock(this: AlignmentTrack, block: any, b: number) {
                 // Collect bases to draw for later rendering
                 const blockBasesToDraw = []
 
@@ -649,7 +650,7 @@ class AlignmentTrack extends TrackBase {
                 return blockBasesToDraw
             }
 
-            function renderBlockOrReadChar(context: CanvasRenderingContext2D, bpp: number, bbox: any, color: string, char: string) {
+            function renderBlockOrReadChar(context: CanvasRenderingContext2D, bpp: number, bbox: {x: number, y: number, width: number, height: number}, color: string, char: string) {
                 var threshold,
                     center
 
@@ -935,7 +936,7 @@ class AlignmentTrack extends TrackBase {
 
         if (menuItem.key !== 'tag') {
 
-            function clickHandler() {
+            function clickHandler(this: BAMTrack) {
                 this.alignmentTrack.colorBy = menuItem.key
                 this.trackView.repaintViews()
             }
@@ -943,7 +944,7 @@ class AlignmentTrack extends TrackBase {
             return {name: undefined as any, element, click: clickHandler, init: undefined as any}
         } else {
 
-            function dialogPresentationHandler(ev: Event) {
+            function dialogPresentationHandler(this: BAMTrack, ev: Event) {
 
                 const tag = this.alignmentTrack.colorBy.startsWith("tag:") ? this.alignmentTrack.colorBy.substring(4) : ''
 
@@ -974,7 +975,7 @@ class AlignmentTrack extends TrackBase {
 
         const showCheck = this.colorBy === menuItem.key
 
-        function clickHandler() {
+        function clickHandler(this: BAMTrack) {
             this.alignmentTrack.colorBy = menuItem.key
             this.trackView.repaintViews()
         }
@@ -999,7 +1000,7 @@ class AlignmentTrack extends TrackBase {
      */
     groupByCB(menuItem: {key: string, label: string}, showCheck: boolean) {
 
-        function clickHandler(ev: Event) {
+        function clickHandler(this: BAMTrack, ev: Event) {
 
             const doGroupBy = () => this.alignmentTrack.repackAlignments()
 
@@ -1577,7 +1578,7 @@ function shadedBaseColor(qual: number, baseColor: string) {
     return baseColor
 }
 
-function locusChange() {
+function locusChange(this: AlignmentTrack) {
     if ("FULL" === this.displayMode && !this.browser.isTrackPanning()) {
         this.repackAlignments()
     }

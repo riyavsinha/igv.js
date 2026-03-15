@@ -115,7 +115,7 @@ class SegTrack extends TrackBase {
                     const element = document.createElement('div')
                     element.innerHTML = `&nbsp;&nbsp;${attribute.split(SampleInfo.emptySpaceReplacement).join(' ')}`
 
-                    function attributeSort() {
+                    function attributeSort(this: SegTrack) {
                         this.sortByAttribute(attribute)
                     }
 
@@ -140,7 +140,7 @@ class SegTrack extends TrackBase {
             menuItems.push(
                 {
                     element,
-                    click: function groupByFunction() {
+                    click: function groupByFunction(this: SegTrack) {
                         this.groupByAttribute(attribute)
                     }
                 })
@@ -162,7 +162,7 @@ class SegTrack extends TrackBase {
             menuItems.push(
                 {
                     element: createCheckbox((lut as Record<string, string>)[displayMode], displayMode === this.displayMode),
-                    click: function displayModeHandler() {
+                    click: function displayModeHandler(this: SegTrack) {
                         this.displayMode = displayMode
                         this.config.displayMode = displayMode
                         this.trackView.checkContentHeight()

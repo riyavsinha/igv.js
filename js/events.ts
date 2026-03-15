@@ -53,8 +53,9 @@ class EventEmitter {
         }
 
         const scope = thisObj || globalThis
+        const appliedArgs = args || []
         const results = handlers.map(function (handler) {
-            return handler.apply(scope, args)
+            return handler.apply(scope, appliedArgs)
         })
 
         // The only event that uses the return value is "trackclick", which implicitly assumes a single handler

@@ -192,7 +192,7 @@ class MergedTrack extends TrackBase {
             if (this.flipAxis !== undefined) {
                 items.push({
                     label: "Flip y-axis",
-                    click: function flipYAxisHandler() {
+                    click: function flipYAxisHandler(this: MergedTrack) {
                         this.flipAxis = !this.flipAxis
                         this.trackView.repaintViews()
                     }
@@ -387,7 +387,7 @@ class MergedTrack extends TrackBase {
         const element = DOMUtils.div()
         element.innerText = 'Set transparency'
 
-        function dialogPresentationHandler(e: any) {
+        function dialogPresentationHandler(this: MergedTrack, e: any) {
             const callback = (alpha: number) => {
                 this.alpha = Math.max(0.001, alpha)
                 this.repaintViews()
@@ -414,7 +414,7 @@ class MergedTrack extends TrackBase {
         let element = document.createElement('div');
         element.textContent = 'Separate tracks';
 
-        async function click(e: any) {
+        async function click(this: MergedTrack, e: any) {
 
             // Capture state which will be nulled when track is removed
             const groupAutoscale = this.autoscale

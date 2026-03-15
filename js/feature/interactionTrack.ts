@@ -290,7 +290,7 @@ class InteractionTrack extends TrackBase {
             }
         }
 
-        function autoscaleNested() {
+        function autoscaleNested(this: InteractionTrack) {
 
             if(this._hic) {
                 // No autoscaling for hic files
@@ -516,7 +516,7 @@ class InteractionTrack extends TrackBase {
                 items.push(
                     {
                         element: createCheckbox((lut as Record<string, string>)[arcType], arcType === this.arcType),
-                        click: function arcTypeHandler() {
+                        click: function arcTypeHandler(this: InteractionTrack) {
                             this.arcType = arcType
                             this.trackView.repaintViews()
                         }
@@ -527,14 +527,14 @@ class InteractionTrack extends TrackBase {
 
         items.push({
             name: "Toggle arc direction",
-            click: function toggleArcDirectionHandler() {
+            click: function toggleArcDirectionHandler(this: InteractionTrack) {
                 this.arcOrientation = "UP" === this.arcOrientation ? "DOWN" : "UP"
                 this.trackView.repaintViews()
             }
         })
         items.push({
             name: this.showBlocks ? "Hide Blocks" : "Show Blocks",
-            click: function blockVisibiltyHandler() {
+            click: function blockVisibiltyHandler(this: InteractionTrack) {
                 this.showBlocks = !this.showBlocks
                 this.trackView.repaintViews()
             }
@@ -543,7 +543,7 @@ class InteractionTrack extends TrackBase {
         items.push("<hr/>")
         items.push({
             name: 'Set line thickness',
-            click: function setLineThicknessHandler(ev: any) {
+            click: function setLineThicknessHandler(this: InteractionTrack, ev: any) {
                 const inputDialog = this.browser.inputDialog
                 inputDialog.present({
                     label: "Enter line thickness",
@@ -569,7 +569,7 @@ class InteractionTrack extends TrackBase {
         } else {
             items.push({
                 name: 'Set alpha',
-                click: function (ev: any) {
+                click: function (this: InteractionTrack, ev: any) {
                     const inputDialog = this.browser.inputDialog
                     inputDialog.present({
                         label: "Enter alpha transparency (0-1)",
@@ -621,7 +621,7 @@ class InteractionTrack extends TrackBase {
             items.push('<hr/>')
             items.push({
                 label: 'Add interactions to circular view',
-                click: function addInteractionsHandler() {
+                click: function addInteractionsHandler(this: InteractionTrack) {
                     for (let viewport of this.trackView.viewports) {
                         this.addChordsForViewport(viewport.referenceFrame)
                     }
@@ -637,7 +637,7 @@ class InteractionTrack extends TrackBase {
         const element = DOMUtils.div()
         element.innerText = 'Set transparency'
 
-        function dialogPresentationHandler(e: any) {
+        function dialogPresentationHandler(this: InteractionTrack, e: any) {
             const callback = (alpha: number) => {
                 this.transparency = Math.max(0.001, alpha)
                 this.repaintViews()
@@ -898,7 +898,7 @@ function getAlphaColor(color: string, alpha: number) {
  * @param allFeatures
  * @returns {[]}
  */
-function getWGFeatures(allFeatures: Record<string, any[]>) {
+function getWGFeatures(this: any, allFeatures: Record<string, any[]>) {
 
     const makeWGFeature = (f: any) => {
         const wg = Object.assign({}, f)

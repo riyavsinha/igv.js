@@ -226,7 +226,7 @@ class CramReader {
 
                 return alignmentContainer
             } catch (error) {
-                let message: string = error.message
+                let message: string = error instanceof Error ? error.message : String(error)
                 if (message && message.indexOf("MD5") >= 0) {
                     message = "Sequence mismatch. Is this the correct genome for the loaded CRAM?"
                 }

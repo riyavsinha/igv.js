@@ -151,8 +151,8 @@ class WigTrack extends TrackBase {
         if ('heatmap' === this.graphType) {
             items.push('<hr>')
             items.push({
-                label: 'Set color scale', click: function () {
-                    ColorScaleEditor.open(this.colorScale, this.browser.columnContainer, (colorScale) => {
+                label: 'Set color scale', click: function (this: WigTrack) {
+                    ColorScaleEditor.open(this.colorScale, this.browser.columnContainer, (colorScale: any) => {
                         this._colorScale = colorScale
                         this.trackView.repaintViews()
                     })
@@ -162,7 +162,7 @@ class WigTrack extends TrackBase {
             items.push('<hr>')
             items.push({
                 label: 'Flip y-axis',
-                click: function () {
+                click: function (this: WigTrack) {
                     this.flipAxis = !this.flipAxis
                     this.trackView.repaintViews()
                 }
@@ -189,7 +189,7 @@ class WigTrack extends TrackBase {
         menuItems.push("<div>Windowing function</div>")
         for (const wf of windowFunctions) {
 
-            function clickHandler() {
+            function clickHandler(this: WigTrack) {
                 this.windowFunction = wf
                 this.trackView.updateViews()
             }
@@ -210,7 +210,7 @@ class WigTrack extends TrackBase {
 
         for (const gt of graphType) {
 
-            function clickHandler() {
+            function clickHandler(this: WigTrack) {
                 this.graphType = gt
                 this.trackView.repaintViews()
             }
