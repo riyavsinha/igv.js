@@ -1,8 +1,12 @@
-interface DataWrapper {
+export interface SyncDataWrapper {
     nextLine(): string | undefined
 }
 
-function getDataWrapper(data: string | Uint8Array): DataWrapper {
+export interface DataWrapper {
+    nextLine(): string | undefined | Promise<string | undefined>
+}
+
+function getDataWrapper(data: string | Uint8Array): SyncDataWrapper {
 
     if (typeof (data) == 'string' || data instanceof String) {
         return new StringDataWrapper(data as string)
@@ -13,7 +17,7 @@ function getDataWrapper(data: string | Uint8Array): DataWrapper {
 
 
 // Data might be a string, or an UInt8Array
-class StringDataWrapper implements DataWrapper {
+class StringDataWrapper implements SyncDataWrapper {
     data: string
     ptr: number
 
@@ -43,7 +47,7 @@ class StringDataWrapper implements DataWrapper {
     }
 }
 
-class ByteArrayDataWrapper implements DataWrapper {
+class ByteArrayDataWrapper implements SyncDataWrapper {
     data: Uint8Array
     length: number
     ptr: number

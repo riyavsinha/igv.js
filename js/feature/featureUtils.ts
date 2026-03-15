@@ -1,5 +1,6 @@
 import pack from "./featurePacker"
 import IntervalTree from "./intervalTree"
+import type {Exon} from "../types/feature"
 
 const DEFAULT_MAX_WG_COUNT: number = 10000
 
@@ -13,7 +14,7 @@ interface Feature {
     end2?: number
     dup?: boolean
     row?: number | undefined
-    exons?: any[]
+    exons?: Exon[]
     [key: string]: any
 }
 
@@ -236,7 +237,7 @@ function findOverlapping(featureList: Feature[], start: number, end: number): Fe
 
             const overlaps: Feature[] = []
 
-            intervals.forEach(function (interval: any) {
+            intervals.forEach(function (interval: { value: Feature[] }) {
                 const intervalFeatures: Feature[] = interval.value
                 const len: number = intervalFeatures.length
                 for (let i = 0; i < len; i++) {
@@ -263,7 +264,7 @@ function findOverlapping(featureList: Feature[], start: number, end: number): Fe
  *
  * @param featureList
  */
-function buildIntervalTree(featureList: Feature[]): any {
+function buildIntervalTree(featureList: Feature[]): IntervalTree {
 
     const tree = new IntervalTree()
     const len: number = featureList.length

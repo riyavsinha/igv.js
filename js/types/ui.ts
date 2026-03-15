@@ -92,6 +92,18 @@ export interface DrawConfiguration {
     pixelXOffset?: number
     /** Genomic selection region */
     selection?: { chr: string; start: number; end: number }
+    /** Cached sequence interval for amino acid rendering */
+    sequenceInterval?: unknown
+    /** Per-row last X pixel position for feature rendering */
+    rowLastX?: number[]
+    /** Per-row last label X position for feature rendering */
+    rowLastLabelX?: number[]
+    /** Whether to draw feature labels */
+    drawLabel?: boolean
+    /** Whether to label all features regardless of density */
+    labelAllFeatures?: boolean
+    /** Allow additional dynamic properties set by track renderers */
+    [key: string]: unknown
 }
 
 

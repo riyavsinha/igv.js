@@ -3,11 +3,12 @@
  * of an ordered list of fields, and optional delimiter specified.
  */
 
-interface FileFormat {
+export interface FileFormat {
     fields: string[]
     chr?: number
     start?: number
     end?: number
+    delimiter?: string
 }
 
 function registerFileFormats(name: string, fields: string[]): void {

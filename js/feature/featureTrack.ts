@@ -10,6 +10,10 @@ import {StringUtils, FeatureUtils} from "../../node_modules/igv-utils/src/index.
 import {ColorTable, PaletteColorTable} from "../util/colorPalletes.js"
 import {isSecureContext} from "../util/igvUtils.js"
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, DrawConfiguration} from "../types/ui"
+import type {GenomicFeature} from "../types/feature"
 
 
 class FeatureTrack extends TrackBase {
@@ -26,11 +30,11 @@ class FeatureTrack extends TrackBase {
         useScore: false
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
         super.init(config)
 
         // Obscure option, not common or supoorted, included for backward compatibility
@@ -100,8 +104,8 @@ class FeatureTrack extends TrackBase {
             this.visibilityWindow = await this.featureSource!.defaultVisibilityWindow()
         }
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof FeatureTrack).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof FeatureTrack).defaultColor
 
         return this
 
@@ -154,7 +158,7 @@ class FeatureTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features: any[]) {
+    computePixelHeight(features: GenomicFeature[]) {
 
         if (this.displayMode === "COLLAPSED") {
             return this.margin + this.expandedRowHeight
@@ -190,9 +194,10 @@ class FeatureTrack extends TrackBase {
      *                 viewportWidth: this.$viewport.width()
      * @param options
      */
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const {features, context, bpPerPixel, bpStart, bpEnd, pixelWidth, pixelHeight, referenceFrame} = options
+        const {features: rawFeatures, context, bpPerPixel, bpStart, bpEnd, pixelWidth, pixelHeight, referenceFrame} = options
+        const features = rawFeatures as GenomicFeature[] | undefined
 
         // If drawing amino acids fetch cached sequence interval.  It is not needed if track does not support AA, but
         // costs nothing since only a reference to a cached object is fetched.
@@ -238,7 +243,7 @@ class FeatureTrack extends TrackBase {
                 if (feature.end < bpStart) continue
                 if (feature.start > bpEnd) break
 
-                if (this.displayMode === 'COLLAPSED' && this.browser.qtlSelections.hasPhenotype(feature.name)) {
+                if (this.displayMode === 'COLLAPSED' && feature.name && this.browser.qtlSelections.hasPhenotype(feature.name)) {
                     selectedFeatures.push(feature)
                 }
 
@@ -273,7 +278,7 @@ class FeatureTrack extends TrackBase {
 
     };
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         const y = clickState.y - this.margin
         const allFeatures = super.clickedFeatures(clickState)
@@ -298,7 +303,7 @@ class FeatureTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation
@@ -413,7 +418,7 @@ class FeatureTrack extends TrackBase {
     };
 
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
         const features = this.clickedFeatures(clickState)
 
@@ -499,7 +504,7 @@ class FeatureTrack extends TrackBase {
      * @returns {string}
      */
 
-    getColorForFeature(f: any) {
+    getColorForFeature(f: GenomicFeature) {
 
         const feature = f._f || f    // f might be a "whole genome" wrapper
 
@@ -508,7 +513,7 @@ class FeatureTrack extends TrackBase {
         if (f.name && this.browser.qtlSelections.hasPhenotype(f.name)) {
             color = this.browser.qtlSelections.colorForGene(f.name)
         } else if (this.altColor && "-" === feature.strand) {
-            color = (typeof this.altColor === "function") ? (this.altColor as any)(feature) : this.altColor
+            color = (typeof this.altColor === "function") ? (this.altColor as (f: GenomicFeature) => string)(feature) : this.altColor
         } else if (this.color) {
             color = (typeof this.color === "function") ? this.color(feature) : this.color  // Explicit setting via menu, or possibly track line if !config.color
         } else if (this.colorBy) {

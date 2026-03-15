@@ -27,7 +27,7 @@ interface CacheRange {
 
 class FeatureCache {
 
-    treeMap: { [chr: string]: any }
+    treeMap: { [chr: string]: IntervalTree }
     range: CacheRange | undefined
     count: number
     allFeatures!: { [chr: string]: Feature[] }
@@ -106,9 +106,9 @@ class FeatureCache {
         return this.allFeatures;
     }
 
-    buildTreeMap(featureList: Feature[]): { [chr: string]: any } {
+    buildTreeMap(featureList: Feature[]): { [chr: string]: IntervalTree } {
 
-        const treeMap: { [chr: string]: any } = {};
+        const treeMap: { [chr: string]: IntervalTree } = {};
         const chromosomes: string[] = [];
         this.allFeatures = {};
 
@@ -146,7 +146,7 @@ class FeatureCache {
  *
  * @param featureList
  */
-function buildIntervalTree(featureList: Feature[]): any {
+function buildIntervalTree(featureList: Feature[]): IntervalTree {
 
     const tree = new IntervalTree();
     const len: number = featureList.length;

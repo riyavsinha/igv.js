@@ -12,7 +12,7 @@ export interface FeatureReader {
 export interface FeatureSource {
     getFeatures(...args: any[]): Promise<any>
     supportsWholeGenome?: boolean | (() => boolean)
-    trackType?: string | (() => Promise<string>)
+    trackType?: string | (() => Promise<string | undefined>)
     /** Allow duck-typed methods (getHeader, search, reader, etc.) used by various track implementations */
     [key: string]: any
 }

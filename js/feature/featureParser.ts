@@ -23,9 +23,13 @@ import decodeShoebox from "../shoebox/decodeShoebox.js"
 import DecodeError from "./decode/decodeError"
 import GFFHelper from "./gff/gffHelper"
 
-import {getFormat} from "../util/fileFormats.js"
+import {getFormat, type FileFormat} from "../util/fileFormats.js"
 import {decodeLongrange} from "./decode/longrange"
+import type {DataWrapper} from "./dataWrapper"
+import type {GenomicFeature} from "../types/feature"
 
+// Header param is intentionally `any` — decoders use varying header subtypes (BedHeader, GFFHeader, etc.)
+// Return is intentionally `any` — decoders return varying feature types (UCSCBedFeature, Record<string, any>, etc.)
 type DecoderFunction = (tokens: string[], header: any) => any
 
 interface FeatureParserConfig {
@@ -42,11 +46,11 @@ interface FeatureHeader {
     format?: string
     gffTags?: boolean
     wig?: WigDirective
-    firstFeature?: any
+    firstFeature?: GenomicFeature
     columnNames?: string[]
     colorColumn?: number
     thicknessColumn?: number
-    customFormat?: any
+    customFormat?: FileFormat
     shift?: number
     [key: string]: any
 }
@@ -94,7 +98,7 @@ class FeatureParser {
 
     }
 
-    async parseHeader(dataWrapper: any): Promise<FeatureHeader> {
+    async parseHeader(dataWrapper: DataWrapper): Promise<FeatureHeader> {
 
         let header: FeatureHeader = this.header
         let columnNames: string[] | undefined
@@ -131,7 +135,7 @@ class FeatureParser {
                 const tokens: string[] = line.split(this.delimiter || "\t")
                 try {
                     const tmpHeader = Object.assign({columnNames}, header)
-                    let firstFeature: any
+                    let firstFeature: GenomicFeature | null | undefined
                     if (firstFeature = this.decode(tokens, tmpHeader)) {
                         header.firstFeature = firstFeature
                         break
@@ -164,9 +168,9 @@ class FeatureParser {
         return header
     }
 
-    async parseFeatures(dataWrapper: any): Promise<any[]> {
+    async parseFeatures(dataWrapper: DataWrapper): Promise<GenomicFeature[]> {
 
-        const allFeatures: any[] = []
+        const allFeatures: GenomicFeature[] = []
         const decode: DecoderFunction = this.decode
         const format: string | undefined = this.header.format
         const delimiter: string | RegExp = this.delimiter || "\t"
@@ -214,7 +218,7 @@ class FeatureParser {
 
         if (("gtf" === this.config.format || "gff3" === this.config.format || "gff" === this.config.format) &&
             this.config.assembleGFF !== false) {
-            return (new GFFHelper(this.config as any)).combineFeatures(allFeatures)
+            return (new GFFHelper(this.config as ConstructorParameters<typeof GFFHelper>[0])).combineFeatures(allFeatures as Parameters<GFFHelper["combineFeatures"]>[0])
         } else {
             return allFeatures
         }
@@ -339,7 +343,7 @@ class FeatureParser {
                 if (customFormat !== undefined) {
                     this.decode = decodeCustom
                     this.header.customFormat = customFormat
-                    this.delimiter = (customFormat as any).delimiter || "\t"
+                    this.delimiter = customFormat.delimiter || "\t"
                 } else {
                     this.decode = decodeBed
                     this.delimiter = this.config.delimiter || /\s+/
@@ -349,9 +353,9 @@ class FeatureParser {
     }
 }
 
-function parseTrackLine(line: string): Record<string, any> {
+function parseTrackLine(line: string): Record<string, string | string[]> {
 
-    const properties: Record<string, any> = {}
+    const properties: Record<string, string | string[]> = {}
     const tokens: string[] = line.split(/(?:")([^"]+)(?:")|([^\s"]+)(?=\s+|$)/g)
 
     // Clean up tokens array

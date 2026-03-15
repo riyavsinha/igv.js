@@ -1087,7 +1087,7 @@ class Browser {
                     // Bed files must be read to determine track type
                     const featureSource = FeatureSource(config, this.genome)
                     config._featureSource = featureSource    // This is a temp variable, bit of a hack
-                    const trackType = await featureSource.trackType()
+                    const trackType = typeof featureSource.trackType === 'function' ? await featureSource.trackType() : featureSource.trackType
                     if (trackType && knownTrackTypes().has(trackType)) {
                         type = trackType
                     } else {
