@@ -5,6 +5,7 @@ import { IGVMath } from "../node_modules/igv-utils/src/index.js"
 import type TrackView from "./trackView.js"
 import type ReferenceFrame from "./referenceFrame.js"
 import type {Cytoband} from "./genome/cytoband.js"
+import type {C2SContext} from "./canvas2svg.js"
 
 let timer: ReturnType<typeof setTimeout> | undefined
 const toolTipTimeout = 1e4
@@ -76,14 +77,14 @@ class IdeogramViewport extends TrackViewport {
 
         const config =
             {
-                context: this.ideogram_ctx,
+                context: this.ideogram_ctx!,
                 pixelWidth: width,
                 pixelHeight: height,
                 referenceFrame: this.referenceFrame,
                 features
             }
 
-        this.trackView.track.draw(config)
+        this.trackView.track.draw(config as Parameters<typeof this.trackView.track.draw>[0])
 
     }
 
@@ -187,7 +188,7 @@ class IdeogramViewport extends TrackViewport {
         this.viewportElement.style.width = width + 'px';
     }
 
-    renderSVGContext(context: { saveWithTranslationAndClipRect(id: string, x: number, y: number, w: number, h: number, clipYOffset: number): void; restore(): void }, {deltaX, deltaY}: { deltaX: number; deltaY: number }, _includeLabel: boolean = true): void {
+    renderSVGContext(context: C2SContext, {deltaX, deltaY}: { deltaX: number; deltaY: number }, _includeLabel: boolean = true): void {
 
         const {width, height} = this.viewportElement.getBoundingClientRect()
 
@@ -206,7 +207,7 @@ class IdeogramViewport extends TrackViewport {
             pixelHeight: height,
             referenceFrame: this.referenceFrame,
             features: this.featureCache.get(this.referenceFrame.chr)
-        })
+        } as unknown as Parameters<typeof this.trackView.track.draw>[0])
         context.restore()
 
     }

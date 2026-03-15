@@ -13,25 +13,9 @@ import makeDraggable from "./ui/utils/draggable.js"
 import {createIcon} from "./ui/utils/icons.js"
 import type TrackView from "./trackView.js"
 import type ReferenceFrame from "./referenceFrame.js"
-
-interface DrawConfiguration {
-    context: CanvasRenderingContext2D | C2S
-    contentTop: number
-    pixelXOffset: number
-    pixelWidth: number
-    pixelHeight: number
-    pixelTop: number
-    bpStart: number
-    bpEnd: number
-    bpPerPixel: number
-    pixelShift: number
-    windowFunction?: string
-    referenceFrame: ReferenceFrame
-    selection: Selection | undefined
-    viewport: TrackViewport
-    viewportWidth: number
-    features?: any
-}
+import type {C2SContext} from "./canvas2svg.js"
+import type {ClickState, DrawConfiguration, MenuItem, Track} from "./types/ui.js"
+import type {PopupData} from "./types/feature.js"
 
 interface Selection {
     chr: string
@@ -41,16 +25,18 @@ interface Selection {
 
 interface RoiFeatureSet {
     track: { draw: (config: DrawConfiguration) => void }
-    features: any[]
+    features: unknown[]
 }
 
-interface PopupDataItem {
-    name?: string
-    value?: string
-    html?: string
+/** Local DrawConfiguration with extra fields needed for canvas/SVG rendering */
+interface ViewportDrawConfiguration extends DrawConfiguration {
+    contentTop: number
+    pixelXOffset: number
+    pixelShift: number
+    selection: Selection | undefined
 }
 
-type CanvasWithData = HTMLCanvasElement & { _data?: DrawConfiguration }
+type CanvasWithData = HTMLCanvasElement & { _data?: ViewportDrawConfiguration }
 
 const NOT_LOADED_MESSAGE = 'Error loading track data'
 
@@ -116,7 +102,7 @@ class TrackViewport extends Viewport {
             }
         }
 
-        this.doRenderBucketLabels = (new Set(['seg', 'mut']).has(this.trackView.track.type))
+        this.doRenderBucketLabels = (new Set(['seg', 'mut']).has(this.trackView.track.type || ''))
 
         this.stopSpinner()
         this.addMouseHandlers()
@@ -195,7 +181,7 @@ class TrackViewport extends Viewport {
                 this.canvas = undefined
             }
             if (this.trackView.track.autoHeight) {
-                const minHeight = this.trackView.minHeight || 0
+                const minHeight = (this.trackView.minHeight as number) || 0
                 this.setContentHeight(minHeight)
             }
             if (this.zoomInNoticeElement) {
@@ -267,7 +253,7 @@ class TrackViewport extends Viewport {
                 labelElement.style.margin = '0'
                 labelElement.style.top = "50%"
                 labelElement.style.transform = "translateY(-50%)";
-                (labelElement.style as any)["-ms-transform"] = "translateY(-50%)"
+                (labelElement.style as unknown as Record<string, string>)["-ms-transform"] = "translateY(-50%)"
             } else {
                 labelElement.style.removeProperty("margin")
                 labelElement.style.removeProperty("top")
@@ -300,7 +286,7 @@ class TrackViewport extends Viewport {
             const track = this.trackView.track
             const features = await this.getFeatures(track, chr, bpStart, bpEnd, referenceFrame.bpPerPixel)
             if (features) {
-                let roiFeatures: any[] = []
+                let roiFeatures: RoiFeatureSet[] = []
                 if (track.roiSets && track.roiSets.length > 0) {
                     for (let roiSet of track.roiSets) {
                         const features = await roiSet.getFeatures(chr, bpStart, bpEnd, referenceFrame.bpPerPixel)
@@ -308,7 +294,7 @@ class TrackViewport extends Viewport {
                     }
                 }
 
-                const mr = track && (track.resolutionAware)   //
+                const mr = !!(track && track.resolutionAware)
                 const windowFunction = this.windowFunction
                 this.featureCache = new FeatureCache(chr, bpStart, bpEnd, referenceFrame.bpPerPixel, features, roiFeatures, mr, windowFunction)
                 this.loading = false
@@ -334,11 +320,11 @@ class TrackViewport extends Viewport {
         }
     }
 
-    get track(): any {
+    get track(): Track {
         return this.trackView.track
     }
 
-    get windowFunction(): any {
+    get windowFunction(): string | undefined {
         return this.track ? this.track.windowFunction : undefined
     }
 
@@ -420,7 +406,7 @@ class TrackViewport extends Viewport {
         if (this.canvas && this.canvas.parentNode) {
             this.canvas.parentNode.removeChild(this.canvas)
         }
-        ;(newCanvas as any)._data = drawConfiguration
+        ;(newCanvas as CanvasWithData)._data = drawConfiguration
         this.canvas = newCanvas
         this.viewportElement.appendChild(newCanvas)
 
@@ -435,7 +421,7 @@ class TrackViewport extends Viewport {
         this.draw(drawConfiguration, features, roiFeatures)
     }
 
-    draw(drawConfiguration: DrawConfiguration, features: any, roiFeatures: RoiFeatureSet[] | undefined): void {
+    draw(drawConfiguration: DrawConfiguration, features: unknown, roiFeatures: RoiFeatureSet[] | undefined): void {
 
         if (features) {
             drawConfiguration.features = features
@@ -457,7 +443,7 @@ class TrackViewport extends Viewport {
         }
     }
 
-    isLoading(): any {
+    isLoading(): { start: number; end: number } | false {
         return this.loading
     }
 
@@ -525,7 +511,7 @@ class TrackViewport extends Viewport {
         // reset height to trim away unneeded svg canvas real estate. Yes, a bit of a hack.
         context.setHeight(height)
 
-        const str = (this.trackView.track.name || this.trackView.track.id).replace(/\W/g, '')
+        const str = (this.trackView.track.name || this.trackView.track.id || '').replace(/\W/g, '')
         const index = this.browser.referenceFrameList.indexOf(this.referenceFrame)
 
         const svg = context.getSerializedSvg(true)
@@ -536,13 +522,13 @@ class TrackViewport extends Viewport {
 
     }
 
-    renderSVGContext(context: any, {deltaX, deltaY}: { deltaX: number; deltaY: number }, includeLabel: boolean = true): void {
+    renderSVGContext(context: C2SContext, {deltaX, deltaY}: { deltaX: number; deltaY: number }, includeLabel: boolean = true): void {
 
         if (false === this.didPresentZoomInNotice()) {
 
             const {width, height} = this.viewportElement.getBoundingClientRect()
 
-            const str = (this.trackView.track.name || this.trackView.track.id).replace(/\W/g, '')
+            const str = (this.trackView.track.name || this.trackView.track.id || '').replace(/\W/g, '')
             const index = this.browser.referenceFrameList.indexOf(this.referenceFrame)
             const id = `${str}_referenceFrame_${index}_guid_${DOMUtils.guid()}`
 
@@ -592,9 +578,9 @@ class TrackViewport extends Viewport {
 
     }
 
-    renderTrackLabelSVG(context: any, tx: number, ty: number, width: number, height: number): void {
+    renderTrackLabelSVG(context: C2SContext, tx: number, ty: number, width: number, height: number): void {
 
-        const str = (this.trackView.track.name || this.trackView.track.id).replace(/\W/g, '')
+        const str = (this.trackView.track.name || this.trackView.track.id || '').replace(/\W/g, '')
         const id = `${str}_track_label_guid_${DOMUtils.guid()}`
 
         const text = this.trackLabelElement!.textContent || ''
@@ -607,7 +593,7 @@ class TrackViewport extends Viewport {
     }
 
     // render track label element called from renderSVGContext()
-    renderElementSVG(context: any, id: string, tx: number, ty: number, width: number, height: number, text: string, dx: number, dy: number): void {
+    renderElementSVG(context: C2SContext, id: string, tx: number, ty: number, width: number, height: number, text: string, dx: number, dy: number): void {
 
         context.saveWithTranslationAndClipRect(id, tx, ty, width, height, 0)
 
@@ -626,7 +612,7 @@ class TrackViewport extends Viewport {
 
     }
 
-    get cachedFeatures(): any[] {
+    get cachedFeatures(): unknown {
         return this.featureCache ? this.featureCache.features : []
     }
 
@@ -640,7 +626,7 @@ class TrackViewport extends Viewport {
         }
     }
 
-    async getFeatures(track: any, chr: string, start: number, end: number, bpPerPixel: number): Promise<any> {
+    async getFeatures(track: Track, chr: string, start: number, end: number, bpPerPixel: number): Promise<unknown> {
         if (this.featureCache && this.featureCache.containsRange(chr, start, end, bpPerPixel, this.windowFunction)) {
             return this.featureCache.features
         } else if (typeof track.getFeatures === "function") {
@@ -729,7 +715,7 @@ class TrackViewport extends Viewport {
                     lastTooltipUpdate = now
                     const clickState = this.createClickState(event)
                     if (clickState) {
-                        const tooltip = this.trackView.track.hoverText(clickState)
+                        const tooltip = this.trackView.track.hoverText!(clickState)
                         if (tooltip) {
                             this.viewportElement.setAttribute("title", tooltip)
                         } else {
@@ -742,7 +728,7 @@ class TrackViewport extends Viewport {
 
         this.addViewportClickHandler(this.viewportElement)
 
-        if (this.trackView.track.name && "sequence" !== this.trackView.track.config.type) {
+        if (this.trackView.track.name && "sequence" !== this.trackView.track.config?.type) {
             this.addTrackLabelClickHandler(this.trackLabelElement!)
         }
 
@@ -767,7 +753,7 @@ class TrackViewport extends Viewport {
             event.stopPropagation()
 
             // Track specific items
-            let menuItems: any[] = []
+            let menuItems: (string | MenuItem | { label: HTMLElement })[] = []
             if (typeof this.trackView.track.contextMenuItemList === "function") {
                 const trackMenuItems = this.trackView.track.contextMenuItemList(clickState)
                 if (trackMenuItems) {
@@ -832,9 +818,9 @@ class TrackViewport extends Viewport {
                         if (1 === this.browser.referenceFrameList.length) {
                             string = chr!
                         } else {
-                            const loci = this.browser.referenceFrameList.map(({locusSearchString}: any) => locusSearchString)
+                            const loci = this.browser.referenceFrameList.map((rf: ReferenceFrame) => rf.locusSearchString || '')
                             const index = this.browser.referenceFrameList.indexOf(this.referenceFrame)
-                            loci[index] = chr
+                            loci[index] = chr || ''
                             string = loci.join(' ')
                         }
 
@@ -918,9 +904,17 @@ class TrackViewport extends Viewport {
             this.removeTrackLabelPopover()
 
             const {track} = this.trackView
-            let content: HTMLElement | string | undefined
+            let content: HTMLElement | DocumentFragment | undefined
             if (typeof track.description === 'function') {
-                content = track.description() // Should return a DOM node or fragment
+                const result = track.description()
+                if (typeof result === 'string') {
+                    const row = document.createElement('div')
+                    row.className = 'igv-track-label-popover__row'
+                    row.textContent = result
+                    content = row
+                } else {
+                    content = result
+                }
             } else if (track.description) {
                 // Fallback: wrap string in a row
                 const row = document.createElement('div')
@@ -935,7 +929,7 @@ class TrackViewport extends Viewport {
         })
     }
 
-    showTrackLabelPopover(event: MouseEvent, content: any, title: string): void {
+    showTrackLabelPopover(event: MouseEvent, content: HTMLElement | DocumentFragment, title: string): void {
         // Create popover container
         const popover = document.createElement('div')
         popover.className = 'igv-track-label-popover'
@@ -1006,7 +1000,7 @@ class TrackViewport extends Viewport {
         }
     }
 
-    createClickState(event: MouseEvent): any {
+    createClickState(event: MouseEvent): ClickState | undefined {
 
         if (!this.canvas) return  // Can happen during initialization
 
@@ -1037,8 +1031,8 @@ class TrackViewport extends Viewport {
 
         let track = this.trackView.track
 
-        const features = 'annotation' === track.type ? track.clickedFeatures(clickState) : undefined
-        const dataList = await track.popupData(clickState, features)
+        const features = 'annotation' === track.type ? track.clickedFeatures!(clickState) : undefined
+        const dataList = await track.popupData!(clickState, features)
 
         const popupClickHandlerResult = this.browser.fireEvent('trackclick', [track, dataList, clickState.genomicLocation, features])
 
@@ -1067,19 +1061,19 @@ class TrackViewport extends Viewport {
 
 }
 
-function formatPopoverText(nameValues: any[]): string {
+function formatPopoverText(nameValues: PopupData[]): string {
 
-    const rows = nameValues.map((nameValue: any) => {
+    const rows = nameValues.map((nameValue: PopupData) => {
 
-        if (nameValue.name) {
+        if (typeof nameValue === 'string') {
+            return nameValue
+        } else if (nameValue.name) {
             const str = `<span>${nameValue.name}</span>&nbsp&nbsp&nbsp${nameValue.value}`
             return `<div title="${nameValue.value}">${str}</div>`
-        } else if ('<hr>' === nameValue) { // this can be retired if nameValue.html is allowed.
-            return nameValue
         } else if (nameValue.html) {
             return nameValue.html
         } else {
-            return `<div title="${nameValue}">${nameValue}</div>`
+            return `<div title="${nameValue.value ?? ''}">${nameValue.value ?? ''}</div>`
         }
 
     })
@@ -1093,13 +1087,13 @@ class FeatureCache {
     bpStart: number
     bpEnd: number
     bpPerPixel: number
-    features: any
-    roiFeatures: any
+    features: unknown
+    roiFeatures: RoiFeatureSet[] | undefined
     multiresolution: boolean
-    windowFunction: any
+    windowFunction: string | undefined
     redraw: boolean | undefined
 
-    constructor(chr: string, tileStart: number, tileEnd: number, bpPerPixel: number, features: any, roiFeatures: any, multiresolution: boolean, windowFunction: any) {
+    constructor(chr: string, tileStart: number, tileEnd: number, bpPerPixel: number, features: unknown, roiFeatures: RoiFeatureSet[] | undefined, multiresolution: boolean, windowFunction: string | undefined) {
         this.chr = chr
         this.bpStart = tileStart
         this.bpEnd = tileEnd
@@ -1110,7 +1104,7 @@ class FeatureCache {
         this.windowFunction = windowFunction
     }
 
-    containsRange(chr: string, start: number, end: number, bpPerPixel: number, windowFunction: any): boolean {
+    containsRange(chr: string, start: number, end: number, bpPerPixel: number, windowFunction?: string): boolean {
 
         if (windowFunction && windowFunction !== this.windowFunction) return false
 

@@ -51,6 +51,7 @@ import {EventEmitter} from "./events.js"
 import Locus from "./locus.js"
 import {isLocalFile, isGoogleDriveURL} from "./util/sessionResourceValidator.js"
 import type {BrowserConfig, SearchConfig, SessionLoadOptions, SessionObject, TrackConfig, SampleInfoConfig, ROIConfig} from "./types/config"
+import type {Track} from "./types/ui.js"
 import type {VpMouseDown, DragObject} from "./types/browser"
 
 // css - $igv-scrollbar-outer-width: 14px;
@@ -556,13 +557,13 @@ class Browser {
         // deferred because ideogram and ruler are treated as "tracks", and tracks require a reference frame
         if (false !== session.showIdeogram) {
             const track = new IdeogramTrack(this)
-            const trackView = new TrackView(this, this.columnContainer, track)
+            const trackView = new TrackView(this, this.columnContainer, track as unknown as Track)
             this.trackViews.push(trackView)
         }
 
         if (false !== session.showRuler) {
             const track = new RulerTrack(this)
-            const trackView = new TrackView(this, this.columnContainer, track)
+            const trackView = new TrackView(this, this.columnContainer, track as unknown as Track)
             this.trackViews.push(trackView)
         }
 
@@ -1040,7 +1041,7 @@ class Browser {
     }
 
     getRulerTrackView(): TrackView | undefined {
-        const list = this.trackViews.filter(({track}: {track: TrackBase}) => 'ruler' === track.id)
+        const list = this.trackViews.filter(({track}) => 'ruler' === track.id)
         return list.length > 0 ? list[0] : undefined
     }
 
@@ -1158,7 +1159,7 @@ class Browser {
             axis.remove()
 
             for (let {viewportElement} of viewports) {
-                viewportElement.parentNode.removeChild(viewportElement)
+                viewportElement.parentNode!.removeChild(viewportElement)
             }
 
             sampleInfoViewport.viewport.remove()
@@ -1204,7 +1205,7 @@ class Browser {
     }
 
     getTrackOrder(): string[] {
-        return this.trackViews.filter((tv: TrackView) => tv.track && tv.track.name).map((tv: TrackView) => tv.track.name)
+        return this.trackViews.filter((tv: TrackView) => tv.track && tv.track.name).map((tv: TrackView) => tv.track.name!)
     }
 
     getSelectedTrackViews(): TrackView[] {
@@ -1220,7 +1221,7 @@ class Browser {
         }
     }
 
-    removeTrack(track: TrackBase): void {
+    removeTrack(track: Track | TrackBase): void {
         for (let trackView of this.trackViews) {
             if (track === trackView.track) {
                 this._removeTrack(trackView.track)
@@ -1229,7 +1230,7 @@ class Browser {
         }
     }
 
-    _removeTrack(track: TrackBase): void {
+    _removeTrack(track: Track | TrackBase): void {
         if (track.disposed) return
         this.trackViews.splice(this.trackViews.indexOf(track.trackView), 1)
         this.fireEvent('trackremoved', [track])
@@ -1263,7 +1264,7 @@ class Browser {
         return this.trackViews[1]
     }
 
-    findTracks(property: string | ((track: TrackBase) => boolean), value?: unknown): TrackBase[] {
+    findTracks(property: string | ((track: Track) => boolean), value?: unknown): Track[] {
 
         let f = typeof property === 'function' ?
             (trackView: TrackView) => property(trackView.track) :
@@ -1272,8 +1273,8 @@ class Browser {
         return this.trackViews.filter(f).map((tv: TrackView) => tv.track)
     }
 
-    get tracks(): TrackBase[] {
-        return this.trackViews.map((tv: TrackView) => tv.track).filter((t: TrackBase) => t !== undefined)
+    get tracks(): Track[] {
+        return this.trackViews.map((tv: TrackView) => tv.track).filter((t) => t !== undefined)
     }
 
     setTrackHeight(newHeight: number): void {
@@ -1495,7 +1496,7 @@ class Browser {
 
         // TODO -- this is really ugly
         const {viewportElement} = this.trackViews[0].viewports[indexLeft]
-        const viewportColumn = viewportColumnManager.insertAfter(viewportElement.parentElement)
+        const viewportColumn = viewportColumnManager.insertAfter(viewportElement.parentElement!)
         this.fireEvent('columnlayoutchange')
 
         if (indexRight === this.referenceFrameList.length) {
@@ -1541,7 +1542,7 @@ class Browser {
         const index = this.referenceFrameList.indexOf(referenceFrame)
         const {viewportElement} = this.trackViews[0].viewports[index]
 
-        viewportColumnManager.removeColumnAtIndex(index, viewportElement.parentElement)
+        viewportColumnManager.removeColumnAtIndex(index, viewportElement.parentElement!)
         this.fireEvent('columnlayoutchange')
 
         for (let {viewports} of this.trackViews) {
@@ -1554,7 +1555,7 @@ class Browser {
         const rulerTV = this.getRulerTrackView()
         if (1 === this.referenceFrameList.length && rulerTV) {
             for (let rulerViewport of rulerTV.viewports) {
-                rulerViewport.dismissLocusLabel()
+                ;(rulerViewport as import("./rulerViewport.js").default).dismissLocusLabel()
             }
         }
 
@@ -1583,7 +1584,7 @@ class Browser {
         // Discard viewports
         for (let trackView of this.trackViews) {
             const retain = trackView.viewports[referenceFrameIndex]
-            trackView.viewports.filter((viewport: TrackViewport, i: number) => i !== referenceFrameIndex).forEach((viewport: TrackViewport) => viewport.dispose())
+            trackView.viewports.filter((viewport, i: number) => i !== referenceFrameIndex).forEach((viewport) => viewport.dispose())
             trackView.viewports = [retain]
         }
 
@@ -1591,7 +1592,7 @@ class Browser {
         referenceFrame.bpPerPixel = (referenceFrame.end - referenceFrame.start) / viewportWidth
         this.referenceFrameList = [referenceFrame]
 
-        this.trackViews.forEach(({viewports}: TrackView) => viewports.forEach((viewport: TrackViewport) => viewport.setWidth(viewportWidth)))
+        this.trackViews.forEach(({viewports}: TrackView) => viewports.forEach((viewport) => viewport.setWidth(viewportWidth)))
 
         this.centerLineList = this.createCenterLineList(this.columnContainer)
 
@@ -1687,7 +1688,7 @@ class Browser {
             sampleInfoViewport.setWidth(this.getSampleInfoColumnWidth())
         }
 
-        const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
+        const found = this.findTracks((t: Track) => typeof t.getSamples === 'function')
         if (found.length > 0) {
             this.sampleInfoControl.performClickWithState(this, true)
             this.sampleInfoControl.setButtonVisibility(true)
@@ -1708,7 +1709,7 @@ class Browser {
             sampleInfoViewport.setWidth(this.getSampleInfoColumnWidth())
         }
 
-        const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
+        const found = this.findTracks((t: Track) => typeof t.getSamples === 'function')
         if (found.length > 0) {
             this.sampleInfoControl.performClickWithState(this, false)
             this.sampleInfoControl.setButtonVisibility(false)
@@ -1727,7 +1728,7 @@ class Browser {
             return 0
         } else {
 
-            const found = this.findTracks((t: TrackBase) => typeof t.getSamples === 'function')
+            const found = this.findTracks((t: Track) => typeof t.getSamples === 'function')
             const isFound = found.length > 0
             const hasAttributes = this.sampleInfo.hasAttributes()
             const doShowSampleInfo = this.sampleInfoControl.showSampleInfo
@@ -2100,8 +2101,8 @@ class Browser {
 
                 for (let i = indexDestination + 1; i < nTracks; i++) {
                     const track = trackViews[i].track
-                    if (track.order <= lastOrder) {
-                        track.order = Math.min(Number.MAX_SAFE_INTEGER, lastOrder + 1)
+                    if (track.order! <= lastOrder!) {
+                        track.order = Math.min(Number.MAX_SAFE_INTEGER, lastOrder! + 1)
                         lastOrder = track.order
                     } else {
                         break
@@ -2111,8 +2112,8 @@ class Browser {
                 // Displace tracks above.  First track (index 0) is "ruler"
                 for (let i = indexDestination - 1; i > 0; i--) {
                     const track = trackViews[i].track
-                    if (track.order >= lastOrder) {
-                        track.order = Math.max(-Number.MAX_SAFE_INTEGER, lastOrder - 1)
+                    if (track.order! >= lastOrder!) {
+                        track.order = Math.max(-Number.MAX_SAFE_INTEGER, lastOrder! - 1)
                         lastOrder = track.order
                     } else {
                         break
@@ -2476,11 +2477,12 @@ toggleTrackLabels(trackViews: TrackView[], isVisible: boolean): void {
 
     for (let {viewports} of trackViews) {
         for (let viewport of viewports) {
-            if (viewport.trackLabelElement) {
+            const tvp = viewport as TrackViewport
+            if (tvp.trackLabelElement) {
                 if (0 === viewports.indexOf(viewport) && true === isVisible) {
-                    viewport.trackLabelElement.style.display = 'block'
+                    tvp.trackLabelElement.style.display = 'block'
                 } else {
-                    viewport.trackLabelElement.style.display = 'none'
+                    tvp.trackLabelElement.style.display = 'none'
                 }
             }
         }

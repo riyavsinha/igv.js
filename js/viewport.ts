@@ -12,7 +12,7 @@ class Viewport {
     referenceFrame: ReferenceFrame
     browser: Browser
     viewportElement: HTMLDivElement
-    alert: any
+    alert: AlertDialog | undefined
     contentTop: number
     contentHeight: number
     messageDiv: HTMLDivElement | undefined
@@ -86,7 +86,7 @@ class Viewport {
         this.contentTop = contentTop;
     }
 
-    async loadFeatures(): Promise<any> {
+    async loadFeatures(): Promise<unknown> {
         return undefined;
     }
 
@@ -94,17 +94,17 @@ class Viewport {
 
     repaint(): void {}
 
-    draw(drawConfiguration: any, features: any, roiFeatures: any): void {
+    draw(_drawConfiguration: unknown, _features: unknown, _roiFeatures: unknown): void {
         console.log('Viewport - draw(drawConfiguration, features, roiFeatures)');
     }
 
-    checkContentHeight(features: any): void {
+    checkContentHeight(features?: unknown): void {
         const track = this.trackView.track;
-        features = features || (this as any).cachedFeatures;
+        features = features || (this as unknown as { cachedFeatures?: unknown }).cachedFeatures;
         if (track.displayMode === 'FILL') {
             this.setContentHeight(this.viewportElement.clientHeight);
         } else if (typeof track.computePixelHeight === 'function') {
-            if (features && features.length > 0) {
+            if (features && Array.isArray(features) && features.length > 0) {
                 const requiredContentHeight = track.computePixelHeight(features, this.referenceFrame.bpPerPixel);
                 if (requiredContentHeight !== this.contentHeight) {
                     this.setContentHeight(requiredContentHeight);
@@ -121,7 +121,7 @@ class Viewport {
         this.contentHeight = contentHeight;
     }
 
-    isLoading(): boolean {
+    isLoading(): boolean | { start: number; end: number } | false {
         return false;
     }
 
@@ -159,7 +159,7 @@ class Viewport {
         // Nullify all properties to free memory
         for (const key in this) {
             if (this.hasOwnProperty(key)) {
-                (this as any)[key] = undefined;
+                (this as unknown as Record<string, unknown>)[key] = undefined;
             }
         }
     }

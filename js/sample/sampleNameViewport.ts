@@ -2,6 +2,7 @@ import * as DOMUtils from "../ui/utils/dom-utils.js"
 import {appleCrayonRGB} from '../util/colorPalletes.js'
 import IGVGraphics from "../igv-canvas.js"
 import {drawGroupDividers, GROUP_MARGIN_HEIGHT} from "./sampleUtils.js"
+import type {C2SContext} from "../canvas2svg.js"
 
 const maxSampleNameViewportWidth: number = 200
 const fudgeTextMetricWidth: number = 4
@@ -137,7 +138,7 @@ class SampleNameViewport {
         }
     }
 
-    renderSVGContext(context: any, {deltaX, deltaY}: {deltaX: number, deltaY: number}): void {
+    renderSVGContext(context: C2SContext, {deltaX, deltaY}: {deltaX: number, deltaY: number}): void {
 
         if (typeof this.trackView.track.getSamples === 'function') {
 

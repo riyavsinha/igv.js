@@ -1,5 +1,6 @@
 
 import type Browser from "../browser.js"
+import type RulerViewport from "../rulerViewport.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
 
 class CursorGuide {
@@ -58,7 +59,7 @@ class CursorGuide {
 
                     if (!(undefined === index)) {
 
-                        const rulerViewport = browser.getRulerTrackView()!.viewports[index]
+                        const rulerViewport = browser.getRulerTrackView()!.viewports[index] as RulerViewport
                         const result = rulerViewport.mouseMove(event)
 
                         if (result) {
@@ -106,7 +107,8 @@ class CursorGuide {
         const rulerTrackView = this.browser.getRulerTrackView()
         if (rulerTrackView) {
             for (let viewport of rulerTrackView.viewports) {
-                viewport.tooltip.style.display = 'none'
+                const rulerVP = viewport as RulerViewport
+                if (rulerVP.tooltip) rulerVP.tooltip.style.display = 'none'
             }
         }
 

@@ -8,6 +8,7 @@ import {FileUtils} from "../../node_modules/igv-utils/src/index.js"
 import {createRegionKey, parseRegionKey} from "./roiUtils.js"
 import type Browser from "../browser.js"
 import type {ROIConfig} from "../types/config.js"
+import type {C2SContext} from "../canvas2svg.js"
 import type Genome from "../genome/genome.js"
 import type {GenomicFeature} from "../types/feature.js"
 
@@ -305,7 +306,7 @@ class ROIManager {
         return roiRegionMargin
     }
 
-    renderSVGContext(columnContainer: HTMLElement, context: any, {deltaX, deltaY}: { deltaX: number, deltaY: number }): void {
+    renderSVGContext(columnContainer: HTMLElement, context: C2SContext, {deltaX, deltaY}: { deltaX: number, deltaY: number }): void {
 
         for (const regionElement of columnContainer.querySelectorAll('.igv-roi-region')) {
 

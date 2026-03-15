@@ -5,7 +5,7 @@ import {isInteger} from "./util/igvUtils.js"
 import type Browser from "./browser.js"
 import type ReferenceFrame from "./referenceFrame.js"
 
-/** Canvas context that may have SVG flag from canvas2svg */
+/** Canvas context — may be a regular canvas or a C2S (canvas2svg) context */
 type RulerDrawContext = CanvasRenderingContext2D & { isSVG?: boolean }
 
 const numberFormatter = StringUtils.numberFormatter

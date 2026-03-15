@@ -5,6 +5,7 @@ import {sampleInfoTileWidth, sampleInfoTileXShim} from "./sampleInfoConstants.js
 import IGVGraphics from "../igv-canvas.js"
 import {defaultRulerHeight} from "../rulerTrack.js"
 import {drawGroupDividers, GROUP_MARGIN_HEIGHT, NULL_GROUP} from "./sampleUtils.js"
+import type {C2SContext} from "../canvas2svg.js"
 
 const MaxSampleInfoColumnHeight: number = 128
 
@@ -262,7 +263,7 @@ class SampleInfoViewport {
 
     }
 
-    renderSVGContext(context: any, {deltaX, deltaY}: {deltaX: number, deltaY: number}): void {
+    renderSVGContext(context: C2SContext, {deltaX, deltaY}: {deltaX: number, deltaY: number}): void {
 
         if (typeof this.trackView.track.getSamples === 'function') {
 

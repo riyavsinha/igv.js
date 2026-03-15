@@ -1395,4 +1395,17 @@ class ctx {
     };
 }
 
-export default ctx
+/** Extra methods provided by canvas2svg beyond the standard CanvasRenderingContext2D API */
+export interface C2SVGExtensions {
+    isSVG: boolean
+    saveWithTranslationAndClipRect(id: string, tx: number, ty: number, width: number, height: number, clipYOffset: number): void
+    setHeight(height: number): void
+    getSerializedSvg(fixNamedEntities: boolean): string
+    strokeEllipse(cx: number, cy: number, rx: number, ry: number, rotation: number, startAngle: number, endAngle: number, isCCW?: boolean): void
+    fillEllipse(cx: number, cy: number, rx: number, ry: number, rotation: number, startAngle: number, endAngle: number, isCCW?: boolean): void
+}
+
+/** A canvas2svg context: implements CanvasRenderingContext2D plus SVG-specific extensions */
+export type C2SContext = CanvasRenderingContext2D & C2SVGExtensions
+
+export default ctx as unknown as { new(config?: Record<string, unknown>): C2SContext }
