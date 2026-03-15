@@ -5,11 +5,12 @@ import {findFeatureAfterCenter} from "./feature/featureUtils"
 import {isLocalFile} from "./util/sessionResourceValidator.js"
 import type Browser from "./browser.js"
 import type {TrackConfig} from "./types/config"
-import type {ClickState, DataRange} from "./types/ui"
+import type {ClickState, DataRange, MenuItem} from "./types/ui"
 import type {FeatureSource} from "./types/reader"
+import type {GenomicFeature, PopupData} from "./types/feature"
 
-const fixColor = (colorString: any): any => {
-    if (StringUtils.isString(colorString)) {
+const fixColor = (colorString: string | undefined): string | undefined => {
+    if (typeof colorString === 'string') {
         return (colorString.indexOf(",") > 0 && !(colorString.startsWith("rgb(") || colorString.startsWith("rgba("))) ?
             `rgb(${colorString})` : colorString
     } else {
@@ -52,7 +53,7 @@ class TrackBase {
     declare altColor: string | undefined
     declare supportHiDPI: boolean | undefined
     declare selected: boolean | undefined
-    declare onclick: ((feature: any) => void) | undefined
+    declare onclick: ((feature: GenomicFeature) => void) | undefined
     declare _initialColor: string | undefined
     declare _initialAltColor: string | undefined
     declare featureSource: FeatureSource | undefined
@@ -63,14 +64,14 @@ class TrackBase {
     declare disposed: boolean | undefined
     declare viewLimitMin: number | undefined
     declare viewLimitMax: number | undefined
-    declare _filter: ((feature: any) => boolean) | undefined
+    declare _filter: ((feature: GenomicFeature) => boolean) | undefined
 
     constructor(config: TrackConfig, browser: Browser) {
         this.browser = browser
         this.init(config)
     }
 
-    init(config: any): void {
+    init(config: TrackConfig): void {
 
         this.config = config
 
@@ -101,12 +102,12 @@ class TrackBase {
         if (config.name || config.label) {
             this.name = config.name || config.label
         } else if (FileUtils.isFile(config.url)) {
-            this.name = config.url.name
-        } else if (StringUtils.isString(config.url) && !config.url.startsWith("data:")) {
+            this.name = (config.url as File).name
+        } else if (typeof config.url === 'string' && !config.url.startsWith("data:")) {
             this.name = FileUtils.getFilename(config.url)
         }
 
-        this.url = config.url
+        this.url = config.url as string | File | undefined
         if (this.config.type) this.type = this.config.type
         this.id = this.config.id === undefined ? this.name : this.config.id as string | undefined
         this.order = config.order
@@ -123,9 +124,9 @@ class TrackBase {
         if (config.description) {
             // Override description -- displayed when clicking on track label.  Convert to function if neccessary
             if (typeof config.description === 'function') {
-                this.description = config.description
+                (this as any).description = config.description
             } else {
-                this.description = () => config.description
+                (this as any).description = () => config.description
             }
         }
     }
@@ -168,7 +169,7 @@ class TrackBase {
 
     getState(): Record<string, any> {
 
-        const isJSONable = (item: any): boolean => !(item === undefined || typeof item === 'function' || item instanceof Promise)
+        const isJSONable = (item: unknown): boolean => !(item === undefined || typeof item === 'function' || item instanceof Promise)
 
         // Create copy of config, minus transient properties (convention is name starts with '_').  Also, all
         // function properties are transient as they cannot be saved in json
@@ -358,10 +359,10 @@ class TrackBase {
         return (FeatureUtils.findOverlapping(features, ss, ee))
     }
 
-    extractPopupData(feature: any, genomeId?: string): any[] {
+    extractPopupData(feature: GenomicFeature, genomeId?: string): PopupData[] {
 
         const filteredProperties = new Set(['row', 'color', 'chr', 'start', 'end', 'cdStart', 'cdEnd', 'strand', 'alpha'])
-        const data: any[] = []
+        const data: PopupData[] = []
 
         let alleles: string | undefined, alleleFreqs: string | undefined
         for (let property in feature) {
@@ -476,9 +477,9 @@ class TrackBase {
         }
 
         if (this.config) {
-            if ((this.config as Record<string, any>).metadata) {
-                for (let key of Object.keys((this.config as Record<string, any>).metadata)) {
-                    const value = (this.config as Record<string, any>).metadata[key]
+            if (this.config.metadata) {
+                for (let key of Object.keys(this.config.metadata)) {
+                    const value = this.config.metadata[key]
                     fragment.appendChild(createKeyValueRow(key, value))
                 }
             }
@@ -488,7 +489,7 @@ class TrackBase {
                 if (key.startsWith("_")) continue   // transient property
                 let first = key.substr(0, 1)
                 if (first !== first.toLowerCase()) {
-                    const value = (this.config as Record<string, any>)[key]
+                    const value = this.config[key]
                     if (value && isSimpleType(value)) {
                         fragment.appendChild(createKeyValueRow(key, value as string))
                     }
@@ -499,13 +500,13 @@ class TrackBase {
         return fragment
     }
 
-    getColorForFeature(f: any): any {
+    getColorForFeature(f: GenomicFeature): string {
         return (typeof this.color === "function") ? this.color(f) : this.color
     }
 
-    numericDataMenuItems(): any[] {
+    numericDataMenuItems(): (string | MenuItem)[] {
 
-        const menuItems: any[] = []
+        const menuItems: (string | MenuItem)[] = []
 
         // Data range or color scale
 
@@ -513,14 +514,14 @@ class TrackBase {
 
             menuItems.push('<hr/>')
 
-            function dialogPresentationHandler(this: TrackBase, e: any): void {
+            function dialogPresentationHandler(this: TrackBase, e?: Event): void {
 
                 if (this.trackView.track.selected) {
                     this.browser.dataRangeDialog.configure(this.trackView.browser.getSelectedTrackViews())
                 } else {
                     this.browser.dataRangeDialog.configure(this.trackView)
                 }
-                this.browser.dataRangeDialog.present(e)
+                this.browser.dataRangeDialog.present(e as MouseEvent)
             }
 
             menuItems.push({label: 'Set data range', dialog: dialogPresentationHandler})
@@ -555,7 +556,7 @@ class TrackBase {
         this.trackView.repaintViews()
     }
 
-    async nextFeatureAfter(chr: string, position: number, direction: boolean): Promise<any> {
+    async nextFeatureAfter(chr: string, position: number, direction: boolean): Promise<GenomicFeature | undefined> {
         const viewport = this.trackView.viewports[0]
         let features = viewport.cachedFeatures
         if (features && Array.isArray(features) && features.length > 0) {
@@ -619,13 +620,13 @@ class TrackBase {
     }
 
     // Methods to support filtering api
-    set filter(f: any) {
+    set filter(f: ((feature: GenomicFeature) => boolean) | undefined) {
         this._filter = f
         this.trackView.repaintViews()
     }
 
-    getInViewFeatures(): any[] {
-        const inViewFeatures: any[] = []
+    getInViewFeatures(): GenomicFeature[] {
+        const inViewFeatures: GenomicFeature[] = []
         for (let viewport of this.trackView.viewports) {
             if (viewport.isVisible()) {
                 const referenceFrame = viewport.referenceFrame
@@ -648,7 +649,7 @@ class TrackBase {
         return inViewFeatures
     }
 
-    getFilterableAttributes(): Record<string, any> {
+    getFilterableAttributes(): Record<string, unknown> {
         return {}
     }
 }

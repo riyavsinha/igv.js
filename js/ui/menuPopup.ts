@@ -2,19 +2,7 @@ import makeDraggable from "./utils/draggable.js"
 import {attachDialogCloseHandlerWithParent} from "./utils/ui-utils.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 import {createCheckbox} from "../igv-icons.js"
-
-interface MenuItem {
-    name?: string
-    element?: HTMLElement
-    label?: string
-    click?: (e: Event) => void
-    dialog?: (e: Event) => void
-    init?: () => void
-    type?: string
-    value?: any
-    doAllMultiSelectedTracks?: boolean
-    menuItemType?: string
-}
+import type {MenuItem} from "../types/ui"
 
 interface MenuElement {
     el: HTMLElement
@@ -261,7 +249,7 @@ function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTM
             }
 
             if ("checkbox" === item.type) {
-                el = createCheckbox("Show all bases", item.value)
+                el = createCheckbox("Show all bases", item.value as boolean | undefined)
             }
 
             // TODO: I can't find any use of this and should probably be deleted - data

@@ -28,6 +28,11 @@ export interface Exon {
 }
 
 export interface PopupDataItem {
-    name: string
-    value: string | number
+    name?: string
+    value?: string | number
+    html?: string
+    borderTop?: boolean
 }
+
+/** A popup data entry is either a structured item or an HTML string separator */
+export type PopupData = PopupDataItem | string

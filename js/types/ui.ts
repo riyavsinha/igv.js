@@ -55,10 +55,15 @@ export interface DataRange {
 
 export interface MenuItem {
     name?: string
+    element?: HTMLElement
     label?: string | HTMLElement
-    click?: (this: unknown) => void
+    click?: (this: any, e?: Event) => void
+    dialog?: (this: any, e?: Event) => void
     init?: () => void
-    object?: HTMLElement
+    type?: string
+    value?: unknown
+    doAllMultiSelectedTracks?: boolean
+    menuItemType?: string
 }
 
 export interface DrawConfiguration {
