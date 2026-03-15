@@ -57,7 +57,9 @@
       "Read(//Users/riyavsinha/projects/igv.js/**)",
       "Bash(xargs -I {} bash -c 'grep -l \"\"= .*!\"\" \"\"$@\"\"' _ {} ;)",
       "Bash(done)",
-      "Bash(npx mocha)"
+      "Bash(npx mocha)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx eslint *)"
     ],
     "additionalDirectories": [
       "/Users/riyavsinha/projects/igv.js",

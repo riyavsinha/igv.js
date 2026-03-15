@@ -2,13 +2,18 @@ import IGVGraphics from "./igv-canvas.js"
 import {IGVColor, StringUtils} from "../node_modules/igv-utils/src/index.js"
 import GenomeUtils from "./genome/genomeUtils.js"
 import {isInteger} from "./util/igvUtils.js"
+import type Browser from "./browser.js"
+import type ReferenceFrame from "./referenceFrame.js"
+
+/** Canvas context that may have SVG flag from canvas2svg */
+type RulerDrawContext = CanvasRenderingContext2D & { isSVG?: boolean }
 
 const numberFormatter = StringUtils.numberFormatter
 const defaultRulerHeight = 40
 
 class RulerTrack {
 
-    browser: any
+    browser: Browser
     height: number
     name: string
     disableButtons: boolean
@@ -18,7 +23,7 @@ class RulerTrack {
     type: string
     id: string
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
 
         this.browser = browser
         this.height = defaultRulerHeight
@@ -31,15 +36,15 @@ class RulerTrack {
         this.id = "ruler"
     }
 
-    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
+    async getFeatures(_chr: string, _start: number, _end: number): Promise<unknown[]> {
         return []
     };
 
-    computePixelHeight(ignore: any) {
+    computePixelHeight(_ignore: unknown) {
         return this.height
     };
 
-    draw({context, referenceFrame, pixelWidth, pixelHeight, bpPerPixel, bpStart}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; bpPerPixel: number; bpStart: number }) {
+    draw({context, referenceFrame, pixelWidth, pixelHeight, bpPerPixel, bpStart}: { context: RulerDrawContext; referenceFrame: ReferenceFrame; pixelWidth: number; pixelHeight: number; bpPerPixel: number; bpStart: number }) {
 
         if (GenomeUtils.isWholeGenomeView(referenceFrame.chr)) {
             this.drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel})
@@ -48,16 +53,16 @@ class RulerTrack {
         }
     }
 
-    drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel}: { context: any; pixelWidth: number; pixelHeight: number; bpPerPixel: number }) {
+    drawWholeGenome({context, pixelWidth, pixelHeight, bpPerPixel}: { context: RulerDrawContext; pixelWidth: number; pixelHeight: number; bpPerPixel: number }) {
 
         context.save()
 
         IGVGraphics.fillRect(context, 0, 0, pixelWidth, pixelHeight, {'fillStyle': 'white'})
 
-        for (let name of this.browser.genome.wgChromosomeNames) {
+        for (let name of this.browser.genome.wgChromosomeNames!) {
 
-            let xBP = this.browser.genome.getCumulativeOffset(name)
-            let wBP = this.browser.genome.getChromosome(name).bpLength
+            let xBP = this.browser.genome.getCumulativeOffset(name)!
+            let wBP = this.browser.genome.getChromosome(name)!.bpLength
 
             let x = Math.round(xBP / bpPerPixel)
             let w = Math.round(wBP / bpPerPixel)
@@ -69,7 +74,7 @@ class RulerTrack {
 
     }
 
-    doDraw({context, referenceFrame, pixelWidth, pixelHeight, bpStart}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; bpStart: number }) {
+    doDraw({context, referenceFrame, pixelWidth, pixelHeight, bpStart}: { context: RulerDrawContext; referenceFrame: ReferenceFrame; pixelWidth: number; pixelHeight: number; bpStart: number }) {
 
         context.clearRect(0, 0, pixelWidth, pixelHeight)
 
@@ -77,7 +82,7 @@ class RulerTrack {
         const shim = 2
 
         const bpLength = Math.floor(referenceFrame.toBP(pixelWidth))
-        const tick = findSpacing(bpLength, context.isSVG)
+        const tick = findSpacing(bpLength, !!context.isSVG)
 
         let nTick = Math.floor(bpStart / tick.majorTick) - 1
 
@@ -124,7 +129,7 @@ class RulerTrack {
 
     }
 
-    renderChromosomeRect(ctx: any, x: number, y: number, w: number, h: number, name: string) {
+    renderChromosomeRect(ctx: RulerDrawContext, x: number, y: number, w: number, h: number, name: string) {
 
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -203,7 +208,7 @@ function findSpacing(bpLength: number, isSVG: boolean): Tick {
     return new Tick(majorTick, majorUnit, unitMultiplier)
 }
 
-function calculateDeltas(context: any, referenceFrame: any, bpStart: number, nTick: number, tick: Tick): { tickDelta: number; labelLength: number } {
+function calculateDeltas(context: RulerDrawContext, referenceFrame: ReferenceFrame, bpStart: number, nTick: number, tick: Tick): { tickDelta: number; labelLength: number } {
 
     const tickDelta = getX(referenceFrame, getBP(1 + nTick, tick), bpStart) - getX(referenceFrame, getBP(nTick, tick), bpStart)
 
@@ -216,7 +221,7 @@ function calculateDeltas(context: any, referenceFrame: any, bpStart: number, nTi
         return Math.floor(nTick * tick.majorTick)
     }
 
-    function getX(referenceFrame: any, bp: number, bpStart: number): number {
+    function getX(referenceFrame: ReferenceFrame, bp: number, bpStart: number): number {
         return Math.round(referenceFrame.toPixels((bp - 1) - bpStart + 0.5))
     }
 }

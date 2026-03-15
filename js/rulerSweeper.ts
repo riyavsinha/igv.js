@@ -2,22 +2,29 @@ import * as DOMUtils from "./ui/utils/dom-utils.js"
 import {validateGenomicExtent} from "./util/igvUtils.js"
 import GenomeUtils from './genome/genomeUtils.js'
 import { ROI_USER_DEFINED_COLOR } from "./roi/ROISet.js"
+import type Browser from "./browser.js"
+import type ReferenceFrame from "./referenceFrame.js"
+
+/** Structural type to avoid circular import with RulerViewport */
+interface RulerViewportLike {
+    contentDiv: HTMLElement
+}
 
 const RULER_SWEEPER_COLOR = 'rgba(68, 134, 247, 0.25)'
 
 class RulerSweeper {
 
-    rulerViewport: any
+    rulerViewport: RulerViewportLike
     rulerSweeper: HTMLElement
-    browser: any
-    referenceFrame: any
+    browser: Browser
+    referenceFrame: ReferenceFrame
     isMouseHandlers: boolean | undefined
     boundObserverHandler: (() => void) | undefined
     boundContentMouseDownHandler: ((event: MouseEvent) => void) | undefined
     boundDocumentMouseMoveHandler: ((event: MouseEvent) => void) | undefined
     boundDocumentMouseUpHandler: ((event: MouseEvent) => void) | undefined
 
-    constructor(rulerViewport: any, column: HTMLElement, browser: any, referenceFrame: any) {
+    constructor(rulerViewport: RulerViewportLike, column: HTMLElement, browser: Browser, referenceFrame: ReferenceFrame) {
 
         this.rulerViewport = rulerViewport
 
@@ -47,7 +54,7 @@ class RulerSweeper {
     }
 
     removeBrowserObserver(): void {
-        this.browser.off('locuschange', this.boundObserverHandler)
+        this.browser.off('locuschange', this.boundObserverHandler!)
     }
 
     addMouseHandlers(): void {
@@ -143,9 +150,9 @@ class RulerSweeper {
                         this.browser.roiManager.updateUserDefinedROISet(Object.assign({chr: this.referenceFrame.chr}, genomicExtent))
                     } else {
 
-                        validateGenomicExtent(this.browser.genome.getChromosome(this.referenceFrame.chr).bpLength, genomicExtent, this.browser.minimumBases())
+                        validateGenomicExtent(this.browser.genome.getChromosome(this.referenceFrame.chr)!.bpLength, genomicExtent, this.browser.minimumBases())
                         updateReferenceFrame(this.referenceFrame, genomicExtent, this.rulerViewport.contentDiv.clientWidth)
-                        this.browser.updateViews(this.referenceFrame)
+                        this.browser.updateViews()
 
                     }
 
@@ -159,7 +166,7 @@ class RulerSweeper {
     }
 
     removeMouseHandlers(): void {
-        this.rulerViewport.contentDiv.removeEventListener('mousedown', this.boundContentMouseDownHandler)
+        this.rulerViewport.contentDiv.removeEventListener('mousedown', this.boundContentMouseDownHandler!)
         document.removeEventListener('mousemove', this.boundDocumentMouseMoveHandler!)
         document.removeEventListener('mouseup', this.boundDocumentMouseUpHandler!)
         this.isMouseHandlers = false
@@ -173,7 +180,7 @@ class RulerSweeper {
 
 }
 
-function updateReferenceFrame(referenceFrame: any, genomicExtent: { start: number; end: number }, pixelWidth: number): void {
+function updateReferenceFrame(referenceFrame: ReferenceFrame, genomicExtent: { start: number; end: number }, pixelWidth: number): void {
     referenceFrame.start = Math.round(genomicExtent.start)
     referenceFrame.end = Math.round(genomicExtent.end)
     referenceFrame.bpPerPixel = (referenceFrame.end - referenceFrame.start) / pixelWidth
