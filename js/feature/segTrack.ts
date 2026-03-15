@@ -81,8 +81,8 @@ class SegTrack extends TrackBase {
 
     // @ts-expect-error - postInit return type differs from TrackBase
     async postInit() {
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
         // Set properties from track line
@@ -250,7 +250,7 @@ class SegTrack extends TrackBase {
     }
 
     async getFeatures(chr: string, start: number, end: number) {
-        const features = await this.featureSource.getFeatures({chr, start, end})
+        const features = await this.featureSource!.getFeatures({chr, start, end})
         // New segments could conceivably add new samples
         this.updateSampleKeys(features)
 
@@ -279,7 +279,7 @@ class SegTrack extends TrackBase {
             this.checkForLog(features)
 
             if (this.type === "shoebox" && !this.sbColorScale) {
-                const threshold = this.featureSource.hicFile.percentile95 || 2000
+                const threshold = this.featureSource!.hicFile.percentile95 || 2000
                 this.sbColorScale = new HicColorScale({threshold, r: 0, g: 0, b: 255})
             }
 
@@ -490,7 +490,7 @@ class SegTrack extends TrackBase {
         }
 
         if (!featureList) {
-            featureList = await this.featureSource.getFeatures({chr, start, end})
+            featureList = await this.featureSource!.getFeatures({chr, start, end})
         }
         if (!featureList) return
 

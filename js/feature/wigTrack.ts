@@ -103,7 +103,7 @@ class WigTrack extends TrackBase {
 
         const windowFunction = this.windowFunction
 
-        const features = await this.featureSource.getFeatures({
+        const features = await this.featureSource!.getFeatures({
             chr,
             start,
             end,
@@ -111,8 +111,8 @@ class WigTrack extends TrackBase {
             visibilityWindow: this.visibilityWindow,
             windowFunction
         })
-        if (this.normalize && this.featureSource.normalizationFactor) {
-            const scaleFactor = this.featureSource.normalizationFactor
+        if (this.normalize && this.featureSource!.normalizationFactor) {
+            const scaleFactor = this.featureSource!.normalizationFactor
             for (let f of features) {
                 f.value *= scaleFactor
             }
@@ -171,7 +171,7 @@ class WigTrack extends TrackBase {
 
         items.push(...this.graphTypeItems())
 
-        if (this.featureSource.windowFunctions) {
+        if (this.featureSource!.windowFunctions) {
             items.push(...this.wigSummarizationItems())
         }
 
@@ -182,7 +182,7 @@ class WigTrack extends TrackBase {
 
     wigSummarizationItems() {
 
-        const windowFunctions = this.featureSource.windowFunctions
+        const windowFunctions = this.featureSource!.windowFunctions
 
         const menuItems = []
         menuItems.push('<hr/>')
@@ -223,8 +223,8 @@ class WigTrack extends TrackBase {
 
     async getHeader() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
         }
         return this.header
     }
@@ -238,12 +238,12 @@ class WigTrack extends TrackBase {
     }
 
     computeYPixelValue(yValue: number, yScaleFactor: number) {
-        return (this.flipAxis ? (yValue - this.dataRange.min) : (this.dataRange.max - yValue)) * yScaleFactor
+        return (this.flipAxis ? (yValue - this.dataRange!.min) : (this.dataRange!.max - yValue)) * yScaleFactor
     }
 
     computeYPixelValueInLogScale(yValue: number, yScaleFactor: number) {
-        let maxValue = this.dataRange.max
-        let minValue = this.dataRange.min
+        let maxValue = this.dataRange!.max
+        let minValue = this.dataRange!.min
         minValue = (minValue < 0) ? -Math.log10(Math.abs(minValue) + 1) : Math.log10(Math.abs(minValue) + 1)
         maxValue = (maxValue < 0) ? -Math.log10(Math.abs(maxValue) + 1) : Math.log10(Math.abs(maxValue) + 1)
 
@@ -261,18 +261,18 @@ class WigTrack extends TrackBase {
         const pixelHeight = options.pixelHeight - 1
         const bpEnd = bpStart + pixelWidth * bpPerPixel + 1
 
-        const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, pixelHeight, this.logScale)
+        const scaleFactor = this.getScaleFactor(this.dataRange!.min, this.dataRange!.max, pixelHeight, this.logScale)
         const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
 
         if (features && features.length > 0) {
 
-            if (this.dataRange.min === undefined) this.dataRange.min = 0
+            if (this.dataRange!.min === undefined) this.dataRange!.min = 0
 
             // Max can be less than min if config.min is set but max left to autoscale.   If that's the case there is
             // nothing to paint.
-            if (this.dataRange.max > this.dataRange.min) {
+            if (this.dataRange!.max > this.dataRange!.min) {
 
                 let lastPixelEnd = -1
                 let lastY
@@ -306,9 +306,9 @@ class WigTrack extends TrackBase {
                         const px = x + width / 2
                         IGVGraphics.fillCircle(ctx, px, y, pointSize / 2, {"fillStyle": color, "strokeStyle": color})
 
-                        if (f.value > this.dataRange.max) {
+                        if (f.value > this.dataRange!.max) {
                             (IGVGraphics.fillCircle as any)(ctx, px, pointSize / 2, pointSize / 2, 3, {fillStyle: this.overflowColor})
-                        } else if (f.value < this.dataRange.min) {
+                        } else if (f.value < this.dataRange!.min) {
                             (IGVGraphics.fillCircle as any)(ctx, px, pixelHeight - pointSize / 2, pointSize / 2, 3, {fillStyle: this.overflowColor})
                         }
 
@@ -316,9 +316,9 @@ class WigTrack extends TrackBase {
                     } else if (this.graphType === "heatmap") {
                         if (!this._colorScale) {
                             // Create a default color scale.
-                            this._colorScale = this.dataRange.min < 0 && this.dataRange.max > 0 ?
-                                ColorScaleFactory.defaultDivergingScale(this.dataRange.min, 0, this.dataRange.max) :
-                                ColorScaleFactory.defaultGradientScale(this.dataRange.min, this.dataRange.max)
+                            this._colorScale = this.dataRange!.min < 0 && this.dataRange!.max > 0 ?
+                                ColorScaleFactory.defaultDivergingScale(this.dataRange!.min, 0, this.dataRange!.max) :
+                                ColorScaleFactory.defaultGradientScale(this.dataRange!.min, this.dataRange!.max)
                         }
                         const color = this._colorScale.getColor(f.value)
                         IGVGraphics.fillRect(ctx, x, 0, width, pixelHeight, {fillStyle: color})
@@ -329,9 +329,9 @@ class WigTrack extends TrackBase {
                         // Default graph type (bar)
                         const height = Math.min(pixelHeight, y - y0)
                         IGVGraphics.fillRect(ctx, x, y0, width, height, {fillStyle: color})
-                        if (f.value > this.dataRange.max) {
+                        if (f.value > this.dataRange!.max) {
                             IGVGraphics.fillRect(ctx, x, 0, width, 3, {fillStyle: this.overflowColor})
-                        } else if (f.value < this.dataRange.min) {
+                        } else if (f.value < this.dataRange!.min) {
                             IGVGraphics.fillRect(ctx, x, pixelHeight - 2, width, 3, {fillStyle: this.overflowColor})
                         }
 
@@ -341,9 +341,9 @@ class WigTrack extends TrackBase {
                 }
 
                 // If the track includes negative values draw a baseline
-                if (this.dataRange.min < 0) {
-                    let maxValue = this.dataRange.max
-                    let minValue = this.dataRange.min
+                if (this.dataRange!.min < 0) {
+                    let maxValue = this.dataRange!.max
+                    let minValue = this.dataRange!.min
                     minValue = (this.logScale === true) ? ((minValue < 0) ? -Math.log10(Math.abs(minValue) + 1) : Math.log10(Math.abs(minValue) + 1)) : minValue
                     maxValue = (this.logScale === true) ? ((maxValue < 0) ? -Math.log10(Math.abs(maxValue) + 1) : Math.log10(Math.abs(maxValue) + 1)) : maxValue
                     const ratio = maxValue / (maxValue - minValue)
@@ -401,9 +401,9 @@ class WigTrack extends TrackBase {
         }
         
         // Draw overflow indicators if needed
-        if (feature.value > this.dataRange.max) {
+        if (feature.value > this.dataRange!.max) {
             IGVGraphics.fillRect(ctx, x, 0, width, 3, {fillStyle: this.overflowColor})
-        } else if (feature.value < this.dataRange.min) {
+        } else if (feature.value < this.dataRange!.min) {
             IGVGraphics.fillRect(ctx, x, pixelHeight - 2, width, 3, {fillStyle: this.overflowColor})
         }
     }

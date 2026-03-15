@@ -11,16 +11,56 @@ import GenomeUtils from "./genome/genomeUtils.js"
 import {bppSequenceThreshold} from "./sequenceTrack.js"
 import makeDraggable from "./ui/utils/draggable.js"
 import {createIcon} from "./ui/utils/icons.js"
+import type TrackView from "./trackView.js"
+import type ReferenceFrame from "./referenceFrame.js"
+
+interface DrawConfiguration {
+    context: CanvasRenderingContext2D | C2S
+    contentTop: number
+    pixelXOffset: number
+    pixelWidth: number
+    pixelHeight: number
+    pixelTop: number
+    bpStart: number
+    bpEnd: number
+    bpPerPixel: number
+    pixelShift: number
+    windowFunction?: string
+    referenceFrame: ReferenceFrame
+    selection: Selection | undefined
+    viewport: TrackViewport
+    viewportWidth: number
+    features?: any
+}
+
+interface Selection {
+    chr: string
+    start: number
+    end: number
+}
+
+interface RoiFeatureSet {
+    track: { draw: (config: DrawConfiguration) => void }
+    features: any[]
+}
+
+interface PopupDataItem {
+    name?: string
+    value?: string
+    html?: string
+}
+
+type CanvasWithData = HTMLCanvasElement & { _data?: DrawConfiguration }
 
 const NOT_LOADED_MESSAGE = 'Error loading track data'
 
-let mouseDownCoords: any
+let mouseDownCoords: { x: number; y: number } | undefined
 let lastClickTime: number = 0
 let lastHoverUpdateTime: number = 0
 let popupTimerID: ReturnType<typeof setTimeout> | undefined
-let trackViewportPopoverList: any[] = []
+let trackViewportPopoverList: Popover[] = []
 
-let popover: any
+let popover: Popover | undefined
 
 class TrackViewport extends Viewport {
 
@@ -30,16 +70,16 @@ class TrackViewport extends Viewport {
     trackLabelElement: HTMLDivElement | undefined
     doRenderBucketLabels: boolean | undefined
     featureCache: FeatureCache | undefined
-    canvas: any
-    loading: any
-    selection: any
+    canvas: CanvasWithData | undefined
+    loading: { start: number; end: number } | false = false
+    selection: Selection | undefined
     enableClick: boolean | undefined
-    popover: any
+    popover: Popover | undefined
     _trackLabelPopover: HTMLDivElement | null | undefined
     _trackLabelPopoverListener: ((evt: MouseEvent) => void) | null | undefined
     boundClickHandler: ((event: MouseEvent) => void) | undefined
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
+    constructor(trackView: TrackView, viewportColumn: HTMLElement, referenceFrame: ReferenceFrame, width?: number) {
         super(trackView, viewportColumn, referenceFrame, width)
     }
 
@@ -202,8 +242,8 @@ class TrackViewport extends Viewport {
         } else {
             // See if currently painted canvas covers the vertical range of the viewport.  If not repaint
             const h = this.viewportElement.clientHeight
-            const vt = this.canvas._data.pixelTop - contentTop
-            const vb = vt + this.canvas._data.pixelHeight
+            const vt = this.canvas._data!.pixelTop - contentTop
+            const vb = vt + this.canvas._data!.pixelHeight
             if (vt > 0 || vb < h) {
                 this.repaint()
             }
@@ -213,7 +253,7 @@ class TrackViewport extends Viewport {
         // relative to the viewport, and is always <= 0, i.e. content top is shifted "up" when the
         // track is scrolled vertically  making the top of the virtual canvas above the top of the viewport.
         if (this.canvas) {
-            let offset = this.canvas._data.pixelTop - contentTop
+            let offset = this.canvas._data!.pixelTop - contentTop
             this.canvas.style.top = `${offset}px`
         }
     }
@@ -387,7 +427,7 @@ class TrackViewport extends Viewport {
     }
 
     refresh(): void {
-        if (!(this.canvas && this.featureCache)) return
+        if (!(this.canvas && this.canvas._data && this.featureCache)) return
 
         const drawConfiguration = this.canvas._data
         drawConfiguration.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
@@ -395,7 +435,7 @@ class TrackViewport extends Viewport {
         this.draw(drawConfiguration, features, roiFeatures)
     }
 
-    draw(drawConfiguration: any, features: any, roiFeatures: any): void {
+    draw(drawConfiguration: DrawConfiguration, features: any, roiFeatures: RoiFeatureSet[] | undefined): void {
 
         if (features) {
             drawConfiguration.features = features
@@ -434,7 +474,7 @@ class TrackViewport extends Viewport {
         const canvasTop = canvasMetadata ? canvasMetadata.pixelTop : 0
         const y = (this.contentTop - canvasTop) * window.devicePixelRatio
 
-        const ctx = this.canvas.getContext("2d")
+        const ctx = this.canvas.getContext("2d")!
         const imageData = ctx.getImageData(x, y, w, h)
         const exportCanvas = document.createElement('canvas')
         const exportCtx = exportCanvas.getContext('2d')!
@@ -648,7 +688,7 @@ class TrackViewport extends Viewport {
     }
 
     viewIsReady(): boolean {
-        return this.browser && this.browser.referenceFrameList && this.referenceFrame
+        return !!(this.browser && this.browser.referenceFrameList && this.referenceFrame)
     }
 
     addMouseHandlers(): void {
@@ -839,7 +879,7 @@ class TrackViewport extends Viewport {
                                         }
 
                                         popover = new Popover(this.viewportElement.parentElement!, true, undefined, () => {
-                                            popover.dispose()
+                                            popover!.dispose()
                                         })
 
                                         popover.presentContentWithEvent(event, content)

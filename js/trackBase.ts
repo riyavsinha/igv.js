@@ -3,6 +3,10 @@ import {FeatureUtils, FileUtils, StringUtils} from "../node_modules/igv-utils/sr
 import {createCheckbox} from "./igv-icons.js"
 import {findFeatureAfterCenter} from "./feature/featureUtils"
 import {isLocalFile} from "./util/sessionResourceValidator.js"
+import type Browser from "./browser.js"
+import type {TrackConfig} from "./types/config"
+import type {ClickState, DataRange} from "./types/ui"
+import type {FeatureSource} from "./types/reader"
 
 const fixColor = (colorString: any): any => {
     if (StringUtils.isString(colorString)) {
@@ -32,36 +36,36 @@ class TrackBase {
     }
 
     // Explicit class field declarations
-    declare browser: any
-    declare config: any
+    declare browser: Browser
+    declare config: TrackConfig
     declare _name: string | undefined
-    declare url: any
+    declare url: string | File | undefined
     declare type: string | undefined
-    declare id: any
-    declare order: any
-    declare autoscaleGroup: any
+    declare id: string | undefined
+    declare order: number | undefined
+    declare autoscaleGroup: string | undefined
     declare removable: boolean | undefined
     declare minHeight: number | undefined
     declare maxHeight: number | undefined
     declare autoHeight: boolean | undefined
-    declare visibilityWindow: any
-    declare altColor: any
+    declare visibilityWindow: number | undefined
+    declare altColor: string | undefined
     declare supportHiDPI: boolean | undefined
     declare selected: boolean | undefined
-    declare onclick: any
-    declare _initialColor: any
-    declare _initialAltColor: any
-    declare featureSource: any
-    declare autoscale: any
-    declare dataRange: any
-    declare graphType: any
+    declare onclick: ((feature: any) => void) | undefined
+    declare _initialColor: string | undefined
+    declare _initialAltColor: string | undefined
+    declare featureSource: FeatureSource | undefined
+    declare autoscale: boolean | undefined
+    declare dataRange: DataRange | undefined
+    declare graphType: string | undefined
     declare displayMode: string | undefined
     declare disposed: boolean | undefined
     declare viewLimitMin: number | undefined
     declare viewLimitMax: number | undefined
-    declare _filter: any
+    declare _filter: ((feature: any) => boolean) | undefined
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         this.browser = browser
         this.init(config)
     }
@@ -104,7 +108,7 @@ class TrackBase {
 
         this.url = config.url
         if (this.config.type) this.type = this.config.type
-        this.id = this.config.id === undefined ? this.name : this.config.id
+        this.id = this.config.id === undefined ? this.name : this.config.id as string | undefined
         this.order = config.order
         this.autoscaleGroup = config.autoscaleGroup
         this.removable = config.removable === undefined ? true : config.removable      // Defaults to true
@@ -335,7 +339,7 @@ class TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any): any[] {
+    clickedFeatures(clickState: ClickState): any[] {
 
         // We use the cached features rather than method to avoid async load.  If the
         // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
@@ -458,9 +462,9 @@ class TrackBase {
 
         if (this.url) {
             if (FileUtils.isFile(this.url)) {
-                fragment.appendChild(createKeyValueRow('Filename', this.url.name))
+                fragment.appendChild(createKeyValueRow('Filename', (this.url as File).name))
             } else {
-                fragment.appendChild(createKeyValueRow('URL', this.url))
+                fragment.appendChild(createKeyValueRow('URL', this.url as string))
             }
         } else {
             // If no URL, just return the name as a simple text node
@@ -472,9 +476,9 @@ class TrackBase {
         }
 
         if (this.config) {
-            if (this.config.metadata) {
-                for (let key of Object.keys(this.config.metadata)) {
-                    const value = this.config.metadata[key]
+            if ((this.config as Record<string, any>).metadata) {
+                for (let key of Object.keys((this.config as Record<string, any>).metadata)) {
+                    const value = (this.config as Record<string, any>).metadata[key]
                     fragment.appendChild(createKeyValueRow(key, value))
                 }
             }
@@ -484,9 +488,9 @@ class TrackBase {
                 if (key.startsWith("_")) continue   // transient property
                 let first = key.substr(0, 1)
                 if (first !== first.toLowerCase()) {
-                    const value = this.config[key]
+                    const value = (this.config as Record<string, any>)[key]
                     if (value && isSimpleType(value)) {
-                        fragment.appendChild(createKeyValueRow(key, value))
+                        fragment.appendChild(createKeyValueRow(key, value as string))
                     }
                 }
             }
@@ -565,8 +569,8 @@ class TrackBase {
             }
         }
 
-        if (typeof this.featureSource.nextFeature === 'function') {
-            return this.featureSource.nextFeature(chr, position, direction, this.visibilityWindow)
+        if (this.featureSource && typeof (this.featureSource as any).nextFeature === 'function') {
+            return (this.featureSource as any).nextFeature(chr, position, direction, this.visibilityWindow)
         }
     }
 

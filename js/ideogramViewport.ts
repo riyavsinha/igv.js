@@ -2,6 +2,8 @@ import IGVGraphics from './igv-canvas.js'
 import * as DOMUtils from "./ui/utils/dom-utils.js"
 import TrackViewport from "./trackViewport.js"
 import { IGVMath } from "../node_modules/igv-utils/src/index.js"
+import type TrackView from "./trackView.js"
+import type ReferenceFrame from "./referenceFrame.js"
 
 let timer: ReturnType<typeof setTimeout> | undefined
 const toolTipTimeout = 1e4
@@ -14,7 +16,7 @@ class IdeogramViewport extends TrackViewport {
     tooltip: HTMLDivElement | undefined
     tooltipContent: HTMLDivElement | undefined
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
+    constructor(trackView: TrackView, viewportColumn: HTMLElement, referenceFrame: ReferenceFrame, width?: number) {
         super(trackView, viewportColumn, referenceFrame, width)
     }
 
@@ -24,7 +26,7 @@ class IdeogramViewport extends TrackViewport {
 
         this.canvas.className = 'igv-ideogram-canvas'
         this.viewportElement.appendChild(this.canvas);
-        this.ideogram_ctx = this.canvas.getContext('2d')
+        this.ideogram_ctx = this.canvas.getContext('2d') ?? undefined
 
         // Create the tooltip
         this.tooltip = document.createElement('div');
@@ -173,7 +175,7 @@ class IdeogramViewport extends TrackViewport {
             this.referenceFrame.end = ee
             this.referenceFrame.bpPerPixel = (ee - ss) / width
 
-            this.browser.updateViews(this.referenceFrame, this.browser.trackViews, true)
+            ;(this.browser as any).updateViews(this.referenceFrame, this.browser.trackViews, true)
 
         }
 

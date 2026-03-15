@@ -10,12 +10,13 @@ import getDataWrapper from "./dataWrapper"
 import BGZLineReader from "../util/bgzLineReader.js"
 import BGZBlockLoader from "../bam/bgzBlockLoader"
 import QTLParser from "../qtl/qtlParser.js"
+import type {GenomicFeature} from "../types/feature"
 
 // Conservative estimate of the maximum allowed string length
 const MAX_STRING_LENGTH: number = 500000000
 
 interface FeatureFileReaderConfig {
-    url: any
+    url: string | File | ((...args: any[]) => string)
     indexURL?: string
     indexed?: boolean
     format?: string
@@ -27,33 +28,47 @@ interface FeatureFileReaderConfig {
     [key: string]: any
 }
 
+interface FeatureFileReaderGenome {
+    getChromosome(chr: string): { bpLength: number } | undefined
+}
+
 interface FeatureIndex {
     tabix: boolean
     sequenceNames: string[]
-    sequenceIndexMap: Record<string, any>
+    sequenceIndexMap: Record<string, number>
     lastBlockPosition?: number
     chrIndex: Record<string, { blocks: { max: number }[] }>
-    chunksForRange(refId: any, start: number, end: number): any[]
+    chunksForRange(refId: string | number, start: number, end: number): IndexChunk[]
+}
+
+interface IndexChunk {
+    minv: { block: number; offset: number }
+    maxv: { block: number; offset: number }
+}
+
+interface FeatureFileReaderParser {
+    parseHeader(dataWrapper: any): Promise<any>
+    parseFeatures(dataWrapper: any): Promise<any[]>
 }
 
 class FeatureFileReader {
 
     sequenceNames: Set<string> | undefined
     config: FeatureFileReaderConfig
-    genome: any
+    genome: FeatureFileReaderGenome
     indexURL: string | undefined
     indexed: boolean
     queryable: boolean
     filename: string | undefined
     dataURI: string | undefined
-    parser: any
-    header: any
-    features: any[] | undefined
+    parser: FeatureFileReaderParser
+    header: Record<string, any> | undefined
+    features: GenomicFeature[] | undefined
     index: FeatureIndex | undefined
     format: string | undefined
-    _blockLoader: any
+    _blockLoader: BGZBlockLoader | undefined
 
-    constructor(config: FeatureFileReaderConfig, genome: any) {
+    constructor(config: FeatureFileReaderConfig, genome: FeatureFileReaderGenome) {
 
         this.config = config || {} as FeatureFileReaderConfig
         this.genome = genome
@@ -62,12 +77,12 @@ class FeatureFileReader {
         this.queryable = this.indexed
 
         if (FileUtils.isFile(this.config.url)) {
-            this.filename = this.config.url.name
+            this.filename = (this.config.url as File).name
         } else if (isDataURL(this.config.url)) {
             this.indexed = false  // by definition
-            this.dataURI = config.url
+            this.dataURI = config.url as string
         } else {
-            const uriParts = URIUtils.parseUri(this.config.url)
+            const uriParts = URIUtils.parseUri(this.config.url as string)
             this.filename = config.filename || uriParts.file
         }
 
@@ -96,14 +111,14 @@ class FeatureFileReader {
         }
     }
 
-    async readFeatures(chr: string, start: number, end: number): Promise<any[]> {
+    async readFeatures(chr: string, start: number, end: number): Promise<GenomicFeature[]> {
 
         // insure that header has been loaded
         if (!this.dataURI && !this.header) {
             await this.readHeader()
         }
 
-        let allFeatures: any[]
+        let allFeatures: GenomicFeature[]
         const index = await this.getIndex()
         if (index) {
             this.indexed = true
@@ -118,7 +133,7 @@ class FeatureFileReader {
             allFeatures = await this.loadFeaturesNoIndex()
         }
 
-        allFeatures.sort(function (a: any, b: any) {
+        allFeatures.sort(function (a: GenomicFeature, b: GenomicFeature) {
             if (a.chr === b.chr) {
                 return a.start - b.start
             } else {
@@ -129,7 +144,7 @@ class FeatureFileReader {
         return allFeatures
     }
 
-    async readHeader(): Promise<any> {
+    async readHeader(): Promise<Record<string, any> | undefined> {
 
         if (this.dataURI) {
             await this.loadFeaturesFromDataURI()
@@ -155,7 +170,7 @@ class FeatureFileReader {
                         Math.min(previous, current), Number.MAX_SAFE_INTEGER)
 
                 const options = buildOptions(this.config, {bgz: index.tabix, range: {start: 0, size: maxSize}})
-                const data: string = await igvxhr.loadString(this.config.url, options)
+                const data: string = await igvxhr.loadString(this.config.url as string, options)
                 dataWrapper = getDataWrapper(data)
             }
 
@@ -185,7 +200,7 @@ class FeatureFileReader {
             // Non-indexed file, or indexed file without an index
             this.indexed = false
 
-            let data: any
+            let data: Uint8Array | string
 
             if (this.config._filecontents) {
                 // In rare instances the entire file must be read and decoded to determine the file format.
@@ -195,7 +210,7 @@ class FeatureFileReader {
             } else {
                 // If this is a non-indexed file we will load all features in advance
                 const options = buildOptions(this.config)
-                data = await igvxhr.loadByteArray(this.config.url, options)
+                data = await igvxhr.loadByteArray(this.config.url as string, options)
             }
 
             // If the data size is < max string length decode entire string with TextDecoder.  This is much faster
@@ -221,7 +236,7 @@ class FeatureFileReader {
     }
 
 
-    getParser(config: FeatureFileReaderConfig): any {
+    getParser(config: FeatureFileReaderConfig): FeatureFileReaderParser {
 
         switch (config.format) {
             case "vcf":
@@ -244,7 +259,7 @@ class FeatureFileReader {
         }
     }
 
-    async loadFeaturesNoIndex(): Promise<any[]> {
+    async loadFeaturesNoIndex(): Promise<GenomicFeature[]> {
 
         if (this.features) {
             // An optimization hack for non-indexed files, features are temporarily cached when header is read.
@@ -253,19 +268,19 @@ class FeatureFileReader {
             return tmp
         } else {
             const options = buildOptions(this.config)    // Add oauth token, if any
-            const data = await igvxhr.loadByteArray(this.config.url, options)
+            const data = await igvxhr.loadByteArray(this.config.url as string, options)
             if (!this.header) {
                 const dataWrapper = getDataWrapper(data)
                 this.header = await this.parser.parseHeader(dataWrapper)
             }
             const dataWrapper = getDataWrapper(data)
-            const features: any[] = []
+            const features: GenomicFeature[] = []
             await this._parse(features, dataWrapper)   // <= PARSING DONE HERE
             return features
         }
     }
 
-    async loadFeaturesWithIndex(chr: string, start: number, end: number): Promise<any[]> {
+    async loadFeaturesWithIndex(chr: string, start: number, end: number): Promise<GenomicFeature[]> {
 
         //console.log("Using index"
         const config = this.config
@@ -281,12 +296,12 @@ class FeatureFileReader {
         if (!chunks || chunks.length === 0) {
             return []
         } else {
-            const allFeatures: any[] = []
+            const allFeatures: GenomicFeature[] = []
             for (let chunk of chunks) {
 
-                let inflated: any
+                let inflated: string | Uint8Array
                 if (tabix) {
-                    inflated = await this._blockLoader.getData(chunk.minv, chunk.maxv)
+                    inflated = await this._blockLoader!.getData(chunk.minv, chunk.maxv)
                 } else {
                     const options = buildOptions(config, {
                         range: {
@@ -294,10 +309,10 @@ class FeatureFileReader {
                             size: chunk.maxv.block - chunk.minv.block + 1
                         }
                     })
-                    inflated = await igvxhr.loadString(config.url, options)
+                    inflated = await igvxhr.loadString(config.url as string, options)
                 }
 
-                const slicedData: any = chunk.minv.offset ? inflated.slice(chunk.minv.offset) : inflated
+                const slicedData: string | Uint8Array = chunk.minv.offset ? inflated.slice(chunk.minv.offset) : inflated
                 const dataWrapper = getDataWrapper(slicedData)
                 await this._parse(allFeatures, dataWrapper, chr, end, start)
 
@@ -307,31 +322,31 @@ class FeatureFileReader {
         }
     }
 
-    async loadFeaturesFromService(chr: string, start: number, end: number): Promise<any[]> {
+    async loadFeaturesFromService(chr: string, start: number, end: number): Promise<GenomicFeature[]> {
 
         let url: string
         if (typeof this.config.url === 'function') {
             url = this.config.url({chr, start, end})
         } else {
-            url = this.config.url
+            url = (this.config.url as string)
                 .replace("$CHR", chr)
-                .replace("$START", start as any)
-                .replace("$END", end as any)
+                .replace("$START", String(start))
+                .replace("$END", String(end))
         }
         const options = buildOptions(this.config)    // Adds oauth token, if any
         const data: string = await igvxhr.loadString(url, options)
         const dataWrapper = getDataWrapper(data)
-        const features: any[] = []
+        const features: GenomicFeature[] = []
         await this._parse(features, dataWrapper)   // <= PARSING DONE HERE
         return features
 
     }
 
-    async _parse(allFeatures: any[], dataWrapper: any, chr?: string, end?: number, start?: number): Promise<void> {
+    async _parse(allFeatures: GenomicFeature[], dataWrapper: any, chr?: string, end?: number, start?: number): Promise<void> {
 
-        let features: any[] = await this.parser.parseFeatures(dataWrapper)
+        let features: GenomicFeature[] = await this.parser.parseFeatures(dataWrapper)
 
-        features.sort(function (a: any, b: any) {
+        features.sort(function (a: GenomicFeature, b: GenomicFeature) {
             if (a.chr === b.chr) {
                 return a.start - b.start
             } else {
@@ -380,7 +395,7 @@ class FeatureFileReader {
         return loadIndex(indexURL, this.config)
     }
 
-    async loadFeaturesFromDataURI(): Promise<any[]> {
+    async loadFeaturesFromDataURI(): Promise<GenomicFeature[]> {
 
         if (this.features) {
             // An optimization hack for non-indexed files, features are temporarily cached when header is read.
@@ -396,7 +411,7 @@ class FeatureFileReader {
             }
 
             dataWrapper = getDataWrapper(plain)
-            const features: any[] = []
+            const features: GenomicFeature[] = []
             await this._parse(features, dataWrapper)
             return features
         }

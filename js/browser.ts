@@ -35,6 +35,7 @@ import MenuUtils from "./ui/menuUtils.js"
 import Genome from "./genome/genome"
 import {setDefaults} from "./util/defaultOptions.js"
 import {trackViewportPopoverList} from './trackViewport.js'
+import type TrackViewport from './trackViewport.js'
 import TrackBase from "./trackBase.js"
 import {loadGenbank} from "./gbk/genbankParser"
 import igvCss from "./embedCss.js"
@@ -49,7 +50,35 @@ import {loadHub} from "./ucsc/hub/hub.js"
 import {EventEmitter} from "./events.js"
 import Locus from "./locus.js"
 import {isLocalFile, isGoogleDriveURL} from "./util/sessionResourceValidator.js"
+import type {BrowserConfig, TrackConfig} from "./types/config"
 
+
+interface SearchConfig {
+    type: string
+    url: string
+    coords: number
+    chromosomeField: string
+    startField: string
+    endField: string
+    geneField: string
+    snpField: string
+    resultsField?: string
+}
+
+interface VpMouseDown {
+    viewport: TrackViewport
+    lastMouseX: number
+    mouseDownX: number
+    lastMouseY: number
+    mouseDownY: number
+    referenceFrame: ReferenceFrame
+    r?: number
+}
+
+interface DragObject {
+    viewport: TrackViewport
+    start: number
+}
 
 // css - $igv-scrollbar-outer-width: 14px;
 const igv_scrollbar_outer_width: number = 14

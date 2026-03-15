@@ -43,7 +43,7 @@ class QTLTrack extends TrackBase {
 
     paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
 
-        const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
+        const yScale = (this.dataRange!.max - this.dataRange!.min) / pixelHeight
 
         const font = {
             'font': 'normal 10px Arial',
@@ -55,16 +55,16 @@ class QTLTrack extends TrackBase {
 
         // Determine a tick spacing such that there is at least 10 pixels between ticks
 
-        const n = Math.ceil((this.dataRange.max - this.dataRange.min) * 10 / pixelHeight)
+        const n = Math.ceil((this.dataRange!.max - this.dataRange!.min) * 10 / pixelHeight)
 
-        for (let p = 4; p <= this.dataRange.max; p += n) {
+        for (let p = 4; p <= this.dataRange!.max; p += n) {
 
             // TODO: Dashes may not actually line up with correct scale. Ask Jim about this
 
             const ref = 0.85 * pixelWidth
             const x1 = ref - 5
             const x2 = ref
-            const y = pixelHeight - (p - this.dataRange.min) / yScale
+            const y = pixelHeight - (p - this.dataRange!.min) / yScale
 
             IGVGraphics.strokeLine(ctx, x1, y, x2, y, font) // Offset dashes up by 2 pixel
 
@@ -81,7 +81,7 @@ class QTLTrack extends TrackBase {
 
     async getFeatures(chr: string, start: number, end: number) {
         const visibilityWindow = this.visibilityWindow
-        const features = await this.featureSource.getFeatures({chr, start, end, visibilityWindow})
+        const features = await this.featureSource!.getFeatures({chr, start, end, visibilityWindow})
         return features
     }
 
@@ -100,7 +100,7 @@ class QTLTrack extends TrackBase {
 
             const radius = drawSelected ? 2 * this.dotSize : this.dotSize
             const bpStart = options.bpStart
-            const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
+            const yScale = (this.dataRange!.max - this.dataRange!.min) / pixelHeight
 
             for (let eqtl of options.features) {
 
@@ -123,17 +123,17 @@ class QTLTrack extends TrackBase {
                 if (!drawSelected || isSelected) {
 
                     var mLogP = -Math.log(eqtl.pValue) / Math.LN10
-                    if (mLogP >= this.dataRange.min) {
+                    if (mLogP >= this.dataRange!.min) {
                         let capped
-                        if (mLogP > this.dataRange.max) {
-                            mLogP = this.dataRange.max
+                        if (mLogP > this.dataRange!.max) {
+                            mLogP = this.dataRange!.max
                             capped = true
                         } else {
                             capped = false
 
                         }
 
-                        const py = Math.max(0 + radius, pixelHeight - Math.round((mLogP - this.dataRange.min) / yScale))
+                        const py = Math.max(0 + radius, pixelHeight - Math.round((mLogP - this.dataRange!.min) / yScale))
                         eqtl.px = px
                         eqtl.py = py
                         eqtl.radius = radius
@@ -254,14 +254,14 @@ class QTLTrack extends TrackBase {
                         // Find qtls from this track matching either snp or phenotype
                         const matching = (f: any) => {
                             return ((f.phenotype && f.phenotype.toUpperCase()) === term || (f.snp && f.snp.toUpperCase() === term)) &&
-                                -Math.log(f.pValue) / Math.LN10 > this.dataRange.min
+                                -Math.log(f.pValue) / Math.LN10 > this.dataRange!.min
                         }
-                        let matchingFeatures = await this.featureSource.findFeatures(matching)
+                        let matchingFeatures = await this.featureSource!.findFeatures(matching)
                         if (matchingFeatures.length == 0) {
                             // Possibly move to another genomic locus containing the search term
                             const found = await this.browser.search(term)
                             if (found) {
-                                matchingFeatures = await this.featureSource.findFeatures(matching)
+                                matchingFeatures = await this.featureSource!.findFeatures(matching)
                             }
                         }
 
@@ -329,7 +329,7 @@ class QTLTrack extends TrackBase {
             const k = Math.floor(values.length * (this.autoscalePercentile / 100))
             max = values[k]
         }
-        this.dataRange.max = Math.max(max, 10)
+        this.dataRange!.max = Math.max(max, 10)
         return this.dataRange
     }
 

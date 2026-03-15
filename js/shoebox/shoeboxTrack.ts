@@ -53,8 +53,8 @@ class ShoeboxTrack extends TrackBase {
     // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
         // Set properties from track line
@@ -70,8 +70,8 @@ class ShoeboxTrack extends TrackBase {
         // Must do the following after setting track properties as they can be overriden via a track line
 
         // Color settings
-        const min = this.dataRange.min
-        const max = this.dataRange.max
+        const min = this.dataRange!.min
+        const max = this.dataRange!.max
         this.colorScale = new ShoeboxColorScale({min, max, color: this.color})
 
         // This shouldn't be neccessary
@@ -167,15 +167,15 @@ class ShoeboxTrack extends TrackBase {
     }
 
     setDataRange({min, max}: {min: number, max: number}) {
-        this.dataRange.min = min
-        this.dataRange.max = max
+        this.dataRange!.min = min
+        this.dataRange!.max = max
         this.colorScale.setMinMax(min, max)
         this.trackView.repaintViews()
     }
 
     async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
-        const features = await this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
+        const features = await this.featureSource!.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
 
         return features
     }
@@ -207,7 +207,7 @@ class ShoeboxTrack extends TrackBase {
 
                     const v = f.values[i]                  // / this.scale
 
-                    if (v >= this.dataRange.min) {
+                    if (v >= this.dataRange!.min) {
 
                         const row = f.values.length - 1 - i
                         const y = row * rowHeight

@@ -57,8 +57,8 @@ class GWASTrack extends TrackBase {
     // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
 
@@ -96,7 +96,7 @@ class GWASTrack extends TrackBase {
 
     async getFeatures(chr: string, start: number, end: number) {
         const visibilityWindow = this.visibilityWindow
-        return this.featureSource.getFeatures({chr, start, end, visibilityWindow})
+        return this.featureSource!.getFeatures({chr, start, end, visibilityWindow})
     }
 
     draw(options: any) {
@@ -134,9 +134,9 @@ class GWASTrack extends TrackBase {
                     val
 
                 const color = this.colorScale.getColor(colorKey)
-                const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
+                const yScale = (this.dataRange!.max - this.dataRange!.min) / pixelHeight
                 const px = Math.round((pos - bpStart) / bpPerPixel)
-                const py = Math.max(this.dotSize, pixelHeight - Math.round((val - this.dataRange.min) / yScale))
+                const py = Math.max(this.dotSize, pixelHeight - Math.round((val - this.dataRange!.min) / yScale))
 
                 if (color) {
                     IGVGraphics.setProperties(ctx, {fillStyle: color, strokeStyle: "black"})
@@ -157,18 +157,18 @@ class GWASTrack extends TrackBase {
             'strokeStyle': "black"
         }
 
-        const yScale = (this.dataRange.max - this.dataRange.min) / pixelHeight
+        const yScale = (this.dataRange!.max - this.dataRange!.min) / pixelHeight
         if (this.posteriorProbability) {
             const n = 0.1
-            for (let p = this.dataRange.min; p < this.dataRange.max; p += n) {
-                const yp = pixelHeight - Math.round((p - this.dataRange.min) / yScale)
+            for (let p = this.dataRange!.min; p < this.dataRange!.max; p += n) {
+                const yp = pixelHeight - Math.round((p - this.dataRange!.min) / yScale)
                 IGVGraphics.strokeLine(ctx, 45, yp - 2, 50, yp - 2, font) // Offset dashes up by 2 pixel
                 IGVGraphics.fillText(ctx, p.toFixed(1), 44, yp + 2, font) // Offset numbers down by 2 pixels;
             }
         } else {
-            const n = Math.ceil((this.dataRange.max - this.dataRange.min) * 10 / pixelHeight)
-            for (let p = this.dataRange.min; p < this.dataRange.max; p += n) {
-                const yp = pixelHeight - Math.round((p - this.dataRange.min) / yScale)
+            const n = Math.ceil((this.dataRange!.max - this.dataRange!.min) * 10 / pixelHeight)
+            for (let p = this.dataRange!.min; p < this.dataRange!.max; p += n) {
+                const yp = pixelHeight - Math.round((p - this.dataRange!.min) / yScale)
                 IGVGraphics.strokeLine(ctx, 45, yp, 50, yp, font) // Offset dashes up by 2 pixel
                 IGVGraphics.fillText(ctx, String(Math.floor(p)), 44, yp + 4, font) // Offset numbers down by 2 pixels;
             }

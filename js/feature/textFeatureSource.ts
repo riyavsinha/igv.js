@@ -9,15 +9,25 @@ import {computeWGFeatures, findFeatureAfterCenter, packFeatures} from "./feature
 import ChromAliasManager from "./chromAliasManager"
 import BaseFeatureSource from "./baseFeatureSource"
 import {summarizeData} from "./wigSummary"
+import type {GenomicFeature} from "../types/feature"
 
 const DEFAULT_MAX_WG_COUNT: number = 10000
+
+interface TextFeatureSourceReader {
+    readFeatures(chr: string, start: number, end: number): Promise<any[] | null | undefined>
+    readHeader?(): Promise<Record<string, any> | undefined>
+    defaultVisibilityWindow?(): Promise<number | undefined>
+    sequenceNames?: Set<string>
+    indexed?: boolean
+    [key: string]: any
+}
 
 interface TextFeatureSourceConfig {
     sourceType?: string
     maxWGCount?: number
     indexURL?: string
     queryable?: boolean
-    reader?: any
+    reader?: TextFeatureSourceReader
     type?: string
     format?: string
     source?: any
@@ -29,6 +39,11 @@ interface TextFeatureSourceConfig {
     searchableFields?: string[]
     mappings?: Record<string, string>
     [key: string]: any
+}
+
+interface TextFeatureSourceGenome {
+    getChromosome(chr: string): { bpLength: number } | undefined
+    chromosomeNames?: string[]
 }
 
 interface GetFeaturesParams {
@@ -47,15 +62,15 @@ class TextFeatureSource extends BaseFeatureSource {
     maxWGCount: number
     windowFunctions: string[]
     queryable: boolean | undefined
-    reader: any
+    reader: TextFeatureSourceReader
     searchable: boolean
-    header: any
-    featureCache: any
-    wgFeatures: any[] | undefined
-    chromAliasManager: any
-    featureMap: Map<string, any> | undefined
+    header: Record<string, any> | undefined
+    featureCache: FeatureCache | undefined
+    wgFeatures: GenomicFeature[] | undefined
+    chromAliasManager: ChromAliasManager | undefined
+    featureMap: Map<string, GenomicFeature> | undefined
 
-    constructor(config: TextFeatureSourceConfig, genome: any) {
+    constructor(config: TextFeatureSourceConfig, genome: TextFeatureSourceGenome) {
 
         super(genome)
 
@@ -165,10 +180,10 @@ class TextFeatureSource extends BaseFeatureSource {
             if (!this.wgFeatures) {
                 if (this.supportsWholeGenome()) {
                     if("wig" === this.config.type) {
-                        const allWgFeatures = await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome, this.chromAliasManager, 1000000)
+                        const allWgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome, this.chromAliasManager, 1000000)
                         this.wgFeatures = summarizeData(allWgFeatures as any, 0, bpPerPixel!, windowFunction) as any
                     } else {
-                        this.wgFeatures = await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome, this.chromAliasManager, this.maxWGCount)
+                        this.wgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome, this.chromAliasManager, this.maxWGCount)
                     }
                 } else {
                     this.wgFeatures = []
@@ -177,7 +192,7 @@ class TextFeatureSource extends BaseFeatureSource {
             return this.wgFeatures!
         } else {
             const queryChr: string = this.chromAliasManager ?  await this.chromAliasManager.getAliasName(chr) : chr
-            return this.featureCache.queryFeatures(queryChr, start, end)
+            return this.featureCache!.queryFeatures(queryChr, start, end)
         }
     }
 
@@ -189,7 +204,7 @@ class TextFeatureSource extends BaseFeatureSource {
         return !this.queryable   // queryable (indexed, web services) sources don't support whole genome view
     }
 
-    getAllFeatures(): any[] {
+    getAllFeatures(): any {
         if (this.queryable || !this.featureCache) {   // queryable sources don't support all features
             return []
         } else {
@@ -209,7 +224,7 @@ class TextFeatureSource extends BaseFeatureSource {
         // chr aliasing
         let queryChr: string = chr
         if (!this.chromAliasManager && this.reader && this.reader.sequenceNames && this.reader.sequenceNames.size > 0) {
-            this.chromAliasManager = new ChromAliasManager(this.reader.sequenceNames, this.genome)
+            this.chromAliasManager = new ChromAliasManager([...this.reader.sequenceNames], this.genome)
         }
         if (this.chromAliasManager) {
             queryChr = await this.chromAliasManager.getAliasName(chr)
@@ -232,7 +247,7 @@ class TextFeatureSource extends BaseFeatureSource {
             intervalEnd = intervalStart + expansionWindow
         }
 
-        let features: any[] = await reader.readFeatures(queryChr, intervalStart, intervalEnd)
+        let features = await reader.readFeatures(queryChr, intervalStart, intervalEnd)
         if (this.queryable === undefined) {
             this.queryable = reader.indexed
         }
@@ -279,7 +294,7 @@ class TextFeatureSource extends BaseFeatureSource {
                     key = key.replace(/ /g, '+').toUpperCase()
                     // If feature is already present keep largest one
                     if (this.featureMap.has(key)) {
-                        const f2 = this.featureMap.get(key)
+                        const f2 = this.featureMap.get(key)!
                         if (feature.end - feature.start < f2.end - f2.start) {
                             continue
                         }

@@ -1,13 +1,16 @@
 import * as DOMUtils from "./ui/utils/dom-utils.js"
 import AlertDialog from "./ui/components/alertDialog.js"
 import SequenceTrack from "./sequenceTrack.js"
+import type Browser from "./browser.js"
+import type ReferenceFrame from "./referenceFrame.js"
+import type TrackView from "./trackView.js"
 
 class Viewport {
 
     guid: string
-    trackView: any
-    referenceFrame: any
-    browser: any
+    trackView: TrackView
+    referenceFrame: ReferenceFrame
+    browser: Browser
     viewportElement: HTMLDivElement
     alert: any
     contentTop: number
@@ -15,7 +18,7 @@ class Viewport {
     messageDiv: HTMLDivElement | undefined
     // cachedFeatures defined by subclasses (TrackViewport defines as accessor)
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
+    constructor(trackView: TrackView, viewportColumn: HTMLElement, referenceFrame: ReferenceFrame, width?: number) {
         this.guid = DOMUtils.guid()
         this.trackView = trackView;
         this.referenceFrame = referenceFrame;

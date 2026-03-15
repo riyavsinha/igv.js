@@ -28,7 +28,7 @@ export interface TrackConfig {
     filename?: string
     description?: string | (() => string)
     /** Allow arbitrary additional properties for backward compatibility */
-    [key: string]: unknown
+    [key: string]: any
 }
 
 /** Browser creation options */

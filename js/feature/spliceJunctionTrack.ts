@@ -46,8 +46,8 @@ class SpliceJunctionTrack extends TrackBase {
     // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
 
@@ -56,8 +56,8 @@ class SpliceJunctionTrack extends TrackBase {
             this.setTrackProperties(this.header)
         }
 
-        if (this.visibilityWindow === undefined && typeof this.featureSource.defaultVisibilityWindow === 'function') {
-            this.visibilityWindow = await this.featureSource.defaultVisibilityWindow()
+        if (this.visibilityWindow === undefined && typeof this.featureSource!.defaultVisibilityWindow === 'function') {
+            this.visibilityWindow = await this.featureSource!.defaultVisibilityWindow()
         }
 
         this._initialColor = this.color || (this.constructor as any).defaultColor
@@ -73,7 +73,7 @@ class SpliceJunctionTrack extends TrackBase {
 
     async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
-        return this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
+        return this.featureSource!.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
     };
 
 

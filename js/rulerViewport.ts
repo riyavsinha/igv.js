@@ -5,6 +5,8 @@ import {IGVMath, StringUtils} from "../node_modules/igv-utils/src/index.js"
 import * as DOMUtils from "./ui/utils/dom-utils.js"
 import {createIcon} from "./ui/utils/icons.js"
 import {getChrColor} from "./util/getChrColor.js"
+import type TrackView from "./trackView.js"
+import type ReferenceFrame from "./referenceFrame.js"
 
 let timer: ReturnType<typeof setTimeout> | undefined
 let currentViewport: RulerViewport | undefined = undefined
@@ -18,7 +20,7 @@ class RulerViewport extends TrackViewport {
     tooltipContent: HTMLDivElement | undefined
     rulerSweeper: RulerSweeper | undefined
 
-    constructor(trackView: any, $viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
+    constructor(trackView: TrackView, $viewportColumn: HTMLElement, referenceFrame: ReferenceFrame, width?: number) {
         super(trackView, $viewportColumn, referenceFrame, width)
     }
 

@@ -39,14 +39,14 @@ class GCNVTrack extends TrackBase {
         // Visibility window hardcoded to -1  (== whole chromosome).  Draw method needs feature beyond current view,
         // when/if this is resolved visibilityWindow can be used.
         this.visibilityWindow = -1
-        this.featureSource.visibilityWindow = this.visibilityWindow
+        this.featureSource!.visibilityWindow = this.visibilityWindow
     }
 
     // @ts-expect-error TS2416 - postInit return type differs from base class
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if(this.disposed) return;   // This track was removed during async load
             this.sampleKeys = this.header.columnNames.slice(3)
 
@@ -90,7 +90,7 @@ class GCNVTrack extends TrackBase {
     }
 
     async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
-        const chrFeatures = await this.featureSource.getFeatures({
+        const chrFeatures = await this.featureSource!.getFeatures({
             chr,
             start: 0,
             end: Number.MAX_SAFE_INTEGER,
@@ -122,7 +122,7 @@ class GCNVTrack extends TrackBase {
         //}
 
         const yScale = (yValue: number) => {
-            return ((this.dataRange.max - yValue) / (this.dataRange.max - this.dataRange.min)) * pixelHeight
+            return ((this.dataRange!.max - yValue) / (this.dataRange!.max - this.dataRange!.min)) * pixelHeight
         }
 
         const getX = function (bpPosition: number) {
@@ -150,11 +150,11 @@ class GCNVTrack extends TrackBase {
 
         if (features && features.length > 0) {
 
-            if (this.dataRange.min === undefined) this.dataRange.min = 0
+            if (this.dataRange!.min === undefined) this.dataRange!.min = 0
 
             // Max can be less than min if config.min is set but max left to autoscale. If that's the case there is
             // nothing to paint.
-            if (this.dataRange.max > this.dataRange.min) {
+            if (this.dataRange!.max > this.dataRange!.min) {
                 const highlightSamples = this.config.highlightSamples
                 const onlyHandleClicksForHighlightedSamples = this.config.onlyHandleClicksForHighlightedSamples
                 const clickToHighlight = this.config.clickToHighlight
@@ -233,8 +233,8 @@ class GCNVTrack extends TrackBase {
 
                 /*
                 // If the track includes negative values draw a baseline
-                if (this.dataRange.min < 0) {
-                    const basepx = (self.dataRange.max / (this.dataRange.max - this.dataRange.min)) * options.pixelHeight;
+                if (this.dataRange!.min < 0) {
+                    const basepx = (self.dataRange.max / (this.dataRange!.max - this.dataRange!.min)) * options.pixelHeight;
                     IGVGraphics.strokeLine(context, 0, basepx, options.pixelWidth, basepx, {strokeStyle: baselineColor});
                 }
                 */

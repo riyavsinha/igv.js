@@ -108,15 +108,15 @@ class InteractionTrack extends TrackBase {
                 fixFeatures(config.features)
             }
             this.featureSource = FeatureSource(config, this.browser.genome)
-            this.featureSource.getWGFeatures = getWGFeatures
+            this.featureSource!.getWGFeatures = getWGFeatures
         }
     }
 
     // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
 
@@ -125,9 +125,9 @@ class InteractionTrack extends TrackBase {
             this.setTrackProperties(this.header)
         }
 
-        if (this.visibilityWindow === undefined && typeof this.featureSource.defaultVisibilityWindow === 'function') {
-            this.visibilityWindow = await this.featureSource.defaultVisibilityWindow()
-            this.featureSource.visibilityWindow = this.visibilityWindow  // <- this looks odd
+        if (this.visibilityWindow === undefined && typeof this.featureSource!.defaultVisibilityWindow === 'function') {
+            this.visibilityWindow = await this.featureSource!.defaultVisibilityWindow()
+            this.featureSource!.visibilityWindow = this.visibilityWindow  // <- this looks odd
         }
 
         this._initialColor = this.color || (this.constructor as any).defaultColor
@@ -137,7 +137,7 @@ class InteractionTrack extends TrackBase {
     }
 
     get supportsWholeGenome() {
-        return typeof this.featureSource.supportsWholeGenome === 'function' ? this.featureSource.supportsWholeGenome() : true
+        return typeof this.featureSource!.supportsWholeGenome === 'function' ? this.featureSource!.supportsWholeGenome() : true
     }
 
     get resolutionAware() {
@@ -146,7 +146,7 @@ class InteractionTrack extends TrackBase {
 
     async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
-        const features = await this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow, normalization: this.normalization})
+        const features = await this.featureSource!.getFeatures({chr, start, end, bpPerPixel, visibilityWindow, normalization: this.normalization})
 
         // Check for score or value
         if (this.hasValue === undefined && features && features.length > 0) {
@@ -340,7 +340,7 @@ class InteractionTrack extends TrackBase {
 
             // we use the min as a filter but not moving the axis
             const effectiveMin = 0
-            const yScale = this.getScaleFactor(effectiveMin, this.dataRange.max, options.pixelHeight - 1, this.logScale)
+            const yScale = this.getScaleFactor(effectiveMin, this.dataRange!.max, options.pixelHeight - 1, this.logScale)
             const y = direction ? options.pixelHeight : 0
 
             for (let feature of featureList) {
@@ -366,7 +366,7 @@ class InteractionTrack extends TrackBase {
                     }
 
                     // Various filters
-                    if (value < this.dataRange.min || value > this.dataRange.max) continue
+                    if (value < this.dataRange!.min || value > this.dataRange!.max) continue
                     if ("proportional" !== this.arcType) {
                         const showOutbound = (this.arcType === "partialInView")
                         const within = (m1 >= refStart && m2 <= refEnd)
@@ -425,7 +425,7 @@ class InteractionTrack extends TrackBase {
                     // Inter chromosome
                     let pixelStart = Math.round((feature.start - bpStart) / xScale)
                     let pixelEnd = Math.round((feature.end - bpStart) / xScale)
-                    if (pixelEnd < 0 || pixelStart > pixelWidth || value < this.dataRange.min || value > this.dataRange.max) continue
+                    if (pixelEnd < 0 || pixelStart > pixelWidth || value < this.dataRange!.min || value > this.dataRange!.max) continue
 
                     const h = Math.min(radiusY, this.height - 13)   // Leave room for text
                     let w = (pixelEnd - pixelStart)
@@ -484,7 +484,7 @@ class InteractionTrack extends TrackBase {
 
     paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
         // dataRane is interpreted differently for interactino tracks -- all arcs are drawn from "zero", irrespective of dataRange.min
-        const axisRange = {min: 0, max: this.dataRange.max}
+        const axisRange = {min: 0, max: this.dataRange!.max}
         if (this.arcType === "proportional") {
             this.painter.flipAxis = "DOWN" === this.arcOrientation
             this.painter.dataRange = axisRange
@@ -601,7 +601,7 @@ class InteractionTrack extends TrackBase {
         if (this._hic) {
             items.push('<hr/>')
             items.push('<b>Normalization</b>')
-            for (let option of this.featureSource.normalizationOptions) {
+            for (let option of this.featureSource!.normalizationOptions) {
                 items.push({
                     element: createCheckbox(option, this.normalization === option),
                     click: () => {
@@ -689,10 +689,10 @@ class InteractionTrack extends TrackBase {
 
         let inView
         if ("all" === refFrame.chr) {
-            inView = Object.values(this.featureSource.getAllFeatures()).flat()
+            inView = Object.values(this.featureSource!.getAllFeatures()).flat()
         } else {
             const cachedFeatures =
-                this.featureSource.featureCache.queryFeatures(refFrame.chr, refFrame.start, refFrame.end)
+                this.featureSource!.featureCache.queryFeatures(refFrame.chr, refFrame.start, refFrame.end)
             // inView features are simply features that have been drawn, i.e. have a drawState
             inView = cachedFeatures.filter((f: any) => f.drawState)
         }
@@ -711,7 +711,7 @@ class InteractionTrack extends TrackBase {
         // const encodedName = this.name.replaceAll(' ', '%20')
         // const chordSetName = "all" === refFrame.chr ?
         //     encodedName :
-        //     `${encodedName} (${refFrame.chr}:${refFrame.start}-${refFrame.end} ; range:${this.dataRange.min}-${this.dataRange.max})`
+        //     `${encodedName} (${refFrame.chr}:${refFrame.start}-${refFrame.end} ; range:${this.dataRange!.min}-${this.dataRange!.max})`
         // this.browser.circularView.addChords(chords, {track: chordSetName, color: chordSetColor, trackColor: trackColor})
     }
 

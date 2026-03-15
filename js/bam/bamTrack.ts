@@ -39,7 +39,7 @@ class BAMTrack extends TrackBase {
     init(config: any): void {
 
         this.type = "alignment"
-        this.featureSource = new BamSource(config, this.browser)
+        this.featureSource = new BamSource(config, this.browser) as any
 
         const coverageTrackConfig: any = Object.assign({parent: this}, config)
         this.coverageTrack = new CoverageTrack(coverageTrackConfig, this)
@@ -132,11 +132,11 @@ class BAMTrack extends TrackBase {
 
     async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number, viewport: any): Promise<any> {
 
-        const alignmentContainer: any = await this.featureSource.getAlignments(chr, bpStart, bpEnd)
+        const alignmentContainer: any = await this.featureSource!.getAlignments(chr, bpStart, bpEnd)
         alignmentContainer.viewport = viewport
 
         if (alignmentContainer.hasPairs && !this._pairedEndStats && !this.config.maxFragmentLength) {
-            const pairedEndStats: any = new PairedEndStats(alignmentContainer.allAlignments(), this.config)
+            const pairedEndStats: any = new PairedEndStats(alignmentContainer.allAlignments(), this.config as any)
             if (pairedEndStats.totalCount > 99) {
                 this._pairedEndStats = pairedEndStats
             }

@@ -135,11 +135,11 @@ class VariantTrack extends TrackBase {
             this.sampleKeys = this.header.sampleNameMap ? Array.from(this.header.sampleNameMap.keys()) : []
         }
         if (undefined === this.visibilityWindow && this.config.indexed !== false) {
-            const fn = FileUtils.isFile(this.config.url) ? this.config.url.name : this.config.url
-            if (isString(fn) && fn.toLowerCase().includes("gnomad")) {
+            const fn = FileUtils.isFile(this.config.url) ? (this.config.url as File).name : this.config.url
+            if (isString(fn) && (fn as string).toLowerCase().includes("gnomad")) {
                 this.visibilityWindow = 1000  // these are known to be very dense
-            } else if (typeof this.featureSource.defaultVisibilityWindow === 'function') {
-                this.visibilityWindow = await this.featureSource.defaultVisibilityWindow()
+            } else if (typeof this.featureSource!.defaultVisibilityWindow === 'function') {
+                this.visibilityWindow = await this.featureSource!.defaultVisibilityWindow()
             } else {
                 this.visibilityWindow = DEFAULT_VISIBILITY_WINDOW
             }
@@ -152,7 +152,7 @@ class VariantTrack extends TrackBase {
     }
 
     get supportsWholeGenome() {
-        const sourceSupportsWG = typeof this.featureSource.supportsWholeGenome === 'function' && this.featureSource.supportsWholeGenome()
+        const sourceSupportsWG = typeof this.featureSource!.supportsWholeGenome === 'function' && this.featureSource!.supportsWholeGenome()
         return sourceSupportsWG || this.config.supportsWholeGenome === true
     }
 
@@ -169,8 +169,8 @@ class VariantTrack extends TrackBase {
 
     async getHeader() {
         if (!this.header) {
-            if (typeof this.featureSource.getHeader === "function") {
-                this.header = await this.featureSource.getHeader()
+            if (typeof this.featureSource!.getHeader === "function") {
+                this.header = await this.featureSource!.getHeader()
             }
         }
         return this.header
@@ -185,7 +185,7 @@ class VariantTrack extends TrackBase {
         if (this.header === undefined) {
             this.header = await this.getHeader()
         }
-        const features = await this.featureSource.getFeatures({
+        const features = await this.featureSource!.getFeatures({
             chr,
             start,
             end,
@@ -407,7 +407,7 @@ class VariantTrack extends TrackBase {
 
     get altColorFiltered() {
         if (!this._altColorFiltered) {
-            this._altColorFiltered = IGVColor.addAlpha(this.altColor, 0.2)
+            this._altColorFiltered = IGVColor.addAlpha(this.altColor!, 0.2)
         }
         return this._altColorFiltered
     }
@@ -778,7 +778,7 @@ class VariantTrack extends TrackBase {
         if (end === undefined) end = position
 
         if (!featureList) {
-            featureList = await this.featureSource.getFeatures({chr, start, end})
+            featureList = await this.featureSource!.getFeatures({chr, start, end})
         }
         if (!featureList) return
 
@@ -824,11 +824,11 @@ class VariantTrack extends TrackBase {
         const refFrame = viewport.referenceFrame
         let inView
         if ("all" === refFrame.chr) {
-            const all = this.featureSource.getAllFeatures()
+            const all = this.featureSource!.getAllFeatures()
             const arrays = Object.keys(all).map(k => all[k])
             inView = [].concat(...arrays)
         } else {
-            inView = this.featureSource.featureCache.queryFeatures(refFrame.chr, refFrame.start, refFrame.end)
+            inView = this.featureSource!.featureCache.queryFeatures(refFrame.chr, refFrame.start, refFrame.end)
 
         }
 

@@ -9,6 +9,7 @@ import MenuPopup from "./ui/menuPopup.js"
 import {autoScaleGroupColorHash, multiTrackSelectExclusionTypes} from "./ui/menuUtils.js"
 import {colorPalettes, hexToRGB} from "./util/colorPalletes.js"
 import {isOverlayTrackCriteriaMet} from "./ui/overlayTrackButton.js"
+import type Browser from "./browser.js"
 
 const igv_axis_column_width: number = 50
 const scrollbarExclusionTypes: Set<string> = new Set(['sequence', 'ruler', 'ideogram'])
@@ -17,7 +18,7 @@ const colorPickerExclusionTypes: Set<string> = new Set(['ruler', 'sequence', 'id
 class TrackView {
 
     namespace: string
-    browser: any
+    browser: Browser
     track: any
     axis: any
     axisCanvas: HTMLCanvasElement | undefined
@@ -44,7 +45,7 @@ class TrackView {
 
     [key: string]: any
 
-    constructor(browser: any, columnContainer: HTMLElement, track: any) {
+    constructor(browser: Browser, columnContainer: HTMLElement, track: any) {
 
         this.namespace = `trackview-${DOMUtils.guid()}`
 
@@ -302,7 +303,7 @@ class TrackView {
         this.dragHandle.style.height = `${newHeight}px`
         this.gearContainer.style.height = `${newHeight}px`
 
-        this.browser.fireEvent("trackheightchange", this)
+        this.browser.fireEvent("trackheightchange", this as any)
     }
 
     updateScrollbar(): void {
@@ -725,10 +726,10 @@ class TrackView {
 
     removeTrackScrollMouseHandlers(): void {
         if (false === scrollbarExclusionTypes.has(this.track.type)) {
-            this.innerScroll.removeEventListener('mousedown', this.boundTrackScrollMouseDownHandler)
-            this.browser.columnContainer.removeEventListener('mouseup', this.boundColumnContainerMouseUpHandler)
-            this.browser.columnContainer.removeEventListener('mousemove', this.boundColumnContainerMouseMoveHandler)
-            this.browser.columnContainer.removeEventListener('mouseleave', this.boundColumnContainerMouseMoveHandler)
+            this.innerScroll.removeEventListener('mousedown', this.boundTrackScrollMouseDownHandler!)
+            this.browser.columnContainer.removeEventListener('mouseup', this.boundColumnContainerMouseUpHandler!)
+            this.browser.columnContainer.removeEventListener('mousemove', this.boundColumnContainerMouseMoveHandler!)
+            this.browser.columnContainer.removeEventListener('mouseleave', this.boundColumnContainerMouseMoveHandler!)
         }
     }
 

@@ -79,11 +79,11 @@ class CNVPytorTrack extends TrackBase {
 
             let allVariants
             if (this.featureSource) {
-                allVariants = Object.values(this.featureSource.getAllFeatures()).flat()
+                allVariants = Object.values(this.featureSource!.getAllFeatures()).flat()
             } else {
                 this.featureSource = this.featureSource || FeatureSource(this.config, this.browser.genome)
                 this.header = await this.getHeader()
-                allVariants = this.featureSource.reader.features
+                allVariants = this.featureSource!.reader.features
             }
 
             const refGenome = this.browser.config.genome
@@ -217,8 +217,8 @@ class CNVPytorTrack extends TrackBase {
     async getHeader() {
 
         if (!this.header) {
-            if (typeof this.featureSource.getHeader === "function") {
-                const header = await this.featureSource.getHeader()
+            if (typeof this.featureSource!.getHeader === "function") {
+                const header = await this.featureSource!.getHeader()
                 if (header) {
                     this.callSets = header.callSets || []
                 }
@@ -464,12 +464,12 @@ class CNVPytorTrack extends TrackBase {
     }
 
     computeYPixelValue(yValue: number, yScaleFactor: number) {
-        return (this.flipAxis ? (yValue - this.dataRange.min) : (this.dataRange.max - yValue)) * yScaleFactor
+        return (this.flipAxis ? (yValue - this.dataRange!.min) : (this.dataRange!.max - yValue)) * yScaleFactor
     }
 
     computeYPixelValueInLogScale(yValue: number, yScaleFactor: number) {
-        let maxValue = this.dataRange.max
-        let minValue = this.dataRange.min
+        let maxValue = this.dataRange!.max
+        let minValue = this.dataRange!.min
         if (maxValue <= 0) return 0 // TODO:
         if (minValue <= -1) minValue = 0
         minValue = (minValue <= 0) ? 0 : Math.log10(minValue + 1)
@@ -487,18 +487,18 @@ class CNVPytorTrack extends TrackBase {
         if (this.defaultScale) {
             if (this.signal_name == 'rd_snp') {
                 this.dataRange = {
-                    min: this.config.min || this.dataRange.min || -1,
-                    max: this.config.max || this.dataRange.max || 5
+                    min: this.config.min || this.dataRange!.min || -1,
+                    max: this.config.max || this.dataRange!.max || 5
                 }
             } else if (this.signal_name == 'rd') {
                 this.dataRange = {
-                    min: this.config.min || this.dataRange.min || 0,
-                    max: this.config.max || this.dataRange.max || 5
+                    min: this.config.min || this.dataRange!.min || 0,
+                    max: this.config.max || this.dataRange!.max || 5
                 }
             } else if (this.signal_name == 'snp') {
                 this.dataRange = {
-                    min: this.config.min || this.dataRange.min || -1,
-                    max: this.config.max || this.dataRange.max || 0
+                    min: this.config.min || this.dataRange!.min || -1,
+                    max: this.config.max || this.dataRange!.max || 0
                 }
             }
         }
@@ -522,7 +522,7 @@ class CNVPytorTrack extends TrackBase {
         }
 
         // guides lines
-        const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, options.pixelHeight, this.logScale)
+        const scaleFactor = this.getScaleFactor(this.dataRange!.min, this.dataRange!.max, options.pixelHeight, this.logScale)
         const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
@@ -567,7 +567,7 @@ class CNVPytorTrack extends TrackBase {
                 'strokeStyle': "black"
             }
 
-        if (undefined === this.dataRange || undefined === this.dataRange.max || undefined === this.dataRange.min) {
+        if (undefined === this.dataRange || undefined === this.dataRange!.max || undefined === this.dataRange!.min) {
             return
         }
 
@@ -587,7 +587,7 @@ class CNVPytorTrack extends TrackBase {
 
         // tick
         IGVGraphics.strokeLine(ctx, x1, y1, x2, y2, font)
-        IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange.min : this.dataRange.max), x1 + 4, y1 + 12, font)
+        IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange!.min : this.dataRange!.max), x1 + 4, y1 + 12, font)
 
         //shim = 0.25 * 0.125;
         y1 = y2 = (1.0 - shim) * pixelHeight
@@ -596,7 +596,7 @@ class CNVPytorTrack extends TrackBase {
 
         // tick
         IGVGraphics.strokeLine(ctx, x1, y1, x2, y2, font)
-        IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange.max : this.dataRange.min), x1 + 4, y1 - 4, font)
+        IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange!.max : this.dataRange!.min), x1 + 4, y1 - 4, font)
 
         IGVGraphics.strokeLine(ctx, a.x, a.y, b.x, b.y, font)
 
@@ -623,16 +623,16 @@ class CNVPytorTrack extends TrackBase {
             }
         }
 
-        const scaleFactor = this.getScaleFactor(this.dataRange.min, this.dataRange.max, pixelHeight, this.logScale)
+        const scaleFactor = this.getScaleFactor(this.dataRange!.min, this.dataRange!.max, pixelHeight, this.logScale)
         const yScale = (yValue: number) => this.logScale
             ? this.computeYPixelValueInLogScale(yValue, scaleFactor)
             : this.computeYPixelValue(yValue, scaleFactor)
 
-        const n = Math.ceil((this.dataRange.max - this.dataRange.min) / 10)
-        for (let p = Math.ceil(this.dataRange.min + 1); p < Math.round(this.dataRange.max - 0.4); p += n) {
+        const n = Math.ceil((this.dataRange!.max - this.dataRange!.min) / 10)
+        for (let p = Math.ceil(this.dataRange!.min + 1); p < Math.round(this.dataRange!.max - 0.4); p += n) {
             const yp = yScale(p)
             IGVGraphics.strokeLine(ctx, 45, yp, 50, yp, font) // Offset dashes up by 2 pixel
-            IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange.max - p : p), 44, yp + 4, font)
+            IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? this.dataRange!.max - p : p), 44, yp + 4, font)
 
         }
 

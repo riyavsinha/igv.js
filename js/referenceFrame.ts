@@ -2,6 +2,8 @@ import {StringUtils} from "../node_modules/igv-utils/src/index.js"
 import * as DOMUtils from "./ui/utils/dom-utils"
 import {prettyBasePairNumber, validateGenomicExtent} from "./util/igvUtils"
 import GenomeUtils from "./genome/genomeUtils"
+import type Genome from "./genome/genome.js"
+import type Browser from "./browser.js"
 
 // Reference frame classes.  Converts domain coordinates (usually genomic) to pixel coordinates
 
@@ -33,7 +35,7 @@ interface Interval {
 
 class ReferenceFrame {
 
-    genome: any
+    genome: Genome
     chr: string
     start: number
     end: number
@@ -41,7 +43,7 @@ class ReferenceFrame {
     id: string
     initialEnd?: number
 
-    constructor(genome: any, chr: string, start: number, end: number, bpPerPixel: number) {
+    constructor(genome: Genome, chr: string, start: number, end: number, bpPerPixel: number) {
         this.genome = genome
         this.chr = chr // this.genome.getChromosomeName(chr)
         this.start = start
@@ -131,13 +133,13 @@ class ReferenceFrame {
 
     clampStart(viewportWidth?: number): void {
         // clamp left
-        const min = (this.genome.getChromosome(this.chr).bpStart || 0)
+        const min = ((this.genome.getChromosome(this.chr) as any)?.bpStart || 0)
         this.start = Math.max(min, this.start)
 
         // clamp right
         if (viewportWidth) {
 
-            const {bpLength} = this.genome.getChromosome(this.chr)
+            const {bpLength} = this.genome.getChromosome(this.chr)!
             const maxStart = bpLength - (viewportWidth * this.bpPerPixel)
 
             if (this.start > maxStart) {
@@ -146,7 +148,7 @@ class ReferenceFrame {
         }
     }
 
-    async zoomWithScaleFactor(browser: any, scaleFactor: number, viewportWidth: number, centerBPOrUndefined?: number): Promise<void> {
+    async zoomWithScaleFactor(browser: Browser, scaleFactor: number, viewportWidth: number, centerBPOrUndefined?: number): Promise<void> {
 
         const centerBP = undefined === centerBPOrUndefined ? (this.start + this.toBP(viewportWidth / 2.0)) : centerBPOrUndefined
 
@@ -253,7 +255,7 @@ class ReferenceFrame {
 
 }
 
-function createReferenceFrameList(loci: LocusLike[], genome: any, browserFlanking: number, minimumBases: number, viewportWidth: number, isSoftclipped: boolean): ReferenceFrame[] {
+function createReferenceFrameList(loci: LocusLike[], genome: Genome, browserFlanking: number, minimumBases: number, viewportWidth: number, isSoftclipped: boolean): ReferenceFrame[] {
 
     return loci.map((l: LocusLike): ReferenceFrame => {
 
@@ -278,7 +280,7 @@ function createReferenceFrameList(loci: LocusLike[], genome: any, browserFlankin
 
             // Validate the range.  This potentionally modifies start & end of locus.
             if (!isSoftclipped) {
-                const chromosome = genome.getChromosome(locus.chr)
+                const chromosome = genome.getChromosome(locus.chr)!
                 validateGenomicExtent(chromosome.bpLength, locus, minimumBases)
             }
 

@@ -86,8 +86,8 @@ class FeatureTrack extends TrackBase {
     // @ts-expect-error - postInit return type differs from TrackBase
     async postInit() {
 
-        if (typeof this.featureSource.getHeader === "function") {
-            this.header = await this.featureSource.getHeader()
+        if (typeof this.featureSource!.getHeader === "function") {
+            this.header = await this.featureSource!.getHeader()
             if (this.disposed) return   // This track was removed during async load
         }
 
@@ -96,8 +96,8 @@ class FeatureTrack extends TrackBase {
             this.setTrackProperties(this.header)
         }
 
-        if (this.visibilityWindow === undefined && typeof this.featureSource.defaultVisibilityWindow === 'function') {
-            this.visibilityWindow = await this.featureSource.defaultVisibilityWindow()
+        if (this.visibilityWindow === undefined && typeof this.featureSource!.defaultVisibilityWindow === 'function') {
+            this.visibilityWindow = await this.featureSource!.defaultVisibilityWindow()
         }
 
         this._initialColor = this.color || (this.constructor as any).defaultColor
@@ -113,12 +113,12 @@ class FeatureTrack extends TrackBase {
      * @returns {boolean}
      */
     get searchable() {
-        return this.featureSource.searchable
+        return this.featureSource!.searchable
     }
 
     async search(locus: string) {
-        if (this.featureSource && this.featureSource.searchable) {
-            return this.featureSource.search(locus)
+        if (this.featureSource && this.featureSource!.searchable) {
+            return this.featureSource!.search(locus)
         } else {
             return undefined
         }
@@ -133,8 +133,8 @@ class FeatureTrack extends TrackBase {
     get supportsWholeGenome() {
         if (this.config.supportsWholeGenome !== undefined) {
             return this.config.supportsWholeGenome
-        } else if (this.featureSource && typeof this.featureSource.supportsWholeGenome === 'function') {
-            return this.featureSource.supportsWholeGenome()
+        } else if (this.featureSource && typeof this.featureSource!.supportsWholeGenome === 'function') {
+            return this.featureSource!.supportsWholeGenome()
         } else {
             if (this.visibilityWindow === undefined && (this.config.indexed === false || !this.config.indexURL)) {
                 return true
@@ -144,7 +144,7 @@ class FeatureTrack extends TrackBase {
 
     async getFeatures(chr: string, start: number, end: number, bpPerPixel: number) {
         const visibilityWindow = this.visibilityWindow
-        return this.featureSource.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
+        return this.featureSource!.getFeatures({chr, start, end, bpPerPixel, visibilityWindow})
     }
 
     /**
@@ -508,7 +508,7 @@ class FeatureTrack extends TrackBase {
         if (f.name && this.browser.qtlSelections.hasPhenotype(f.name)) {
             color = this.browser.qtlSelections.colorForGene(f.name)
         } else if (this.altColor && "-" === feature.strand) {
-            color = (typeof this.altColor === "function") ? this.altColor(feature) : this.altColor
+            color = (typeof this.altColor === "function") ? (this.altColor as any)(feature) : this.altColor
         } else if (this.color) {
             color = (typeof this.color === "function") ? this.color(feature) : this.color  // Explicit setting via menu, or possibly track line if !config.color
         } else if (this.colorBy) {

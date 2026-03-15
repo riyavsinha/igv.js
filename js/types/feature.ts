@@ -16,7 +16,7 @@ export interface GenomicFeature {
     getAttributeValue?(name: string): string | number | undefined
     popupData?(genomicLocation: number): PopupDataItem[]
     /** Dynamic attributes from format-specific fields */
-    [key: string]: unknown
+    [key: string]: any
 }
 
 export interface Exon {

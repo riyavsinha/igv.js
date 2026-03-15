@@ -10,9 +10,11 @@ export interface FeatureReader {
 }
 
 export interface FeatureSource {
-    getFeatures(options: FeatureQueryOptions): Promise<GenomicFeature[]>
-    supportsWholeGenome?(): boolean
-    trackType?: string
+    getFeatures(...args: any[]): Promise<any>
+    supportsWholeGenome?: boolean | (() => boolean)
+    trackType?: string | (() => Promise<string>)
+    /** Allow duck-typed methods (getHeader, search, reader, etc.) used by various track implementations */
+    [key: string]: any
 }
 
 export interface FeatureQueryOptions {
@@ -21,4 +23,6 @@ export interface FeatureQueryOptions {
     end: number
     bpPerPixel?: number
     visibilityWindow?: number
+    /** Allow additional options used by specific feature source implementations */
+    [key: string]: any
 }

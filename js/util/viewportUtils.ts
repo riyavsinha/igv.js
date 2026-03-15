@@ -1,9 +1,11 @@
 import RulerViewport from "../rulerViewport.js"
 import IdeogramViewport from "../ideogramViewport.js"
 import TrackViewport from "../trackViewport.js"
+import type TrackView from "../trackView.js"
+import type ReferenceFrame from "../referenceFrame.js"
 
 
-function createViewport(trackView: any, column: HTMLElement, referenceFrame: any, width?: number): any {
+function createViewport(trackView: TrackView, column: HTMLElement, referenceFrame: ReferenceFrame, width?: number): RulerViewport | IdeogramViewport | TrackViewport {
 
     if ('ruler' === trackView.track.type) {
         return new RulerViewport(trackView, column, referenceFrame, width)
@@ -11,7 +13,7 @@ function createViewport(trackView: any, column: HTMLElement, referenceFrame: any
         return new IdeogramViewport(trackView, column, referenceFrame, width)
     } else {
         const viewportObject = new TrackViewport(trackView, column, referenceFrame, width)
-        referenceFrame.viewport = viewportObject
+        ;(referenceFrame as any).viewport = viewportObject
         return viewportObject
     }
 }

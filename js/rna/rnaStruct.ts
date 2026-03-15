@@ -35,13 +35,13 @@ class RnaStructTrack extends TrackBase {
         if ("bp" === config.format) {
             this.featureSource = new RNAFeatureSource(config, browser.genome)
         } else {
-            this.featureSource = new TextFeatureSource(config, browser.genome)
+            this.featureSource = new TextFeatureSource(config, browser.genome) as any
         }
     }
 
     async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
         const visibilityWindow = this.visibilityWindow
-        return this.featureSource.getFeatures({chr, start, end, visibilityWindow})
+        return this.featureSource!.getFeatures({chr, start, end, visibilityWindow})
     }
 
     draw(options: any) {
