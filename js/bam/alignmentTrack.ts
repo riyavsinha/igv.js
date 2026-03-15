@@ -578,10 +578,10 @@ class AlignmentTrack extends TrackBase {
                             y]
 
                     }
-                    IGVGraphics.fillPolygon(ctx, xListPixel, yListPixel, {fillStyle: alignmentColor})
+                    IGVGraphics.fillPolygon(ctx, xListPixel!, yListPixel!, {fillStyle: alignmentColor})
 
                     if (strokeOutline) {
-                        IGVGraphics.strokePolygon(ctx, xListPixel, yListPixel, {strokeStyle: blockOutlineColor})
+                        IGVGraphics.strokePolygon(ctx, xListPixel!, yListPixel!, {strokeStyle: blockOutlineColor})
                     }
                 }
 

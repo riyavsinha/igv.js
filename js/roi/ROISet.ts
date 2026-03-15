@@ -64,7 +64,7 @@ class ROISet {
             this.headerColor = ROI_DEFAULT_HEADER_COLOR
 
             // Use body color with alpha pinned to 1
-             const [ r, g, b, discard ] = rgbaStringTokens(this.color)
+             const [ r, g, b, discard ] = rgbaStringTokens(this.color)!
              this.headerColor = `rgba(${ r },${ g },${ b },${ 1.0 })`
         }
 

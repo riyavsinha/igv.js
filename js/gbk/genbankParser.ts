@@ -27,7 +27,7 @@ function parseGenbank(data: string): any {
     const dataWrapper = getDataWrapper(data)
 
     // Read locus
-    let line: string = dataWrapper.nextLine()
+    let line = dataWrapper.nextLine()!
     const tokens = line.split(/\s+/)
     if (tokens[0].toUpperCase() !== "LOCUS") {
         throw Error("Expected `LOCUS` line.  Found: " + line)
@@ -37,7 +37,7 @@ function parseGenbank(data: string): any {
     // Loop until FEATURES section
     let accession: string | undefined, aliases: string[] | undefined
     do {
-        line = dataWrapper.nextLine()
+        line = dataWrapper.nextLine()!
         if (line.startsWith("ACCESSION")) {
             const tokens = line.split(wsRegex)
             if (tokens.length < 2) {
@@ -60,7 +60,7 @@ function parseGenbank(data: string): any {
     const features = parseFeatures(chr, dataWrapper)
     const sequence: string = parseSequence(dataWrapper)
 
-    return new Genbank({chr, locus, accession, aliases, features, sequence})
+    return new Genbank({chr, locus, accession: accession ?? locus, aliases, features, sequence})
 }
 
 

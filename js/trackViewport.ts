@@ -39,7 +39,7 @@ class TrackViewport extends Viewport {
     _trackLabelPopoverListener: ((evt: MouseEvent) => void) | null | undefined
     boundClickHandler: ((event: MouseEvent) => void) | undefined
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width: number) {
+    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
         super(trackView, viewportColumn, referenceFrame, width)
     }
 
@@ -838,14 +838,14 @@ class TrackViewport extends Viewport {
                                             trackViewportPopoverList.length = 0
                                         }
 
-                                        popover = new Popover(this.viewportElement.parentElement, true, undefined, () => {
+                                        popover = new Popover(this.viewportElement.parentElement!, true, undefined, () => {
                                             popover.dispose()
                                         })
 
                                         popover.presentContentWithEvent(event, content)
                                     } else {
 
-                                        let po = new Popover(this.viewportElement.parentElement, true, undefined, () => {
+                                        let po = new Popover(this.viewportElement.parentElement!, true, undefined, () => {
                                             const index = trackViewportPopoverList.indexOf(po)
                                             trackViewportPopoverList.splice(index, 1)
                                             po.dispose()

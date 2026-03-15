@@ -39,10 +39,10 @@ function incompbeta(a: number, b: number, x: number): number {
     {
         let lbeta = lgamma(a+b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1-x)
         if (x < (a+1) / (a+b+2)){
-            return Math.exp(lbeta) * contfractbeta(a, b, x) / a;
+            return Math.exp(lbeta) * contfractbeta(a, b, x)! / a;
         }
         else{
-            return 1 - Math.exp(lbeta) * contfractbeta(b, a, 1-x) / b;
+            return 1 - Math.exp(lbeta) * contfractbeta(b, a, 1-x)! / b;
         }
     }
 }

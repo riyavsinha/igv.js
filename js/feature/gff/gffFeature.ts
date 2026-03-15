@@ -88,7 +88,7 @@ class GFFFeature {
         pd.push({name: 'Phase', value: this.phase})
 
         if (this.attributeString) {
-            const atts: [string, string][] = parseAttributeString(this.attributeString, this.delim)
+            const atts: [string, string][] = parseAttributeString(this.attributeString, this.delim!)
             for (let [key, value] of atts) {
                 if (value !== undefined && value.length > 0 && !filterPopupProperties.has(key.toLowerCase())) {
                     pd.push({name: key + ":", value: value})
@@ -113,7 +113,7 @@ class GFFFeature {
             if (this._attributeCache.has(attributeName)) {
                 return this._attributeCache.get(attributeName)
             } else {
-                const atts: [string, string][] = parseAttributeString(this.attributeString, this.delim)
+                const atts: [string, string][] = parseAttributeString(this.attributeString!, this.delim!)
                 let v: string | undefined
                 for (let [key, value] of atts) {
                     if (key === attributeName) {

@@ -49,7 +49,7 @@ class BWSource extends BaseFeatureSource {
         let features: WigFeature[]
         if ("all" === chr.toLowerCase()) {
             const wgChromosomeNames: string[] = this.genome.wgChromosomeNames
-            features = isBigWig && wgChromosomeNames? await this.getWGValues(wgChromosomeNames, windowFunction, bpPerPixel) : []
+            features = isBigWig && wgChromosomeNames? await this.getWGValues(wgChromosomeNames, windowFunction ?? "mean", bpPerPixel) : []
         } else {
             features = await this.reader.readFeatures(chr, start, chr, end, bpPerPixel, windowFunction)
         }

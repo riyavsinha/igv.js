@@ -54,6 +54,7 @@ class GWASTrack extends TrackBase {
         this.featureSource = FeatureSource(config, this.browser.genome)
     }
 
+    // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
         if (typeof this.featureSource.getHeader === "function") {

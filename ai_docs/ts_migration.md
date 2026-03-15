@@ -1057,27 +1057,25 @@ Converted in 4 layers using parallel agent batches:
 
 ## 11. Phase 7: Strict Mode Escalation
 
-**After all 275 files are `.ts`.**
+### Step 1: Enable `noImplicitAny` — DONE
 
-### Step 1: Enable `noImplicitAny`
+**Actual:** 747 errors (estimated 500-1,500). Fixed in 3 passes:
 
-Update `tsconfig.json`:
-```jsonc
-{
-  "compilerOptions": {
-    "noImplicitAny": true
-  }
-}
-```
+1. **Created ambient type declarations** to eliminate 101 TS7016 (missing module declarations):
+   - `js/types/igv-utils.d.ts` — Typed all igv-utils exports (StringUtils, FileUtils, IGVColor, IGVMath, BGZip, igvxhr, GoogleAuth) plus sub-modules (bgzf.js, igv-color.js, stringUtils.js)
+   - `js/types/vendor.d.ts` — Typed hdf5-indexed-reader, hic-straw, circular-view, vanilla-picker
 
-**Expected:** 500-1,500 errors. Most will be function parameters missing type annotations in
-code that was converted with `any` placeholders. Fix systematically by directory:
-1. `js/util/` — smallest, most self-contained
-2. `js/genome/` — well-defined data types
-3. `js/bam/` — complex but has clear domain types
-4. `js/feature/` — many dynamic patterns
-5. `js/ui/` — DOM-heavy, use `HTMLElement` types
-6. Core files last
+2. **Added type annotations** across 35 files to fix 654 remaining errors (TS7006, TS7053, TS7005, TS7031, TS7034, TS7018)
+
+3. **Replaced lazy `any` with proper types** — second pass to improve quality:
+   - Canvas drawing params: `ctx: CanvasRenderingContext2D`, `bpStart: number`, `pixelWidth: number`, etc.
+   - Genomic coords: `chr: string`, `start: number`, `end: number`, `bpPerPixel: number`
+   - Display params: `mode: string`, `logScale: boolean`, `alpha: number`, `color: string`
+   - Callbacks: `ev: Event`, `tag: string`, `showCheck: boolean`
+   - CNVpytor data: `wigFeatures: Record<string, any[]>`, `bin_size: number`, statistical arrays as `number[]`
+   - Left `any` only for genuinely polymorphic types: `config`, `browser`, `clickState`, `feature` (many shapes)
+
+**tsconfig.json** updated: `"noImplicitAny": true`
 
 ### Step 2: Enable `strictNullChecks`
 
@@ -1089,10 +1087,16 @@ code that was converted with `any` placeholders. Fix systematically by directory
 }
 ```
 
-**Expected:** 1,000-2,000 errors. Common fixes:
-- Add `| undefined` to optional property types
-- Add null guards before accessing potentially-null values
-- Use optional chaining (`?.`) and nullish coalescing (`??`)
+**Actual:** 125 errors (estimated 1,000-2,000 — much fewer than expected because the codebase already used careful null handling). Fixed across ~30 files:
+
+- **Null guards** for DOM queries (`querySelector`) and optional properties
+- **`!` assertions** where values are guaranteed non-null by prior checks (e.g., after `.has()`, inside `if (x)` blocks, after just creating DOM elements)
+- **`?? defaultValue`** for optional parameters (`?? false`, `?? ""`, `?? 0`, `?? []`)
+- **Variable initialization** for `TS2454` (used before assigned) — e.g., `let features = []` instead of `let features`
+- **`@ts-expect-error`** for `postInit` return type mismatches (5 track subclasses return `Promise<void>` instead of `Promise<TrackBase>`)
+- **Type casts** for `AutoSQLResult` → `AutoSql`, `!!snp` for boolean coercion
+
+**tsconfig.json** updated: `"strictNullChecks": true`
 
 ### Step 3: Enable `strictPropertyInitialization`
 

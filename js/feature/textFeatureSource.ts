@@ -95,7 +95,7 @@ class TextFeatureSource extends BaseFeatureSource {
             this.reader = new FeatureFileReader(config as any, genome)
             if (config.queryable !== undefined) {
                 this.queryable = config.queryable
-            } else if (queryableFormats.has(config.format) || this.reader.indexed) {
+            } else if ((config.format && queryableFormats.has(config.format)) || this.reader.indexed) {
                 this.queryable = true
             } else {
                 // Leav undefined -- will defer until we know if reader has an index
@@ -166,7 +166,7 @@ class TextFeatureSource extends BaseFeatureSource {
                 if (this.supportsWholeGenome()) {
                     if("wig" === this.config.type) {
                         const allWgFeatures = await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome, this.chromAliasManager, 1000000)
-                        this.wgFeatures = summarizeData(allWgFeatures as any, 0, bpPerPixel, windowFunction) as any
+                        this.wgFeatures = summarizeData(allWgFeatures as any, 0, bpPerPixel!, windowFunction) as any
                     } else {
                         this.wgFeatures = await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome, this.chromAliasManager, this.maxWGCount)
                     }
@@ -174,7 +174,7 @@ class TextFeatureSource extends BaseFeatureSource {
                     this.wgFeatures = []
                 }
             }
-            return this.wgFeatures
+            return this.wgFeatures!
         } else {
             const queryChr: string = this.chromAliasManager ?  await this.chromAliasManager.getAliasName(chr) : chr
             return this.featureCache.queryFeatures(queryChr, start, end)
@@ -223,7 +223,7 @@ class TextFeatureSource extends BaseFeatureSource {
             const chromosome = this.genome ? this.genome.getChromosome(chr) : undefined
             intervalStart = 0
             intervalEnd = Math.max(chromosome ? chromosome.bpLength : Number.MAX_SAFE_INTEGER, end)
-        } else if (visibilityWindow > (end - start) && this.config.expandQuery !== false) {
+        } else if (visibilityWindow && visibilityWindow > (end - start) && this.config.expandQuery !== false) {
             let expansionWindow: number = Math.min(4.1 * (end - start), visibilityWindow)
             if(this.config.minQuerySize && expansionWindow < this.config.minQuerySize) {
                 expansionWindow = this.config.minQuerySize

@@ -15,7 +15,7 @@ class Viewport {
     messageDiv: HTMLDivElement | undefined
     // cachedFeatures defined by subclasses (TrackViewport defines as accessor)
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width: number) {
+    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
         this.guid = DOMUtils.guid()
         this.trackView = trackView;
         this.referenceFrame = referenceFrame;
@@ -42,7 +42,9 @@ class Viewport {
         this.contentTop = 0;
         this.contentHeight = this.viewportElement.clientHeight;
 
-        this.setWidth(width);
+        if (width !== undefined) {
+            this.setWidth(width);
+        }
 
         this.initializationHelper();
     }

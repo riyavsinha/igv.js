@@ -244,7 +244,7 @@ class CramReader {
             alignment.lengthOnRef = record.lengthOnRef
             alignment.flags = record.flags
             alignment.strand = !(record.flags & READ_STRAND_FLAG)
-            alignment.fragmentLength = record.templateLength || record.templateSize
+            alignment.fragmentLength = record.templateLength || record.templateSize || 0
             alignment.mq = record.mappingQuality
             alignment.end = record.alignmentStart + record.lengthOnRef
             ;(alignment as any).readGroupId = record.readGroupId

@@ -99,31 +99,32 @@ class CNVpytorVCF {
         // console.log("avgbin: ", avgbin)
         
         // Step3: Run the CNV caller
-        var finalFeatureSet
+        var finalFeatureSet: any[] = []
+        var baf: any[] = []
         if(caller == 'ReadDepth'){
             // ------------ new code
             // console.log("setting up meanShift CNV calling")
             let callerObj = new read_depth_caller.MeanShiftCaller(avgbin,  this.binSize, this.refGenome)
-            
+
             let processedBins = await callerObj.callMeanshift()
-            
+
             // finalFeatureSet = [processedBins.binScore, processedBins.gcCorrectedBinScore, processedBins.segmentsCNV]
             finalFeatureSet = [processedBins.binScore, processedBins.gcCorrectedBinScore, processedBins.segmentsCNV]
             // var baf = this.formatDataStructure_BAF(avgbin, 'max_likelihood')
             // var baf = callerObj.format_BAF_likelihood(avgbin)
-            var baf = callerObj.formatDataStructure_BAF('max_likelihood', -1)
+            baf = callerObj.formatDataStructure_BAF('max_likelihood', -1)
 
 
         }else if(caller=='2D'){
-            
-            let caller_obj = new combined_caller.CombinedCaller(avgbin,  this.binSize, this.refGenome)        
+
+            let caller_obj = new combined_caller.CombinedCaller(avgbin,  this.binSize, this.refGenome)
             let processed_bins = await caller_obj.call_2d()
-            
+
             finalFeatureSet = [processed_bins.binScore, processed_bins.gcCorrectedBinScore, processed_bins.segmentScore]
-            var baf = caller_obj.formatDataStructure_BAF('max_likelihood', -1)
-            
+            baf = caller_obj.formatDataStructure_BAF('max_likelihood', -1)
+
         }
-        
+
         return [finalFeatureSet, baf]
     }
 

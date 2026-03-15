@@ -90,21 +90,20 @@ class GradientColorScale {
 
     constructor(config: GradientColorScaleConfig) {
         this.type = 'gradient'
-        const fixed = {
-            min: config.min !== undefined ? config.min : config.low,
-            max: config.max !== undefined ? config.max : config.high,
-            minColor: config.minColor || config.lowColor,
-            maxColor: config.maxColor || config.highColor
-        }
-        this.setProperties(fixed)
+        this.setProperties({
+            min: (config.min !== undefined ? config.min : config.low) ?? 0,
+            max: (config.max !== undefined ? config.max : config.high) ?? 0,
+            minColor: config.minColor || config.lowColor || 'rgb(0,0,255)',
+            maxColor: config.maxColor || config.highColor || 'rgb(255,0,0)'
+        })
     }
 
-    setProperties({min, max, minColor, maxColor}: {min?: number, max?: number, minColor?: string, maxColor?: string}): void {
+    setProperties({min, max, minColor, maxColor}: {min: number, max: number, minColor: string, maxColor: string}): void {
         this.type = 'gradient'
-        this.min = min!
-        this.max = max!
-        this._lowColor = minColor!
-        this._highColor = maxColor!
+        this.min = min
+        this.max = max
+        this._lowColor = minColor
+        this._highColor = maxColor
         this.lowComponents = IGVColor.rgbComponents(minColor)
         this.highComponents = IGVColor.rgbComponents(maxColor)
     }

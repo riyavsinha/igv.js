@@ -130,7 +130,7 @@ class Popover {
     dispose(): void {
 
         if (this.popover) {
-            this.popover.parentNode.removeChild(this.popover);
+            this.popover.parentNode!.removeChild(this.popover);
         }
 
         const keys = Object.keys(this)
@@ -193,7 +193,7 @@ function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTM
 
                 // eslint-disable-next-line no-inner-declarations
                 function handleClick(e: Event): void {
-                    (item as MenuItem).click();
+                    (item as MenuItem).click!();
                     DOMUtils.hide(popover);
                     e.preventDefault();
                     e.stopPropagation()

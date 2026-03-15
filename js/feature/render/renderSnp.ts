@@ -45,7 +45,7 @@ export function renderSnp(this: SnpTrackContext, snp: SnpFeature, bpStart: numbe
         py: number = this.margin,
         h: number,
         colorArrLength: number = this.snpColors.length,
-        colorPriority: number
+        colorPriority: number = 0
 
     h = this.displayMode === "squished" ? this.squishedRowHeight : this.expandedRowHeight
 

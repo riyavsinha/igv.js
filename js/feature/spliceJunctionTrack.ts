@@ -43,6 +43,7 @@ class SpliceJunctionTrack extends TrackBase {
 
     }
 
+    // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
         if (typeof this.featureSource.getHeader === "function") {
@@ -179,9 +180,9 @@ class SpliceJunctionTrack extends TrackBase {
             }
         }
 
-        let uniquelyMappedReadCount
-        let multiMappedReadCount
-        let totalReadCount
+        let uniquelyMappedReadCount: number = 0
+        let multiMappedReadCount: number = 0
+        let totalReadCount: number = 0
         if (feature.attributes.uniquely_mapped) {
             uniquelyMappedReadCount = parseInt(feature.attributes.uniquely_mapped)
             if (uniquelyMappedReadCount < this.config.minUniquelyMappedReads) {
@@ -248,7 +249,7 @@ class SpliceJunctionTrack extends TrackBase {
             lineWidth = 1 + Math.log(lineWidth + 1) / Math.log(12)
         }
 
-        let bounceHeight
+        let bounceHeight: number = 0
         if (this.config.bounceHeightBasedOn === undefined || this.config.bounceHeightBasedOn === 'random') {
             // randomly but deterministically stagger topY coordinates to reduce overlap
             bounceHeight = (feature.start + feature.end) % 7

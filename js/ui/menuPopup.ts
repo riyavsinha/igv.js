@@ -112,7 +112,7 @@ class MenuPopup {
 
         return menuList.map((item: string | MenuItem, i: number): ParsedMenuItem => {
 
-            let element: HTMLElement;
+            let element!: HTMLElement;
 
             // name and element fields checked for backward compatibility
             if (typeof item !== 'string' && item.name) {
@@ -152,7 +152,7 @@ class MenuPopup {
                             const multiSelectedTrackViews = trackView.browser.getSelectedTrackViews();
 
                             if (true === (item as MenuItem).doAllMultiSelectedTracks) {
-                                (item as MenuItem).click.call(trackView.track, e);
+                                (item as MenuItem).click!.call(trackView.track, e);
                             } else {
 
                                 if ('removeTrack' === (item as MenuItem).menuItemType) {
@@ -162,7 +162,7 @@ class MenuPopup {
                                         trackView.browser.overlayTrackButton.setVisibility(false);
 
                                         for (const { track } of multiSelectedTrackViews) {
-                                            (item as MenuItem).click.call(track, e);
+                                            (item as MenuItem).click!.call(track, e);
                                         }
                                     };
 
@@ -179,18 +179,18 @@ class MenuPopup {
                                 } else {
 
                                     for (const { track } of multiSelectedTrackViews) {
-                                        (item as MenuItem).click.call(track, e);
+                                        (item as MenuItem).click!.call(track, e);
                                     }
 
                                 }
                             }
 
                         } else {
-                            (item as MenuItem).click.call(trackView.track, e);
+                            (item as MenuItem).click!.call(trackView.track, e);
                         }
 
                     } else if ((item as MenuItem).dialog) {
-                        (item as MenuItem).dialog.call(trackView.track, e);
+                        (item as MenuItem).dialog!.call(trackView.track, e);
                     }
 
                     this.popover.style.display = 'none';
@@ -305,7 +305,7 @@ function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTM
 
                 // eslint-disable-next-line no-inner-declarations
                 function handleClick(e: Event): void {
-                    (item as MenuItem).click(e)
+                    (item as MenuItem).click!(e)
                     DOMUtils.hide(popover)
                     e.preventDefault()
                     e.stopPropagation()

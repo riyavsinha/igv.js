@@ -457,10 +457,10 @@ function gaussianEValue(mean: number, sigma: number, rd: number[], start: number
     var arr = new DataStat(rd.slice(start, end))
 
     if (arr.mean < mean) {
-        var x = (arr.max - arr.mean) / (sigma * Math.sqrt(2))
+        var x = (arr.max! - arr.mean) / (sigma * Math.sqrt(2))
         return Math.pow(0.5 * (1 + erf(x)), end - start)
     }
-    var x = (arr.min - arr.mean) / (sigma * Math.sqrt(2))
+    var x = (arr.min! - arr.mean) / (sigma * Math.sqrt(2))
     return Math.pow(0.5 * (1 - erf(x)), end - start)
 }
 

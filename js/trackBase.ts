@@ -286,9 +286,9 @@ class TrackBase {
                             console.warn(`Unexpected viewLimits value in track line: ${properties["viewLimits"]}`)
                         } else {
                             tracklineConfg.autoscale = false
-                            tracklineConfg.dataRange = {min, max}
+                            tracklineConfg.dataRange = {min, max: max!}
                             this.viewLimitMin = min
-                            this.viewLimitMax = max
+                            this.viewLimitMax = max!
                         }
                     }
                 case "name":
@@ -466,7 +466,7 @@ class TrackBase {
             // If no URL, just return the name as a simple text node
             const nameDiv = document.createElement('div')
             nameDiv.className = 'igv-track-label-popover__row'
-            nameDiv.textContent = this.name
+            nameDiv.textContent = this.name ?? null
             fragment.appendChild(nameDiv)
             return fragment
         }

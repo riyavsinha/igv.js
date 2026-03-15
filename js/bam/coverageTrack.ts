@@ -211,8 +211,8 @@ class CoverageTrack {
                             nameValues.push('<hr/>')
                             first = false
                         }
-                        const hgvsNotation: string = await HGVS.createHGVSAnnotation(this.browser.genome, referenceFrame.chr, genomicLocation, reference, b)
-                        const clinVarURL: string | undefined = await ClinVar.getClinVarURL(hgvsNotation)
+                        const hgvsNotation: string = await HGVS.createHGVSAnnotation(this.browser.genome, referenceFrame.chr, genomicLocation, reference, b) ?? ""
+                        const clinVarURL: string | null = await ClinVar.getClinVarURL(hgvsNotation)
                         if (clinVarURL) {
                             nameValues.push({
                                 name: 'ClinVar',

@@ -14,8 +14,8 @@ class Locus {
 
     constructor({chr, start, end}: LocusOptions) {
         this.chr = chr
-        this.start = start!
-        this.end = end!
+        this.start = start ?? 0
+        this.end = end ?? 0
     }
 
 

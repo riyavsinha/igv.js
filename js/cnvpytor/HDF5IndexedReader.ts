@@ -91,7 +91,7 @@ class HDF5Reader {
         let rd_stat = await this.rd_stat(bin_size)
 
         // prepare wig formatted file for all chromosome
-        const wigFeatures = await this.getWigFeatures(rdChromosomes, bin_size, rd_stat);
+        const wigFeatures = await this.getWigFeatures(rdChromosomes, bin_size, rd_stat!);
 
         this.setCallers(wigFeatures);
         return { [bin_size]: wigFeatures };
@@ -161,18 +161,18 @@ class HDF5Reader {
     async rd_call_combined(chrom: string, bin_size: number, rd_stat: number[], signal_name_obj: SignalNames): Promise<Record<string, any>[]> {
         let chr_wig: Record<string, any>[] = [];
 
-        let segments
+        let segments: number[][] | undefined
         let mosaic_call_segments = signal_name_obj.signals['Mosaic_segments']
         if (this.pytorKeys.includes(mosaic_call_segments)){
             const chrom_dataset = await this.h5_obj.get(mosaic_call_segments)
             const t0 = Date.now()
             let chrom_data = await chrom_dataset.value
             segments = this.decode_segments(chrom_data)
-            
+
         }
 
         let mosaic_calls = signal_name_obj.signals['Mosaic_calls']
-        if (this.pytorKeys.includes(mosaic_calls)){
+        if (this.pytorKeys.includes(mosaic_calls) && segments){
             const segments_call_dataset = await this.h5_obj.get(mosaic_calls)
             let segments_call = await segments_call_dataset.to_array() //create_nested_array(value, shape)
             segments.forEach((ind_segment: number[], segment_idx: number) => {

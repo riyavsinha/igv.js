@@ -90,7 +90,7 @@ class RulerSweeper {
 
         // Document
         this.boundDocumentMouseMoveHandler = documentMouseMoveHandler.bind(this)
-        document.addEventListener('mousemove', this.boundDocumentMouseMoveHandler)
+        document.addEventListener('mousemove', this.boundDocumentMouseMoveHandler!)
 
         function documentMouseMoveHandler(this: RulerSweeper, event: MouseEvent): void {
 
@@ -116,7 +116,7 @@ class RulerSweeper {
         }
 
         this.boundDocumentMouseUpHandler = documentMouseUpHandler.bind(this)
-        document.addEventListener('mouseup', this.boundDocumentMouseUpHandler)
+        document.addEventListener('mouseup', this.boundDocumentMouseUpHandler!)
 
         function documentMouseUpHandler(this: RulerSweeper, event: MouseEvent): void {
 

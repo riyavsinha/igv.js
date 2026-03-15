@@ -38,11 +38,11 @@ class QTLSelections {
     }
 
     hasSnp(snp: string): boolean {
-        return snp && this.snps.has(snp.toUpperCase())
+        return !!snp && this.snps.has(snp.toUpperCase())
     }
 
     hasPhenotype(name: string): boolean {
-        return name && this.phenotypeColors.has(name.toUpperCase())
+        return !!name && this.phenotypeColors.has(name.toUpperCase())
     }
 
     hasQTL(qtl: any): boolean {

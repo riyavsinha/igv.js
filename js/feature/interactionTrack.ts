@@ -112,6 +112,7 @@ class InteractionTrack extends TrackBase {
         }
     }
 
+    // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
         if (typeof this.featureSource.getHeader === "function") {

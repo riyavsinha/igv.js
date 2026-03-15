@@ -86,7 +86,7 @@ class HtsgetReader {
                 config.format = format!.toLowerCase()
                 config.sourceType = "htsget"
                 if (!config.name) {
-                    config.name = FileUtils.getFilename(config.url)
+                    config.name = FileUtils.getFilename(config.url!)
                 }
             }
         } catch (e) {

@@ -535,7 +535,7 @@ class SegTrack extends TrackBase {
             attribute: attribute,
             direction: sortDirection === 1 ? "ASC" : "DESC"
         }
-        this.sortDirections.set(attribute, sortDirection * -1)
+        this.sortDirections.set(attribute, sortDirection! * -1)
         this.trackView.repaintViews()
     }
 

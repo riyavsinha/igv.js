@@ -213,7 +213,7 @@ class FeatureFileReader {
             this.features = await this.parser.parseFeatures(dataWrapper)   // cache features
 
             // Extract chromosome names from features
-            this.sequenceNames = new Set(this.features.map(f => f.chr))
+            this.sequenceNames = new Set(this.features!.map(f => f.chr))
 
             return this.header
         }

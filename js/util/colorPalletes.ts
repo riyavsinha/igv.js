@@ -317,7 +317,7 @@ class PaletteColorTable {
             }
             this.nextIdx++
         }
-        return this.colorTable.get(key)
+        return this.colorTable.get(key)!
     }
 }
 
@@ -515,8 +515,13 @@ function rgbStringTokens(rgbString: string): number[] | undefined {
 }
 
 function rgbStringLerp(_a: string, _b: string, interpolant: number): string {
-    const [ rA, gA, bA ] = rgbStringTokens(_a)
-    const [ rB, gB, bB ] = rgbStringTokens(_b)
+    const tokensA = rgbStringTokens(_a)
+    const tokensB = rgbStringTokens(_b)
+    if (!tokensA || !tokensB) {
+        throw new Error(`Invalid rgb string(s): "${_a}", "${_b}"`)
+    }
+    const [ rA, gA, bA ] = tokensA
+    const [ rB, gB, bB ] = tokensB
     const [ r, g, b ] =
         [
             Math.floor(IGVMath.lerp(rA, rB, interpolant)),
@@ -541,14 +546,24 @@ function rgbStringHeatMapLerp(_a: string, _b: string, interpolant: number): stri
 
             interpolant /= .5;
 
-            [ rA, gA, bA ] = rgbStringTokens(_a);
-            [ rB, gB, bB ] = rgbStringTokens(appleCrayonRGB('snow'));
+            const tokensA1 = rgbStringTokens(_a)
+            const tokensB1 = rgbStringTokens(appleCrayonRGB('snow'))
+            if (!tokensA1 || !tokensB1) {
+                throw new Error(`Invalid rgb string(s): "${_a}", "snow"`)
+            }
+            ;[ rA, gA, bA ] = tokensA1;
+            [ rB, gB, bB ] = tokensB1;
         } else {
 
             interpolant = (interpolant - .5) / .5;
 
-            [ rA, gA, bA ] = rgbStringTokens(appleCrayonRGB('snow'));
-            [ rB, gB, bB ] = rgbStringTokens(_b);
+            const tokensA2 = rgbStringTokens(appleCrayonRGB('snow'))
+            const tokensB2 = rgbStringTokens(_b)
+            if (!tokensA2 || !tokensB2) {
+                throw new Error(`Invalid rgb string(s): "snow", "${_b}"`)
+            }
+            ;[ rA, gA, bA ] = tokensA2;
+            [ rB, gB, bB ] = tokensB2;
         }
 
         const [ r, g, b ] =

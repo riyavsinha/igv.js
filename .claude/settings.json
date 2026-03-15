@@ -54,7 +54,9 @@
       "Bash(head -1 /Users/riyavsinha/projects/igv.js/test/*.js)",
       "WebFetch(domain:gist.github.com)",
       "Bash(/tmp/test_ts8.ts:*)",
-      "Read(//Users/riyavsinha/projects/igv.js/**)"
+      "Read(//Users/riyavsinha/projects/igv.js/**)",
+      "Bash(xargs -I {} bash -c 'grep -l \"\"= .*!\"\" \"\"$@\"\"' _ {} ;)",
+      "Bash(done)"
     ],
     "additionalDirectories": [
       "/Users/riyavsinha/projects/igv.js",

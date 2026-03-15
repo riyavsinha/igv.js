@@ -98,6 +98,7 @@ class VariantTrack extends TrackBase {
         this._colorByItems = new Map([['none', 'None']])
     }
 
+    // @ts-expect-error - postInit returns void, not TrackBase
     async postInit() {
 
         this.header = await this.getHeader()
@@ -604,7 +605,7 @@ class VariantTrack extends TrackBase {
                 const colorByItems = this._colorByItems
                 menuItems.push('<hr/>')
                 const element = createElementWithString('<div class="igv-track-menu-category igv-track-menu-border-top">')
-                element.textContent = 'Color by:'
+                element!.textContent = 'Color by:'
                 menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
                 for (let key of colorByItems.keys()) {
                     const selected = (this.colorBy === key)

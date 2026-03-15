@@ -43,7 +43,7 @@ class CustomServiceReader {
         }
 
 
-        let features: any[]
+        let features: any[] = []
         const data = await igvxhr.load(url, config)
         if (data) {
             if (typeof this.config.parser === "function") {

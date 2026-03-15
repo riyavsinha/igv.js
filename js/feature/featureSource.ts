@@ -14,7 +14,7 @@ function FeatureSource(config: any, genome: any): any {
 
     if (config.features) {
         return new StaticFeatureSource(config, genome)
-    } else if (bbFormats.has(format)) {
+    } else if (format && bbFormats.has(format)) {
         return new BWSource(config, genome)
     } else if ("tdf" === format) {
         return new TDFSource(config, genome)

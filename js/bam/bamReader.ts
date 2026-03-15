@@ -77,7 +77,7 @@ class BamReader {
 
             for (let c of chunks) {
                 const ba: Uint8Array = await this._blockLoader.getData(c.minv, c.maxv)
-                const done: boolean = BamUtils.decodeBamRecords(ba, c.minv.offset, alignmentContainer as any, this.header!.chrNames, chrId, bpStart, bpEnd, this.filter)
+                const done: boolean = BamUtils.decodeBamRecords(ba, c.minv.offset, alignmentContainer as any, this.header!.chrNames, chrId!, bpStart, bpEnd, this.filter) ?? false
                 if (done) {
                     break
                 }
@@ -141,7 +141,7 @@ class BamReader {
             const options: any = buildOptions(this.config, {range: {start: 0, size: len}})
             this.header = await BamUtils.readHeader(this.bamPath, options, genome) as any
         }
-        return this.header
+        return this.header!
     }
 
     async getIndex(): Promise<BamIndex> {

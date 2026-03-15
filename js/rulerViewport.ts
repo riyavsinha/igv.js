@@ -18,7 +18,7 @@ class RulerViewport extends TrackViewport {
     tooltipContent: HTMLDivElement | undefined
     rulerSweeper: RulerSweeper | undefined
 
-    constructor(trackView: any, $viewportColumn: HTMLElement, referenceFrame: any, width: number) {
+    constructor(trackView: any, $viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
         super(trackView, $viewportColumn, referenceFrame, width)
     }
 

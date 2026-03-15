@@ -197,7 +197,7 @@ class BAMTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any): any[] | undefined {
+    clickedFeatures(clickState: any): any[] {
 
         let clickedObject: any
         if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
@@ -205,7 +205,7 @@ class BAMTrack extends TrackBase {
         } else {
             clickedObject = this.alignmentTrack.getClickedObject(clickState)
         }
-        return clickedObject ? [clickedObject] : undefined
+        return clickedObject ? [clickedObject] : []
     }
 
     hoverText(clickState: any): string | undefined {

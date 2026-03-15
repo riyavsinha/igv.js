@@ -89,7 +89,7 @@ const GenomeUtils: {
             if (!reference) {
                 if ((genomeID.startsWith("GCA_") || genomeID.startsWith("GCF_")) && genomeID.length >= 13) {
                     try {
-                        const hubURL: string = convertToHubURL(genomeID)
+                        const hubURL = convertToHubURL(genomeID)!
                         const hub: any = await loadHub(hubURL)
                         reference = hub.getGenomeConfig(genomeID)
                     } catch (e) {

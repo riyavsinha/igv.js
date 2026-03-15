@@ -758,7 +758,7 @@ class TrackView {
 
             // Mouse Up
             this.boundDocumentTrackDragMouseUpHandler = documentTrackDragMouseUpHandler.bind(this)
-            document.addEventListener('mouseup', this.boundDocumentTrackDragMouseUpHandler)
+            document.addEventListener('mouseup', this.boundDocumentTrackDragMouseUpHandler!)
 
             function documentTrackDragMouseUpHandler(this: TrackView, event: MouseEvent): void {
 
@@ -830,7 +830,7 @@ class TrackView {
             // do nothing
         } else {
             this.dragHandle.removeEventListener('mousedown', this.boundTrackDragMouseDownHandler)
-            document.removeEventListener('mouseup', this.boundDocumentTrackDragMouseUpHandler)
+            document.removeEventListener('mouseup', this.boundDocumentTrackDragMouseUpHandler!)
             this.dragHandle.removeEventListener('mouseup', this.boundTrackDragMouseEnterHandler)
             this.dragHandle.removeEventListener('mouseout', this.boundTrackDragMouseOutHandler)
         }

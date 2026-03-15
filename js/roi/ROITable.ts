@@ -128,10 +128,12 @@ class ROITable extends RegionTableBase {
                 this.setTableRowSelectionState(false)
 
                 if (loci.length > 0) {
-                    const { chr, start, end } = parseLocusString(loci[0], this.browser.isSoftclipped())
-                    const seq = await this.browser.genome.getSequence(chr, start, end)
-                    await navigator.clipboard.writeText(seq)
-
+                    const locusObj = parseLocusString(loci[0], this.browser.isSoftclipped())
+                    if (locusObj) {
+                        const { chr, start, end } = locusObj
+                        const seq = await this.browser.genome.getSequence(chr, start, end)
+                        await navigator.clipboard.writeText(seq)
+                    }
                 }
             }
 
@@ -171,8 +173,10 @@ class ROITable extends RegionTableBase {
 
         if (selected.length > 0 && selected.length < 2) {
             const { locus } = parseRegionKey((selected[ 0 ] as HTMLElement).dataset.region!)
-            const { chr, start, end } = parseLocusString(locus, this.browser.isSoftclipped())
-            enableButton(this.copySequenceButton, (end - start) < 1e6)
+            const locusObj = parseLocusString(locus, this.browser.isSoftclipped())
+            if (locusObj && locusObj.start !== undefined && locusObj.end !== undefined) {
+                enableButton(this.copySequenceButton, (locusObj.end - locusObj.start) < 1e6)
+            }
         } else {
             enableButton(this.copySequenceButton, false)
         }

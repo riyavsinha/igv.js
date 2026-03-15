@@ -237,7 +237,7 @@ class Tick {
     }
 
     description(blurb?: string) {
-        console.log((blurb || '') + ' tick ' + numberFormatter(this.majorTick) + ' label width ' + numberFormatter(this.labelWidthBP) + ' multiplier ' + this.unitMultiplier)
+        console.log((blurb || '') + ' tick ' + numberFormatter(this.majorTick) + ' label width ' + numberFormatter(this.labelWidthBP!) + ' multiplier ' + this.unitMultiplier)
     }
 }
 

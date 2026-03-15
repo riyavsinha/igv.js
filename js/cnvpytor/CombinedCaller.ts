@@ -106,8 +106,8 @@ class CombinedCaller extends baseCNVpytorVCF {
                 
                 let merge_level = normal_merge(levels[i], error[i], levels[i + 1], error[i + 1]);
                 
-                let nlh: number[]
-                let nlh_sum: number;
+                let nlh: number[] = []
+                let nlh_sum: number = 0;
                 try{
                     nlh = likelihoods[i].map((l_value: number, l_idx: number) => { return l_value * likelihoods[i+1][l_idx]})
 

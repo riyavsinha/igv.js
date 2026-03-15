@@ -71,7 +71,7 @@ class BGZLineReader {
                 this.eof = true // Assumption
             }
             this.buffer = BGZip.unbgzf(data)
-            if(this.buffer.byteLength == 0) {
+            if(this.buffer!.byteLength == 0) {
                 this.eof = true
             }
             this.bufferPtr = 0

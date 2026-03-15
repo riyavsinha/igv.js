@@ -338,7 +338,7 @@ class FeatureParser {
                 this.delimiter = "\t"
                 break
             default:
-                const customFormat = getFormat(format)
+                const customFormat = getFormat(format!)
                 if (customFormat !== undefined) {
                     this.decode = decodeCustom
                     this.header.customFormat = customFormat
@@ -373,7 +373,7 @@ function parseTrackLine(line: string): Record<string, any> {
     }
 
     for (let str of tmp) {
-        if (!str) return
+        if (!str) return properties
         var kv = str.split('=', 2)
         if (kv.length === 2) {
             const key: string = kv[0].trim()

@@ -174,9 +174,9 @@ function renderFeature(this: any, feature: Feature, bpStart: number, xScale: num
                 IGVGraphics.strokeLine(ctx, x - direction * 2, cy + 2, x, cy)
             }
 
-            for (let i = 0; i < feature.exons.length; i++) {
+            for (let i = 0; i < feature.exons!.length; i++) {
 
-                const exon: Exon = feature.exons[i]
+                const exon: Exon = feature.exons![i]
 
                 // draw the exons
                 let ePx: number = Math.round((exon.start - bpStart) / xScale)
@@ -216,8 +216,8 @@ function renderFeature(this: any, feature: Feature, bpStart: number, xScale: num
                         if (options.bpPerPixel < aminoAcidSequenceRenderThreshold &&
                             options.sequenceInterval) {
 
-                            const leftExon: Exon | undefined = i > 0 && feature.exons[i - 1].readingFrame !== undefined ? feature.exons[i - 1] : undefined
-                            const riteExon: Exon | undefined = i < feature.exons.length - 1 && feature.exons[i + 1].readingFrame !== undefined ? feature.exons[i + 1] : undefined
+                            const leftExon: Exon | undefined = i > 0 && feature.exons![i - 1].readingFrame !== undefined ? feature.exons![i - 1] : undefined
+                            const riteExon: Exon | undefined = i < feature.exons!.length - 1 && feature.exons![i + 1].readingFrame !== undefined ? feature.exons![i + 1] : undefined
 
                             renderAminoAcidSequence.call(this, ctx, feature.strand, leftExon, exon, riteExon, bpStart, options.bpPerPixel, py, h, options.sequenceInterval)
                         }

@@ -170,7 +170,7 @@ class SampleInfo {
             return typeof value === 'string'
         })
 
-        const compare = (a: string, b: string): number | undefined => {
+        const compare = (a: string, b: string): number => {
             const aa = this.getAttributes(a)![attribute]
             const bb = this.getAttributes(b)![attribute]
 
@@ -181,6 +181,8 @@ class SampleInfo {
             if (typeof aa === 'number' && typeof bb === 'number') {
                 return sortDirection * (aa - bb)
             }
+
+            return 0
         }
 
         numbers.sort(compare)
@@ -323,7 +325,7 @@ class SampleInfo {
 
             if (3 === cl.length) {
 
-                const [_r, _g, _b] = rgbStringTokens(cl[2])
+                const [_r, _g, _b] = rgbStringTokens(cl[2])!
 
                 this.colorDictionary[attribute] = (attributeValue: number): string => {
                     attributeValue = IGVMath.clamp(attributeValue, a, b)
@@ -359,7 +361,7 @@ class SampleInfo {
                         const [min, max] = this.attributeRangeLUT[attribute]
                         const interpolant: number = (attributeValue - min) / (max - min)
 
-                        const [r, g, b] = rgbStringTokens(rgb)
+                        const [r, g, b] = rgbStringTokens(rgb)!
                         return rgbaColor(r, g, b, interpolant)
                     }
 

@@ -437,7 +437,7 @@ class BWReader {
                 extHeaderParser.position = header.autoSqlOffset - startOffset
                 const autoSqlString: string = extHeaderParser.getString()
                 if (autoSqlString) {
-                    this.autoSql = parseAutoSQL(autoSqlString)
+                    this.autoSql = parseAutoSQL(autoSqlString) as AutoSql
                 }
             }
 
@@ -699,8 +699,10 @@ async function decodeWigData(this: BWReader, data: DataView, chrIdx1: number, bp
             else if (chromId > chrIdx2 || (chromId === chrIdx2 && chromStart >= bpEnd)) break
 
             if (Number.isFinite(value!)) {
-                const chr: string = await this.chromTree.getNameForId(chromId)
-                featureArray.push({chr: chr!, start: chromStart, end: chromEnd, value: value!})
+                const chr = await this.chromTree.getNameForId(chromId)
+                if (chr) {
+                    featureArray.push({chr, start: chromStart, end: chromEnd, value: value!})
+                }
             }
         }
     }
@@ -716,15 +718,15 @@ function getBedDataDecoder(this: BWReader): (this: BWReader, data: DataView, chr
         while (binaryParser.remLength() >= minSize) {
 
             const chromId: number = binaryParser.getInt()
-            const chr: string = await this.chromTree.getNameForId(chromId)
+            const chr = await this.chromTree.getNameForId(chromId)
             const chromStart: number = binaryParser.getInt()
             const chromEnd: number = binaryParser.getInt()
             const rest: string = binaryParser.getString()
             if (chromId < chrIdx1 || (chromId === chrIdx1 && chromEnd < bpStart)) continue
             else if (chromId > chrIdx2 || (chromId === chrIdx2 && chromStart >= bpEnd)) break
 
-            if (chromEnd > 0) {
-                const feature: WigFeature = {chr: chr!, start: chromStart, end: chromEnd, value: 0}
+            if (chromEnd > 0 && chr) {
+                const feature: WigFeature = {chr, start: chromStart, end: chromEnd, value: 0}
                 featureArray.push(feature)
                 const tokens: string[] = rest.split("\t")
                 if (decoder) {
@@ -767,9 +769,10 @@ async function decodeZoomData(this: BWReader, data: DataView, chrIdx1: number, b
 
 
         if (Number.isFinite(value)) {
-            const chr: string = await this.chromTree.getNameForId(chromId)
-            featureArray.push({chr: chr!, start: chromStart, end: chromEnd, value: value})
-
+            const chr = await this.chromTree.getNameForId(chromId)
+            if (chr) {
+                featureArray.push({chr, start: chromStart, end: chromEnd, value: value})
+            }
 
         }
     }

@@ -14,7 +14,7 @@ class IdeogramViewport extends TrackViewport {
     tooltip: HTMLDivElement | undefined
     tooltipContent: HTMLDivElement | undefined
 
-    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width: number) {
+    constructor(trackView: any, viewportColumn: HTMLElement, referenceFrame: any, width?: number) {
         super(trackView, viewportColumn, referenceFrame, width)
     }
 
@@ -65,7 +65,7 @@ class IdeogramViewport extends TrackViewport {
         }
 
         const {width, height} = this.viewportElement.getBoundingClientRect()
-        IGVGraphics.configureHighDPICanvas(this.ideogram_ctx, width, height)
+        IGVGraphics.configureHighDPICanvas(this.ideogram_ctx!, width, height)
 
         const chr = this.referenceFrame.chr
         const features = this.featureCache.get(chr)

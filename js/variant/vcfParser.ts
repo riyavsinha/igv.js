@@ -36,8 +36,8 @@ class VcfParser {
 
         // First line must be file format
         let line: string | undefined = await dataWrapper.nextLine()
-        if (line.startsWith("##fileformat")) {
-            header.version = line.substr(13)
+        if (line!.startsWith("##fileformat")) {
+            header.version = line!.substr(13)
         } else {
             throw new Error("Invalid VCF file: missing fileformat line")
         }
@@ -147,7 +147,7 @@ class VcfParser {
 
                         variant.calls = []
                         for (let index = 9; index < tokens.length; index++) {
-                            const sample: string = sampleNames[index-9]
+                            const sample: string = sampleNames![index-9]
                             const token: string = tokens[index]
                             const call = new Call({formatFields, sample, token})
                             variant.calls.push(call)

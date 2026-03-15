@@ -267,7 +267,7 @@ class Browser {
 
         this.navbar = new ResponsiveNavbar(config, this)
 
-        this.columnContainer.parentNode.insertBefore(this.navbar.navigation, this.columnContainer)
+        this.columnContainer.parentNode!.insertBefore(this.navbar.navigation, this.columnContainer)
 
         if (false === config.showControls) {
             this.navbar.hide()
@@ -407,7 +407,7 @@ class Browser {
             const canvas = document.createElement('canvas')
             canvas.width = w
             canvas.height = h
-            const context = canvas.getContext('2d')
+            const context = canvas.getContext('2d')!
             context.scale(devicePixelRatio, devicePixelRatio)
 
             context.drawImage(img, 0, 0)
@@ -457,7 +457,7 @@ class Browser {
             if (filename.endsWith(".xml")) {
                 const knownGenomes = GenomeUtils.KNOWN_GENOMES
                 const string = await igvxhr.loadString(urlOrFile)
-                config = new XMLSession(string, knownGenomes)
+                config = new XMLSession(string, knownGenomes!)
 
             } else if (filename.endsWith("hub.txt")) {
                 const hub = await loadHub(urlOrFile, options)
@@ -747,7 +747,7 @@ class Browser {
 
     async expandGenarkAccession(genarkAccession: string): Promise<any> {
 
-        const url = convertToHubURL(genarkAccession)
+        const url = convertToHubURL(genarkAccession)!
         const hub = await loadHub(url)
         const genomeConfig = hub.getGenomeConfig()
         genomeConfig.nameSet = "ucsc"
@@ -1108,7 +1108,7 @@ class Browser {
             }
         }
 
-        const track = getTrack(type, config, this)
+        const track = getTrack(type!, config, this)
         if (undefined === track) {
             this.alert.present(new Error(`Error creating track.  Could not determine track type for file: ${config.url || config}`), undefined)
         } else {
@@ -1181,22 +1181,22 @@ class Browser {
             gearContainer
         } of this.trackViews) {
 
-            this.columnContainer.querySelector('.igv-axis-column').appendChild(axis)
+            this.columnContainer.querySelector('.igv-axis-column')!.appendChild(axis)
 
             for (let i = 0; i < viewportColumns.length; i++) {
                 const {viewportElement} = viewports[i]
                 viewportColumns[i].appendChild(viewportElement)
             }
 
-            this.columnContainer.querySelector('.igv-sample-info-column').appendChild(sampleInfoViewport.viewport)
+            this.columnContainer.querySelector('.igv-sample-info-column')!.appendChild(sampleInfoViewport.viewport)
 
-            this.columnContainer.querySelector('.igv-sample-name-column').appendChild(sampleNameViewport.viewport)
+            this.columnContainer.querySelector('.igv-sample-name-column')!.appendChild(sampleNameViewport.viewport)
 
-            this.columnContainer.querySelector('.igv-scrollbar-column').appendChild(outerScroll)
+            this.columnContainer.querySelector('.igv-scrollbar-column')!.appendChild(outerScroll)
 
-            this.columnContainer.querySelector('.igv-track-drag-column').appendChild(dragHandle)
+            this.columnContainer.querySelector('.igv-track-drag-column')!.appendChild(dragHandle)
 
-            this.columnContainer.querySelector('.igv-gear-menu-column').appendChild(gearContainer)
+            this.columnContainer.querySelector('.igv-gear-menu-column')!.appendChild(gearContainer)
         }
 
     }
@@ -1629,7 +1629,7 @@ class Browser {
     async search(stringOrArray: string | string[], init?: boolean): Promise<boolean> {
 
         const loci = await search(this, stringOrArray as string)
-        return this.updateLoci(loci, init)
+        return this.updateLoci(loci ?? [], init)
     }
 
     async updateLoci(loci: any[], init?: boolean): Promise<boolean> {
@@ -1648,7 +1648,7 @@ class Browser {
             this.columnContainer.querySelectorAll('.igv-column-shim, .igv-column').forEach((el: Element) => el.remove())
 
             // Insert viewport columns preceding the sample info column
-            viewportColumnManager.insertBefore(this.columnContainer.querySelector('.igv-sample-info-column'), this.referenceFrameList.length)
+            viewportColumnManager.insertBefore(this.columnContainer.querySelector('.igv-sample-info-column')!, this.referenceFrameList.length)
             this.fireEvent('columnlayoutchange')
 
             // Create the viewport objects -- TODO -- this is done for every search, which is insane
