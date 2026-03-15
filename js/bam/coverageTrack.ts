@@ -4,27 +4,29 @@ import IGVGraphics from "../igv-canvas.js"
 import {drawModifications} from "./mods/baseModificationCoverageRenderer.js"
 import {HGVS} from "../genome/hgvs.js"
 import {ClinVar} from "../genome/clinVar"
+import type BAMTrack from "./bamTrack.js"
+import type Browser from "../browser.js"
+import type {ClickState, DrawConfiguration, DataRange} from "../types/ui.js"
+import type {PopupData} from "../types/feature.js"
+import type AlignmentContainer from "./alignmentContainer.js"
+import type {Coverage, CoverageMap} from "./alignmentContainer.js"
+import type ReferenceFrame from "../referenceFrame.js"
 
 const DEFAULT_COVERAGE_COLOR: string = "rgb(150, 150, 150)"
-
-interface DataRange {
-    min: number
-    max: number
-}
 
 class CoverageTrack {
 
     featureType: string
-    parent: any
-    featureSource: any
-    paintAxis: any
+    parent: BAMTrack
+    featureSource: BAMTrack["featureSource"]
+    paintAxis: typeof paintAxis
     top: number
     autoscale: boolean
     color: string | undefined
     dataRange: DataRange | undefined
     logScale: boolean | undefined
 
-    constructor(config: any, parent: any) {
+    constructor(config: Record<string, unknown>, parent: BAMTrack) {
         this.featureType = 'numeric'
         this.parent = parent
         this.featureSource = parent.featureSource
@@ -32,15 +34,15 @@ class CoverageTrack {
         this.paintAxis = paintAxis
         this.top = 0
 
-        this.autoscale = config.autoscale || config.max === undefined
+        this.autoscale = !!config.autoscale || config.max === undefined
         if (config.coverageColor) {
-            this.color = config.coverageColor
+            this.color = config.coverageColor as string
         }
 
         if (!this.autoscale) {
             this.dataRange = {
-                min: config.min || 0,
-                max: config.max
+                min: (config.min as number) || 0,
+                max: config.max as number
             }
         }
 
@@ -50,23 +52,23 @@ class CoverageTrack {
         return this.parent.coverageTrackHeight
     }
 
-    get browser(): any {
+    get browser(): Browser {
         return this.parent.browser
     }
 
-    draw(options: any): void {
+    draw(options: DrawConfiguration): void {
 
         const pixelTop: number = options.pixelTop
         const pixelBottom: number = pixelTop + options.pixelHeight
-        const nucleotideColors: any = this.browser.nucleotideColors
+        const nucleotideColors: Record<string, string> = this.browser.nucleotideColors
 
         if (pixelTop > this.height) {
             return //scrolled out of view
         }
 
         const ctx: CanvasRenderingContext2D = options.context
-        const alignmentContainer: any = options.features
-        const coverageMap: any = alignmentContainer.coverageMap
+        const alignmentContainer = options.features as AlignmentContainer
+        const coverageMap: CoverageMap = alignmentContainer.coverageMap
 
         let sequence: string | undefined
         if (coverageMap.refSeq) {
@@ -100,7 +102,7 @@ class CoverageTrack {
             if (bp < bpStart) continue
             if (bp > bpEnd) break
 
-            const item: any = coverageMap.coverage[i]
+            const item = coverageMap.coverage[i] as Coverage | undefined
             if (!item) continue
 
             const h: number = (item.total / this.dataRange!.max) * this.height
@@ -120,7 +122,7 @@ class CoverageTrack {
                 if (bp < bpStart) continue
                 if (bp > bpEnd) break
 
-                const item: any = coverageMap.coverage[i]
+                const item = coverageMap.coverage[i] as Coverage | undefined
                 if (!item) continue
 
                 const h: number = (item.total / this.dataRange!.max) * this.height
@@ -130,7 +132,7 @@ class CoverageTrack {
                 const refBase: string = sequence[i]
 
                 if (this.parent.colorBy && this.parent.colorBy.startsWith("basemod")) {
-                    drawModifications(ctx, x, this.height, w, h, bp, alignmentContainer, this.parent.colorBy, this.parent.baseModificationThreshold)
+                    drawModifications(ctx, x, this.height, w, h, bp, alignmentContainer as Parameters<typeof drawModifications>[6], this.parent.colorBy, this.parent.baseModificationThreshold)
 
                 } else if (item.isMismatch(refBase)) {
                     IGVGraphics.setProperties(ctx, {fillStyle: nucleotideColors[refBase]})
@@ -153,33 +155,35 @@ class CoverageTrack {
         }
     }
 
-    getClickedObject(clickState: any): any {
+    getClickedObject(clickState: ClickState): { reference: string | undefined; coverage: Coverage; baseModCounts: AlignmentContainer["baseModCounts"]; hoverText: () => string } | undefined {
 
-        let features: any = clickState.viewport.cachedFeatures
-        if (!features || features.length === 0) return
+        const features = clickState.viewport.cachedFeatures as AlignmentContainer | undefined
+        if (!features) return
 
         const genomicLocation: number = Math.floor(clickState.genomicLocation)
-        const coverageMap: any = features.coverageMap
+        const coverageMap: CoverageMap = features.coverageMap
         const coverageMapIndex: number = Math.floor(genomicLocation - coverageMap.bpStart)
-        const coverage: any = coverageMap.coverage[coverageMapIndex]
+        const coverage = coverageMap.coverage[coverageMapIndex] as Coverage | undefined
         if (coverage) {
             return {
                 reference: coverageMap.refSeq ? coverageMap.refSeq.charAt(coverageMapIndex).toUpperCase() : undefined,
                 coverage: coverage,
                 baseModCounts: features.baseModCounts,
-                hoverText: () => coverageMap.coverage[coverageMapIndex].hoverText()
+                hoverText: () => (coverageMap.coverage[coverageMapIndex] as Coverage).hoverText()
             }
         }
     }
 
-    async popupData(clickState: any): Promise<any[] | undefined> {
+    async popupData(clickState: ClickState): Promise<PopupData[] | undefined> {
 
-        const nameValues: any[] = []
+        const nameValues: PopupData[] = []
 
-        const {reference, coverage, baseModCounts} = this.getClickedObject(clickState)
+        const clicked = this.getClickedObject(clickState)
+        if (!clicked) return
+        const {reference, coverage, baseModCounts} = clicked
         if (coverage) {
             const genomicLocation: number = Math.floor(clickState.genomicLocation)
-            const referenceFrame: any = clickState.viewport.referenceFrame
+            const referenceFrame: ReferenceFrame = clickState.viewport.referenceFrame
 
             nameValues.push(referenceFrame.chr + ":" + StringUtils.numberFormatter(1 + genomicLocation))
             nameValues.push({name: 'Total Count', value: coverage.total})
@@ -187,8 +191,8 @@ class CoverageTrack {
 
             // A
             for (let b of ['A', 'C', 'G', 'T', 'N']) {
-                let tmp: any = coverage[`pos${b}`] + coverage[`neg${b}`]
-                tmp = tmp.toString() + " (" + Math.round((tmp / coverage.total) * 100.0) + "%, " + coverage[`pos${b}`] + "+, " + coverage[`neg${b}`] + "- )"
+                const count: number = coverage[`pos${b}`] + coverage[`neg${b}`]
+                const tmp = count.toString() + " (" + Math.round((count / coverage.total) * 100.0) + "%, " + coverage[`pos${b}`] + "+, " + coverage[`neg${b}`] + "- )"
                 nameValues.push({name: b, value: tmp})
             }
 

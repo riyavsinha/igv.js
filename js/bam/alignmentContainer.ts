@@ -893,4 +893,4 @@ function pairOrientationComparator(expectedPairOrientation: string | undefined):
 
 
 export default AlignmentContainer
-export type {Alignment, AlignmentBlock, Coverage, DownsampledInterval, Group}
+export type {Alignment, AlignmentBlock, Coverage, CoverageMap, DownsampledInterval, Group}

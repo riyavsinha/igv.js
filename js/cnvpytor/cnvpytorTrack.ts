@@ -5,17 +5,20 @@ import FeatureSource from '../feature/featureSource.js'
 import {createCheckbox} from "../igv-icons.js"
 import IGVGraphics from "../igv-canvas.js"
 import trackClasses from "../util/trackClassRegistry.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {ClickState, DrawConfiguration, MenuItem} from "../types/ui.js"
 
 class CNVPytorTrack extends TrackBase {
     [key: string]: any
 
     static DEFAULT_TRACK_HEIGHT = 250
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any): void {
+    init(config: TrackConfig): void {
 
         // NOTE -- don't use the "defaults" convention for this track, it will not work with VariantTrack.convertToPytor()
         this.featureType = 'numeric'
@@ -155,7 +158,7 @@ class CNVPytorTrack extends TrackBase {
             for (const [signal_name, wig] of Object.entries(this.wigFeatures_obj[bin_size])) {
 
                 if (this.signals.includes(signal_name)) {
-                    let tconf: any = {}
+                    const tconf: Record<string, unknown> = {}
                     tconf.type = "wig"
                     tconf.isMergedTrack = true
                     tconf.features = wig
@@ -246,7 +249,7 @@ class CNVPytorTrack extends TrackBase {
     }
 
     menuItemList() {
-        let items: any[] = []
+        let items: (string | MenuItem)[] = []
 
         if (this.flipAxis !== undefined) {
             items.push({
@@ -361,7 +364,7 @@ class CNVPytorTrack extends TrackBase {
 
         for (const [signal_name, wig] of Object.entries(this.wigFeatures_obj[bin_size])) {
             if (this.signals.includes(signal_name)) {
-                let tconf: any = {}
+                const tconf: Record<string, unknown> = {}
                 tconf.type = "wig"
                 tconf.isMergedTrack = true
                 tconf.features = wig
@@ -478,10 +481,10 @@ class CNVPytorTrack extends TrackBase {
         return ((this.flipAxis ? (yValue - minValue) : (maxValue - yValue)) * yScaleFactor)
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        // const mergedFeatures = options.features    // Array of feature arrays, 1 for each track
-        const mergedFeatures = options.features
+        // Array of feature arrays, 1 for each track
+        const mergedFeatures = options.features as { value: number }[][] | undefined
         if (!mergedFeatures) return
 
         if (this.defaultScale) {
@@ -638,9 +641,9 @@ class CNVPytorTrack extends TrackBase {
 
     }
 
-    popupData(clickState: any, features: any) {
+    popupData(clickState: ClickState, features: unknown[][] | undefined) {
 
-        const featuresArray = features || clickState.viewport.cachedFeatures
+        const featuresArray = features || (clickState.viewport.cachedFeatures as unknown[][] | undefined)
 
         if (featuresArray && featuresArray.length === this.tracks.length) {
             // Array of feature arrays, 1 for each track
@@ -678,7 +681,7 @@ class CNVPytorTrack extends TrackBase {
 
 }
 
-function autoscale(chr: string, featureArrays: any[][]) {
+function autoscale(_chr: string, featureArrays: { value: number }[][]) {
 
     let min = 0
     let max = -Number.MAX_VALUE

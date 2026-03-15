@@ -41,10 +41,10 @@ class BAMTrack extends TrackBase {
     alignmentTrack!: AlignmentTrack
     sortObject: SortObject | undefined
     _pairedEndStats: PairedEndStats | undefined
-    _height: number | undefined
-    showCoverage: boolean | undefined
-    showAlignments: boolean | undefined
-    coverageTrackHeight: number | undefined
+    _height!: number
+    showCoverage!: boolean
+    showAlignments!: boolean
+    coverageTrackHeight!: number
     maxTemplateLength: number | undefined
 
     constructor(config: TrackConfig, browser: Browser) {
@@ -105,7 +105,7 @@ class BAMTrack extends TrackBase {
     set height(h: number) {
         this._height = h
         if (this.showAlignments) {
-            this.alignmentTrack.height = this.showCoverage ? h - this.coverageTrackHeight! : h
+            this.alignmentTrack.height = this.showCoverage ? h - this.coverageTrackHeight : h
         }
     }
 
@@ -174,7 +174,7 @@ class BAMTrack extends TrackBase {
 
 
     computePixelHeight(alignmentContainer: AlignmentContainer): number {
-        return (this.showCoverage ? this.coverageTrackHeight! : 0) +
+        return (this.showCoverage ? this.coverageTrackHeight : 0) +
             (this.showAlignments ? this.alignmentTrack.computePixelHeight(alignmentContainer) : 0)
     }
 
@@ -182,7 +182,7 @@ class BAMTrack extends TrackBase {
 
         IGVGraphics.fillRect(options.context, 0, options.pixelTop, options.pixelWidth, options.pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
-        if (true === this.showCoverage && this.coverageTrackHeight! > 0 && false !== this.config.showAxis) {
+        if (true === this.showCoverage && this.coverageTrackHeight > 0 && false !== this.config.showAxis) {
             this.trackView.axisCanvas.style.display = 'block'
             this.coverageTrack.draw(options)
         } else {
@@ -205,7 +205,7 @@ class BAMTrack extends TrackBase {
     }
 
     popupData(clickState: ClickState): Promise<PopupData[] | undefined> | PopupData[] {
-        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
+        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight) {
             return this.coverageTrack.popupData(clickState)
         } else {
             return this.alignmentTrack.popupData(clickState)
@@ -215,7 +215,7 @@ class BAMTrack extends TrackBase {
     clickedFeatures(clickState: ClickState): unknown[] {
 
         let clickedObject: unknown
-        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
+        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight) {
             clickedObject = this.coverageTrack.getClickedObject(clickState)
         } else {
             clickedObject = this.alignmentTrack.getClickedObject(clickState)
@@ -224,7 +224,7 @@ class BAMTrack extends TrackBase {
     }
 
     hoverText(clickState: ClickState): string | undefined {
-        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight!) {
+        if (true === this.showCoverage && clickState.y >= this.coverageTrack.top && clickState.y < this.coverageTrackHeight) {
             const clickedObject = this.coverageTrack.getClickedObject(clickState) as { hoverText?: () => string } | undefined
             if (clickedObject && clickedObject.hoverText) {
                 return clickedObject.hoverText()
@@ -246,7 +246,7 @@ class BAMTrack extends TrackBase {
         const adjustTrackHeight = (): void => {
             if (!this.autoHeight) {
                 const h: number =
-                    (this.showCoverage ? this.coverageTrackHeight! : 0) +
+                    (this.showCoverage ? this.coverageTrackHeight : 0) +
                     (this.showAlignments ? this.alignmentTrack.height : 0)
                 this.trackView.setTrackHeight(h)
             }

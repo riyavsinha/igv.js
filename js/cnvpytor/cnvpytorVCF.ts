@@ -1,7 +1,41 @@
 import g_utils from './GeneralUtil.js'
 import combined_caller from './CombinedCaller.js';
 import read_depth_caller from './MeanShiftUtil.js'
+import type {Variant} from "../variant/variant.js"
 
+interface RawBin {
+    chr: string
+    start: number
+    end: number
+    dp_sum_score: number
+    dp_count: number
+    hets_count: number
+    hets: { ref: number; alt: number }[]
+}
+
+interface AvgBin {
+    chr: string
+    start: number
+    end: number
+    dp_count: number
+    hets_count: number
+    binScore: number | null
+    likelihood_score?: number[]
+    dp_sum_score: number
+    value?: number
+    min_score?: number
+    max_likelihood?: number
+    score?: number
+    [key: string]: unknown
+}
+
+interface WigFeature {
+    chr: string
+    start: number
+    end: number
+    value: number
+    [key: string]: unknown
+}
 
 function getMean(data: number[]): number {
     return (data.reduce(function (a, b) { return a + b; }) / data.length);
@@ -9,7 +43,7 @@ function getMean(data: number[]): number {
 
 
 class CNVpytorVCF {
-    allVariants: any[]
+    allVariants: Variant[]
     rowBinSize: number
     binSize: number
     binFactor: number
@@ -23,7 +57,7 @@ class CNVpytorVCF {
      * @param {number} binSize - The bin size for processing variants.
      * @param {string} refGenome - Reference genome name
      */
-    constructor(allVariants: any[], binSize: number, refGenome: string) {
+    constructor(allVariants: Variant[], binSize: number, refGenome: string) {
         this.allVariants = allVariants
         this.rowBinSize = 10000
         this.binSize = binSize
@@ -35,10 +69,10 @@ class CNVpytorVCF {
     /**
      * Read rd and BAF information from the vcf file and call accoring to the caller
      */
-    async read_rd_baf(caller: string = 'ReadDepth'): Promise<[any[], any[]]> {
-        
+    async read_rd_baf(caller: string = 'ReadDepth'): Promise<[unknown[][], unknown[][]]> {
+
         // Step1: Parse data from the vcf file; for a fixed rowBinSize
-        var wigFeatures: Record<string, any[]> = {}
+        var wigFeatures: Record<string, RawBin[]> = {}
         for (let i = this.allVariants.length-1; i >= 0; i--){
             var featureBin;
             // assign and free space for the all_variants
@@ -63,11 +97,11 @@ class CNVpytorVCF {
             // JTR -- note, there is an implicit assumption there that there is 1 and only 1 genotype.  Previously
             // this was hardcoded to id "9" => snp.calls[9].  By convention callset IDs == column number but this could change
             //const call = snp.calls[9]
-            const calls = Object.values(snp.calls)
+            const calls = Object.values(snp.calls!)
             if(calls.length !== 1) {
                 throw Error(`Unexpected number of genotypes: ${calls.length}.  CNVPytor expects 1 and only 1 genotype`)
             }
-            const call = calls[0] as any
+            const call = calls[0] as { info: Record<string, string>; genotype: (string | number)[] }
 
             const dpValue = call.info["DP"]
             if (dpValue) {
@@ -99,8 +133,8 @@ class CNVpytorVCF {
         // console.log("avgbin: ", avgbin)
         
         // Step3: Run the CNV caller
-        var finalFeatureSet: any[] = []
-        var baf: any[] = []
+        var finalFeatureSet: unknown[][] = []
+        var baf: unknown[][] = []
         if(caller == 'ReadDepth'){
             // ------------ new code
             // console.log("setting up meanShift CNV calling")
@@ -128,8 +162,8 @@ class CNVpytorVCF {
         return [finalFeatureSet, baf]
     }
 
-    format_BAF_likelihood(wigFeatures: Record<string, any[]>): Record<string, any>[] {
-        const results: Record<string, any>[] = []
+    format_BAF_likelihood(wigFeatures: Record<string, WigFeature[]>): WigFeature[] {
+        const results: WigFeature[] = []
 
         for (const [chr, wig] of Object.entries(wigFeatures)) {
             for(let sample of wig) {
@@ -143,9 +177,9 @@ class CNVpytorVCF {
         return results
     }
 
-    get_max_min_score(sample: Record<string, any>): Record<string, any> {
+    get_max_min_score(sample: AvgBin): AvgBin {
 
-        if (sample.likelihood_score.length > 0) {
+        if (sample.likelihood_score && sample.likelihood_score.length > 0) {
             const max = Math.max(...sample.likelihood_score);
             const res = sample.likelihood_score.indexOf(max);
             sample.value = Math.max(res / 100, 1 - res / 100);
@@ -171,9 +205,9 @@ class CNVpytorVCF {
      * @param {*} wigFeatures - wig features after processing the varaints
      * @returns 
      */
-    adjust_bin_size(wigFeatures: Record<string, any[]>, delete_likelihood_scores: boolean = false): Record<string, any[]> {
-        
-        var avgbin: Record<string, any[]> = {}
+    adjust_bin_size(wigFeatures: Record<string, RawBin[]>, delete_likelihood_scores: boolean = false): Record<string, AvgBin[]> {
+
+        var avgbin: Record<string, AvgBin[]> = {}
         const scale = this.binSize/150
         for (let chr of this.chromosomes) {
             if (!avgbin[chr]) { avgbin[chr] = [] }
@@ -203,7 +237,7 @@ class CNVpytorVCF {
                         if (wigFeatures[chr][j].hets.length != 0){
                         
                             for(let hets of wigFeatures[chr][j].hets)  {
-                                if(avgbin[chr][k].likelihood_score.length == 0){
+                                if(avgbin[chr][k].likelihood_score!.length == 0){
                                     avgbin[chr][k].likelihood_score = g_utils.linspace(0, 1, 100).map((value, index) => {
                                         return beta(hets.ref, hets.alt, value);
                                     });
@@ -211,13 +245,13 @@ class CNVpytorVCF {
                                 else{
                                     var likelihood_sum = 0
                                     avgbin[chr][k].likelihood_score = g_utils.linspace(0, 1, 100).map((value, index) => {
-                                        var likelihood_value = avgbin[chr][k].likelihood_score[index] * beta(hets.ref, hets.alt, value);
+                                        var likelihood_value = avgbin[chr][k].likelihood_score![index] * beta(hets.ref, hets.alt, value);
                                         likelihood_sum += likelihood_value;
                                         return likelihood_value;
                                     });
 
                                     avgbin[chr][k].likelihood_score = g_utils.linspace(0, 1, 100).map((value, index) => {
-                                        return avgbin[chr][k].likelihood_score[index] / likelihood_sum;
+                                        return avgbin[chr][k].likelihood_score![index] / likelihood_sum;
                                     });
                        
                                 }
