@@ -17,16 +17,15 @@ class StaticFeatureSource extends BaseFeatureSource {
     config: StaticFeatureSourceConfig
     queryable: boolean
     searchable: boolean
-    featureCache: any
-    chromAliasManager: any
+    featureCache!: FeatureCache
+    chromAliasManager: ChromAliasManager | undefined
     maxWGCount: number | undefined
-    featureMap: Map<string, any> | undefined
+    featureMap: Map<string, GenomicFeature> | undefined
 
-    constructor(config: StaticFeatureSourceConfig, genome: any) {
+    constructor(config: StaticFeatureSourceConfig, genome: unknown) {
 
-        super(genome)
+        super(genome as ConstructorParameters<typeof BaseFeatureSource>[0])
         this.config = config
-        this.genome = genome
         this.queryable = false
         this.searchable = config.searchable !== false  // searchable by default
         this.updateFeatures(config.features)
@@ -39,7 +38,7 @@ class StaticFeatureSource extends BaseFeatureSource {
             mapProperties(features, this.config.mappings)
         }
 
-        this.chromAliasManager = this.genome ? new ChromAliasManager(features.map(f => f.chr), this.genome) : null
+        this.chromAliasManager = this.genome ? new ChromAliasManager(features.map(f => f.chr), this.genome) : undefined
 
         this.featureCache = new FeatureCache(features)
 
@@ -48,7 +47,7 @@ class StaticFeatureSource extends BaseFeatureSource {
         }
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: {chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number}): Promise<any[]> {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: {chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number}): Promise<GenomicFeature[]> {
 
         const queryChr: string = this.chromAliasManager ? await this.chromAliasManager.getAliasName(chr) : chr
         const isWholeGenome: boolean = ("all" === queryChr.toLowerCase())
@@ -58,7 +57,7 @@ class StaticFeatureSource extends BaseFeatureSource {
         //   * cache is disabled
         //   * cache does not contain requested range
         if (isWholeGenome) {
-            return await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome, this.chromAliasManager, this.maxWGCount)
+            return await computeWGFeatures(this.featureCache.getAllFeatures(), this.genome as Parameters<typeof computeWGFeatures>[1], this.chromAliasManager, this.maxWGCount)
         } else {
             return this.featureCache.queryFeatures(queryChr, start, end)
         }
@@ -69,7 +68,7 @@ class StaticFeatureSource extends BaseFeatureSource {
     //    return true
     // }
 
-    getAllFeatures(): any[] {
+    getAllFeatures(): { [chr: string]: GenomicFeature[] } {
         return this.featureCache.getAllFeatures()
     }
 
@@ -103,7 +102,7 @@ class StaticFeatureSource extends BaseFeatureSource {
         }
     }
 
-    search(term: string): any | undefined {
+    search(term: string): GenomicFeature | undefined {
         if (this.featureMap) {
             return this.featureMap.get(term.toUpperCase())
         }
@@ -111,9 +110,9 @@ class StaticFeatureSource extends BaseFeatureSource {
 }
 
 
-function fixFeatures(features: GenomicFeature[], genome: any): GenomicFeature[] {
+function fixFeatures(features: GenomicFeature[], genome: { getChromosomeName?(chr: string): string }): GenomicFeature[] {
 
-    if (genome) {
+    if (genome && genome.getChromosomeName) {
         for (let feature of features) {
             feature.chr = genome.getChromosomeName(feature.chr)
         }

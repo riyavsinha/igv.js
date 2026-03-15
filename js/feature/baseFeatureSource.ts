@@ -12,11 +12,21 @@ interface GetFeaturesParams {
     visibilityWindow?: number
 }
 
+export interface BaseFeatureSourceGenome {
+    getChromosome(chr: string): { bpLength: number } | undefined
+    chromosomeNames?: string[]
+    getChromosomeName?(chr: string): string
+    getGenomeCoordinate?(chr: string, pos: number): number | undefined
+    wgChromosomeNames?: string[]
+    getSequenceInterval?(chr: string, start: number, end: number): unknown
+    [key: string]: unknown
+}
+
 // Base class for feature sources.  Subclasses must implement getFeatures().
 class BaseFeatureSource {
-    genome: any
+    genome: BaseFeatureSourceGenome
 
-    constructor(genome: any) {
+    constructor(genome: BaseFeatureSourceGenome) {
         this.genome = genome
     }
 
@@ -34,7 +44,7 @@ class BaseFeatureSource {
         while (idx < chromosomeNames.length && idx >= 0) {
             chr = chromosomeNames[idx]
             const chromosome = this.genome.getChromosome(chr)
-            const chromosomeEnd = chromosome.bpLength
+            const chromosomeEnd = chromosome!.bpLength
             while (queryStart < chromosomeEnd && queryStart >= 0) {
                 let queryEnd = direction ? queryStart + window : Math.min(position, queryStart + window)
                 const featureList: Feature[] | undefined = await this.getFeatures({chr, start: queryStart, end: queryEnd, visibilityWindow})
@@ -69,7 +79,7 @@ class BaseFeatureSource {
                 idx--
                 if (idx < 0) break
                 const prevChromosome = this.genome.getChromosome(chromosomeNames[idx])
-                position = prevChromosome.bpLength
+                position = prevChromosome!.bpLength
                 queryStart = position - window
             }
         }

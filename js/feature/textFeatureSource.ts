@@ -14,8 +14,8 @@ import type {GenomicFeature} from "../types/feature"
 const DEFAULT_MAX_WG_COUNT: number = 10000
 
 interface TextFeatureSourceReader {
-    readFeatures(chr: string, start: number, end: number): Promise<any[] | null | undefined>
-    readHeader?(): Promise<Record<string, any> | undefined>
+    readFeatures(chr: string, start: number, end: number): Promise<unknown[] | null | undefined>
+    readHeader?(): Promise<Record<string, unknown> | undefined>
     defaultVisibilityWindow?(): Promise<number | undefined>
     sequenceNames?: Set<string>
     indexed?: boolean
@@ -30,7 +30,7 @@ interface TextFeatureSourceConfig {
     reader?: TextFeatureSourceReader
     type?: string
     format?: string
-    source?: any
+    source?: Record<string, unknown>
     disableCache?: boolean
     expandQuery?: boolean
     minQuerySize?: number
@@ -44,6 +44,7 @@ interface TextFeatureSourceConfig {
 interface TextFeatureSourceGenome {
     getChromosome(chr: string): { bpLength: number } | undefined
     chromosomeNames?: string[]
+    [key: string]: unknown
 }
 
 interface GetFeaturesParams {
@@ -64,7 +65,7 @@ class TextFeatureSource extends BaseFeatureSource {
     queryable: boolean | undefined
     reader: TextFeatureSourceReader
     searchable: boolean
-    header: Record<string, any> | undefined
+    header: Record<string, unknown> | undefined
     featureCache: FeatureCache | undefined
     wgFeatures: GenomicFeature[] | undefined
     chromAliasManager: ChromAliasManager | undefined
@@ -97,17 +98,17 @@ class TextFeatureSource extends BaseFeatureSource {
             this.queryable = true
             this.supportsWholeGenome = () => false   // htsget sources do not support whole genome view
         } else if (config.sourceType === 'ucscservice') {
-            this.reader = new UCSCServiceReader(config.source)
+            this.reader = new UCSCServiceReader(config.source as ConstructorParameters<typeof UCSCServiceReader>[0])
             this.queryable = true
         } else if (config.sourceType === 'custom') {
-            this.reader = new CustomServiceReader(config.source)
-            this.queryable = false !== config.source.queryable
+            this.reader = new CustomServiceReader(config.source as ConstructorParameters<typeof CustomServiceReader>[0])
+            this.queryable = false !== config.source!.queryable
         } else if ('service' === config.sourceType) {
-            this.reader = new FeatureFileReader(config as any, genome)
+            this.reader = new FeatureFileReader(config as ConstructorParameters<typeof FeatureFileReader>[0], genome as ConstructorParameters<typeof FeatureFileReader>[1])
             this.queryable = true
         } else {
             // File of some type (i.e. not a webservice)
-            this.reader = new FeatureFileReader(config as any, genome)
+            this.reader = new FeatureFileReader(config as ConstructorParameters<typeof FeatureFileReader>[0], genome as ConstructorParameters<typeof FeatureFileReader>[1])
             if (config.queryable !== undefined) {
                 this.queryable = config.queryable
             } else if ((config.format && queryableFormats.has(config.format)) || this.reader.indexed) {
@@ -131,13 +132,13 @@ class TextFeatureSource extends BaseFeatureSource {
     async trackType(): Promise<string | undefined> {
         const header = await this.getHeader()
         if (header) {
-            return header.type
+            return header.type as string | undefined
         } else {
             return undefined    // Convention for unknown or unspecified
         }
     }
 
-    async getHeader(): Promise<any> {
+    async getHeader(): Promise<Record<string, unknown>> {
         if (!this.header) {
 
             if (this.reader && typeof this.reader.readHeader === "function") {
@@ -145,7 +146,7 @@ class TextFeatureSource extends BaseFeatureSource {
                 if (header) {
                     this.header = header
                     if (header.format) {
-                        this.config.format = header.format
+                        this.config.format = header.format as string
                     }
                 } else {
                     this.header = {}
@@ -157,7 +158,7 @@ class TextFeatureSource extends BaseFeatureSource {
         return this.header
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow, windowFunction}: GetFeaturesParams): Promise<any[]> {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow, windowFunction}: GetFeaturesParams): Promise<GenomicFeature[]> {
 
         const isWholeGenome: boolean = ("all" === chr.toLowerCase())
 
@@ -180,10 +181,10 @@ class TextFeatureSource extends BaseFeatureSource {
             if (!this.wgFeatures) {
                 if (this.supportsWholeGenome()) {
                     if("wig" === this.config.type) {
-                        const allWgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome, this.chromAliasManager, 1000000)
-                        this.wgFeatures = summarizeData(allWgFeatures as any, 0, bpPerPixel!, windowFunction) as any
+                        const allWgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome as Parameters<typeof computeWGFeatures>[1], this.chromAliasManager, 1000000)
+                        this.wgFeatures = summarizeData(allWgFeatures as Parameters<typeof summarizeData>[0], 0, bpPerPixel!, windowFunction) as GenomicFeature[]
                     } else {
-                        this.wgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome, this.chromAliasManager, this.maxWGCount)
+                        this.wgFeatures = await computeWGFeatures(this.featureCache!.getAllFeatures(), this.genome as Parameters<typeof computeWGFeatures>[1], this.chromAliasManager, this.maxWGCount)
                     }
                 } else {
                     this.wgFeatures = []
@@ -196,7 +197,7 @@ class TextFeatureSource extends BaseFeatureSource {
         }
     }
 
-    async findFeatures(fn: (feature: any) => boolean): Promise<any[]> {
+    async findFeatures(fn: (feature: GenomicFeature) => boolean): Promise<GenomicFeature[]> {
         return this.featureCache ? this.featureCache.findFeatures(fn) : []
     }
 
@@ -204,7 +205,7 @@ class TextFeatureSource extends BaseFeatureSource {
         return !this.queryable   // queryable (indexed, web services) sources don't support whole genome view
     }
 
-    getAllFeatures(): any {
+    getAllFeatures(): { [chr: string]: GenomicFeature[] } | GenomicFeature[] {
         if (this.queryable || !this.featureCache) {   // queryable sources don't support all features
             return []
         } else {
@@ -247,7 +248,7 @@ class TextFeatureSource extends BaseFeatureSource {
             intervalEnd = intervalStart + expansionWindow
         }
 
-        let features = await reader.readFeatures(queryChr, intervalStart, intervalEnd)
+        let features = await reader.readFeatures(queryChr, intervalStart, intervalEnd) as GenomicFeature[] | null | undefined
         if (this.queryable === undefined) {
             this.queryable = reader.indexed
         }
@@ -276,7 +277,7 @@ class TextFeatureSource extends BaseFeatureSource {
         }
     }
 
-    addFeaturesToDB(featureList: any[], config: TextFeatureSourceConfig): void {
+    addFeaturesToDB(featureList: GenomicFeature[], config: TextFeatureSourceConfig): void {
         if (!this.featureMap) {
             this.featureMap = new Map()
         }
@@ -288,7 +289,8 @@ class TextFeatureSource extends BaseFeatureSource {
                     key = feature[field];
                 }
                 else if (typeof feature.getAttributeValue === 'function') {
-                    key = feature.getAttributeValue(field)
+                    const val = feature.getAttributeValue(field)
+                    key = val !== undefined ? String(val) : undefined
                 }
                 if (key) {
                     key = key.replace(/ /g, '+').toUpperCase()
@@ -305,7 +307,7 @@ class TextFeatureSource extends BaseFeatureSource {
         }
     }
 
-    search(term: string): any | undefined {
+    search(term: string): GenomicFeature | undefined {
         if (this.featureMap) {
             return this.featureMap.get(term.toUpperCase())
         }
