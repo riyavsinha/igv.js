@@ -13,6 +13,11 @@ import {getChrColor} from "../util/getChrColor.js"
 import {createCheckbox} from "../igv-icons.js"
 import {modificationName} from "./mods/baseModificationUtils"
 import {createElementWithString} from "../ui/utils/dom-utils.js"
+import type AlignmentContainer from "./alignmentContainer"
+import type {Alignment, AlignmentBlock, DownsampledInterval} from "./alignmentContainer"
+import type {TrackConfig} from "../types/config"
+import type Browser from "../browser.js"
+import type {ClickState, TrackViewportLike} from "../types/ui"
 
 
 
@@ -35,8 +40,8 @@ class AlignmentTrack extends TrackBase {
         showAllBases: false,
         showInsertions: true,
         showMismatches: true,
-        colorBy: undefined as any,
-        groupBy: undefined as any,
+        colorBy: undefined as string | undefined,
+        groupBy: undefined as string | undefined,
         displayMode: "EXPANDED",
         alignmentRowHeight: 14,
         squishedRowHeight: 3,
@@ -51,7 +56,7 @@ class AlignmentTrack extends TrackBase {
         deletionTextColor: "black",
         showDeletionText: false,
         skippedColor: "rgb(150, 170, 170)",
-        pairConnectorColor: undefined as any,
+        pairConnectorColor: undefined as string | undefined,
         smallTLENColor: "rgb(0, 0, 150)",
         largeTLENColor: "rgb(200, 0, 0)",
         expectedPairOrientation: 'fr',
@@ -61,16 +66,16 @@ class AlignmentTrack extends TrackBase {
         bamColorTag: "YC",
         hideSmallIndels: false,
         indelSizeThreshold: 1,
-        highlightColor: undefined as any,
-        minTLEN: undefined as any,
-        maxTLEN: undefined as any,
+        highlightColor: undefined as string | undefined,
+        minTLEN: undefined as number | undefined,
+        maxTLEN: undefined as number | undefined,
         tagColorPallete: "Set1"
     }
 
     _colorTables = new Map()
     _baseModifications = new Set()
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
 
         super(config, browser)
 
@@ -141,7 +146,7 @@ class AlignmentTrack extends TrackBase {
         this.browser.on('locuschange', this._locusChange)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
         this.parent = config.parent  // A hack to get around initialization problem
         delete config.parent
         super.init(config)
@@ -187,7 +192,7 @@ class AlignmentTrack extends TrackBase {
      * @param alignmentContainer
      * @returns {number|*}
      */
-    computePixelHeight(alignmentContainer: any) {
+    computePixelHeight(alignmentContainer: AlignmentContainer) {
 
         if (alignmentContainer.packedGroups) {
             let h = alignmentContainer.hasDownsampledIntervals() ? downsampleRowHeight + alignmentStartGap : 0
@@ -242,7 +247,7 @@ class AlignmentTrack extends TrackBase {
         if (alignmentContainer.hasDownsampledIntervals()) {
             alignmentRowYInset = downsampleRowHeight + alignmentStartGap
 
-            alignmentContainer.downsampledIntervals.forEach(function (interval: any) {
+            alignmentContainer.downsampledIntervals.forEach(function (interval: DownsampledInterval) {
                 var xBlockStart = (interval.start - bpStart) / bpPerPixel,
                     xBlockEnd = (interval.end - bpStart) / bpPerPixel
 
@@ -333,7 +338,7 @@ class AlignmentTrack extends TrackBase {
                     ctx.textAlign = "center"
                     ctx.fillStyle = 'white'
                     ctx.strokeStyle = 'lightGray'
-                    IGVGraphics.roundRect(ctx, x, baselineY - textMetrics.actualBoundingBoxAscent - 5, w, h, 2, 1 as any, 1 as any)
+                    IGVGraphics.roundRect(ctx, x, baselineY - textMetrics.actualBoundingBoxAscent - 5, w, h, 2, true, true)
 
                     ctx.fillStyle = 'black'
                     ctx.fillText(groupName, x + w / 2, baselineY)
@@ -348,7 +353,7 @@ class AlignmentTrack extends TrackBase {
         ctx.restore()
 
         // alignment is a PairedAlignment
-        function drawPairConnector(this: AlignmentTrack, alignment: any, yRect: number, alignmentHeight: number) {
+        function drawPairConnector(this: AlignmentTrack, alignment: PairedAlignment, yRect: number, alignmentHeight: number) {
 
             var connectorColor = this.getConnectorColor(alignment.firstAlignment),
                 xBlockStart = (alignment.connectingStart - bpStart) / bpPerPixel,
@@ -358,7 +363,7 @@ class AlignmentTrack extends TrackBase {
             if ((alignment.connectingEnd) < bpStart || alignment.connectingStart > bpEnd) {
                 return
             }
-            if (alignment.mq <= 0) {
+            if ((alignment.mq ?? 0) <= 0) {
                 connectorColor = IGVColor.addAlpha(connectorColor, 0.15)
             }
             IGVGraphics.setProperties(ctx, {fillStyle: connectorColor, strokeStyle: connectorColor})
@@ -366,18 +371,18 @@ class AlignmentTrack extends TrackBase {
 
         }
 
-        function drawSingleAlignment(this: AlignmentTrack, alignment: any, y: number, alignmentHeight: number) {
+        function drawSingleAlignment(this: AlignmentTrack, alignment: Alignment, y: number, alignmentHeight: number) {
 
 
             if ((alignment.start + alignment.lengthOnRef) < bpStart || alignment.start > bpEnd) {
                 return
             }
 
-            const blocks = showSoftClips ? alignment.blocks : alignment.blocks.filter((b: any) => 'S' !== b.type)
+            const blocks = showSoftClips ? alignment.blocks! : alignment.blocks!.filter((b: AlignmentBlock) => 'S' !== b.type)
 
             let alignmentColor = this.getAlignmentColor(alignment)
             const outlineColor = alignmentColor
-            if (alignment.mq <= 0) {
+            if ((alignment.mq ?? 0) <= 0) {
                 alignmentColor = IGVColor.addAlpha(alignmentColor, 0.15)
             }
             IGVGraphics.setProperties(ctx, {fillStyle: alignmentColor, strokeStyle: outlineColor})
@@ -506,7 +511,7 @@ class AlignmentTrack extends TrackBase {
             }
 
 
-            function drawBlock(this: AlignmentTrack, block: any, b: number) {
+            function drawBlock(this: AlignmentTrack, block: AlignmentBlock, b: number) {
                 // Collect bases to draw for later rendering
                 const blockBasesToDraw = []
 
@@ -522,7 +527,7 @@ class AlignmentTrack extends TrackBase {
                 const isSoftClip = 'S' === block.type
 
                 const strokeOutline =
-                    alignment.mq <= 0 ||
+                    (alignment.mq ?? 0) <= 0 ||
                     this.selectedReadName === alignment.readName ||
                     isSoftClip ||
                     this.highlightedReads && this.highlightedReads.has(alignment.readName)
@@ -536,7 +541,7 @@ class AlignmentTrack extends TrackBase {
                     blockOutlineColor = this.highlightColor || DEFAULT_HIGHLIGHT_COLOR
                 }
 
-                const lastBlockPositiveStrand = (true === alignment.strand && b === blocks.length - 1)
+                const lastBlockPositiveStrand = (true === alignment.strand && b === blocks!.length - 1)
                 const lastBlockReverseStrand = (false === alignment.strand && b === 0)
                 const lastBlock = lastBlockPositiveStrand || lastBlockReverseStrand
 
@@ -671,24 +676,26 @@ class AlignmentTrack extends TrackBase {
         }
     }
 
-    async popupData(clickState: any) {
+    async popupData(clickState: ClickState) {
         const clickedObject = this.getClickedObject(clickState)
         if (clickedObject) {
 
-            // Determine reference base at clicked position, used for HGVS notation
-            let refBase
-            if (clickedObject.chr) {
+            if ('chr' in clickedObject) {
+                // Alignment - determine reference base at clicked position, used for HGVS notation
+                let refBase
                 const viewport = clickState.viewport
-                const alignmentContainer = viewport.cachedFeatures
+                const alignmentContainer = viewport.cachedFeatures as AlignmentContainer | undefined
                 const coverageMap = alignmentContainer?.coverageMap
                 const refseq = coverageMap?.refSeq
                 if (refseq) {
                     const genomicLocation = Math.floor(clickState.genomicLocation)
                     refBase = refseq.charAt(genomicLocation - coverageMap.bpStart).toUpperCase()
                 }
+                return clickedObject.popupData(clickState.genomicLocation, this.hiddenTags, this.showTags, refBase, this.browser.genome)
+            } else {
+                // DownsampledInterval
+                return clickedObject.popupData(clickState.genomicLocation)
             }
-
-            return clickedObject.popupData(clickState.genomicLocation, this.hiddenTags, this.showTags, refBase, this.browser.genome)
         }
     }
 
@@ -709,7 +716,7 @@ class AlignmentTrack extends TrackBase {
         menuItems.push('<hr/>')
         let element = createElementWithString('<div class="igv-track-menu-category">')
         ;(element as HTMLElement).innerText = 'Color by:'
-        menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
+        menuItems.push({name: undefined, element, click: undefined, init: undefined})
 
         const colorByMenuItems = []
         colorByMenuItems.push({key: 'none', label: 'none'})
@@ -767,7 +774,7 @@ class AlignmentTrack extends TrackBase {
         element = document.createElement('div')
         element.className = 'igv-track-menu-category'
         element.textContent = 'Group by:'
-        menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
+        menuItems.push({name: undefined, element, click: undefined, init: undefined})
 
         const groupByMenuItems = []
         groupByMenuItems.push({key: 'none', label: 'none'})
@@ -895,7 +902,7 @@ class AlignmentTrack extends TrackBase {
         element = document.createElement('div')
         element.className = 'igv-track-menu-category'
         element.textContent = 'Display mode:'
-        menuItems.push({name: undefined as any, element, click: undefined as any, init: undefined as any})
+        menuItems.push({name: undefined, element, click: undefined, init: undefined})
 
         for (let mode of ["EXPANDED", "SQUISHED", "FULL"])
             menuItems.push({
@@ -941,7 +948,7 @@ class AlignmentTrack extends TrackBase {
                 this.trackView.repaintViews()
             }
 
-            return {name: undefined as any, element, click: clickHandler, init: undefined as any}
+            return {name: undefined, element, click: clickHandler, init: undefined}
         } else {
 
             function dialogPresentationHandler(this: BAMTrack, ev: Event) {
@@ -966,7 +973,7 @@ class AlignmentTrack extends TrackBase {
                 }, ev as MouseEvent)
             }
 
-            return {name: undefined as any, element, dialog: dialogPresentationHandler, init: undefined as any}
+            return {name: undefined, element, dialog: dialogPresentationHandler, init: undefined}
 
         }
     }
@@ -981,10 +988,10 @@ class AlignmentTrack extends TrackBase {
         }
 
         return {
-            name: undefined as any,
+            name: undefined,
             element: createCheckbox(menuItem.label, showCheck),
             click: clickHandler,
-            init: undefined as any
+            init: undefined
         }
     }
 
@@ -1033,10 +1040,10 @@ class AlignmentTrack extends TrackBase {
         }
 
         return {
-            name: undefined as any,
+            name: undefined,
             element: createCheckbox(menuItem.label, showCheck),
             dialog: clickHandler,
-            init: undefined as any
+            init: undefined
         }
 
     }
@@ -1051,9 +1058,9 @@ class AlignmentTrack extends TrackBase {
     }
 
 
-    contextMenuItemList(clickState: any) {
+    contextMenuItemList(clickState: ClickState) {
 
-        const viewport = clickState.viewport
+        const viewport = clickState.viewport as TrackViewportLike & { cachedFeatures: AlignmentContainer; repaint(): void }
         const list = []
 
         const sortByOption = (option: string) => {
@@ -1064,7 +1071,7 @@ class AlignmentTrack extends TrackBase {
                 position: Math.floor(clickState.genomicLocation),
                 option: option,
                 direction: direction,
-                sortAsPairs: viewport.trackView.track.viewAsPairs
+                sortAsPairs: viewport.trackView.track.viewAsPairs as boolean | undefined
             }
             this.sortObject = newSortObject
             viewport.cachedFeatures.sortRows(newSortObject)
@@ -1104,7 +1111,7 @@ class AlignmentTrack extends TrackBase {
                             }
                         }
                     }
-                this.browser.inputDialog.present(config, clickState.event)
+                this.browser.inputDialog.present(config, clickState.event!)
             }
         })
         list.push('<hr/>')
@@ -1145,9 +1152,9 @@ class AlignmentTrack extends TrackBase {
         if (clickedObject) {
 
             const showSoftClips = this.showSoftClips
-            const clickedAlignment = (typeof clickedObject.alignmentContaining === 'function') ?
+            const clickedAlignment = ('alignmentContaining' in clickedObject && typeof clickedObject.alignmentContaining === 'function') ?
                 clickedObject.alignmentContaining(clickState.genomicLocation, showSoftClips) :
-                clickedObject
+                clickedObject as Alignment
             if (clickedAlignment) {
                 if (clickedAlignment.isPaired() && clickedAlignment.isMateMapped()) {
                     list.push({
@@ -1168,7 +1175,7 @@ class AlignmentTrack extends TrackBase {
                                 }
                             }
                         },
-                        init: undefined as any
+                        init: undefined
                     })
                 }
 
@@ -1322,10 +1329,10 @@ class AlignmentTrack extends TrackBase {
 
     }
 
-    getClickedObject(clickState: any) {
+    getClickedObject(clickState: ClickState) {
 
         const viewport = clickState.viewport
-        let features = viewport.cachedFeatures
+        let features = viewport.cachedFeatures as AlignmentContainer | undefined
         if (!features) return
 
         const y = clickState.y
@@ -1346,7 +1353,7 @@ class AlignmentTrack extends TrackBase {
 
                     if (packedAlignmentsIndex >= 0 && packedAlignmentsIndex < group.length) {
                         const alignmentRow = group.rows[packedAlignmentsIndex]
-                        const clicked = alignmentRow.alignments.filter((alignment: any) => alignment.containsLocation(genomicLocation, this.showSoftClips))
+                        const clicked = alignmentRow.alignments.filter((alignment: Alignment) => alignment.containsLocation(genomicLocation, this.showSoftClips))
                         if (clicked.length > 0) return clicked[0]
                     }
                 }
@@ -1371,7 +1378,7 @@ class AlignmentTrack extends TrackBase {
      * @param alignment
      * @returns {string}
      */
-    getConnectorColor(alignment: any) {
+    getConnectorColor(alignment: Alignment) {
 
         if (this.pairConnectorColor) {
             return this.pairConnectorColor
@@ -1400,7 +1407,7 @@ class AlignmentTrack extends TrackBase {
         }
     }
 
-    getAlignmentColor(alignment: any) {
+    getAlignmentColor(alignment: Alignment) {
 
         let color
         if (this.color) {
@@ -1548,11 +1555,11 @@ class AlignmentTrack extends TrackBase {
         this.parent.sortObject = obj
     }
 
-    addPairedChordsForViewport(viewport: any) {
+    addPairedChordsForViewport(viewport: TrackViewportLike) {
         return this.parent.addPairedChordsForViewport(viewport)
     }
 
-    addSplitChordsForViewport(viewport: any) {
+    addSplitChordsForViewport(viewport: TrackViewportLike) {
         return this.parent.addSplitChordsForViewport(viewport)
     }
 

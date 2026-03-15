@@ -218,3 +218,4 @@ class BaseModificationCounts {
 
 
 export default BaseModificationCounts
+export type {BaseModificationSet}

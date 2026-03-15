@@ -1,4 +1,5 @@
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
+import type {Alignment, Coverage} from "./alignmentContainer"
 
 const isString = StringUtils.isString
 const hashCode = StringUtils.hashCode
@@ -12,16 +13,16 @@ interface SortParams {
 
 interface AlignmentContainer {
     start: number
-    sequence: string
+    sequence?: string
     coverageMap: {
         bpStart: number
-        coverage: any[]
+        coverage: (Coverage | undefined)[]
     }
 }
 
 class BamAlignmentRow {
 
-    alignments: any[]
+    alignments: Alignment[]
     score: number | undefined
 
     constructor() {
@@ -30,14 +31,14 @@ class BamAlignmentRow {
         this.score = undefined
     }
 
-    findAlignment(genomicLocation: number, sortAsPairs: boolean = false): any | undefined {
+    findAlignment(genomicLocation: number, sortAsPairs: boolean = false): Alignment | undefined {
 
-        const alignmentContains = (a: any, genomicLocation: number): boolean => {
+        const alignmentContains = (a: Alignment, genomicLocation: number): boolean => {
             return genomicLocation >= a.start && genomicLocation < a.start + (sortAsPairs ? a.fragmentLength : a.lengthOnRef)
         }
 
         // find single alignment that overlaps sort location
-        let centerAlignment: any
+        let centerAlignment: Alignment | undefined
         for (let i = 0; i < this.alignments.length; i++) {
             const a = this.alignments[i]
             if (genomicLocation >= a.start && genomicLocation < a.start + (sortAsPairs ? a.fragmentLength : a.lengthOnRef)) {
@@ -77,14 +78,14 @@ class BamAlignmentRow {
             case "START":
                 return alignment.start
             case "TAG": {
-                return alignment.getTag(tag)
+                return alignment.getTag(tag!)
             }
             case "READ_NAME":
                 return alignment.readName
             case "INSERT_SIZE":
                 return -Math.abs(alignment.fragmentLength)
             case "GAP_SIZE":
-                return -alignment.gapSizeAt(position)
+                return -alignment.gapSizeAt!(position)
             case "MATE_CHR":
                 return alignment.mate ? alignment.mate.chr : Number.MAX_VALUE
             case "MQ":
@@ -96,18 +97,18 @@ class BamAlignmentRow {
         }
 
 
-        function calculateBaseScore(alignment: any, alignmentContainer: AlignmentContainer, genomicLocation: number): number {
+        function calculateBaseScore(alignment: Alignment, alignmentContainer: AlignmentContainer, genomicLocation: number): number {
 
             let reference: string | undefined
             const idx = Math.floor(genomicLocation) - alignmentContainer.start
-            if (idx < alignmentContainer.sequence.length) {
+            if (alignmentContainer.sequence && idx < alignmentContainer.sequence.length) {
                 reference = alignmentContainer.sequence.charAt(idx)
             }
             if (!reference) {
                 return 0
             }
-            const base: string | undefined = alignment.readBaseAt(genomicLocation)
-            const quality: number = alignment.readBaseQualityAt(genomicLocation)
+            const base: string | undefined = alignment.readBaseAt!(genomicLocation)
+            const quality: number = alignment.readBaseQualityAt!(genomicLocation)
 
             const coverageMap = alignmentContainer.coverageMap
             const coverageMapIndex = Math.floor(genomicLocation - coverageMap.bpStart)
@@ -119,7 +120,7 @@ class BamAlignmentRow {
             if (alignment.insertions) {
                 for (let ins of alignment.insertions) {
                     if (ins.start === genomicLocation) {
-                        baseScore = -coverage.ins
+                        baseScore = -coverage!.ins
                     }
                 }
             }
@@ -127,7 +128,7 @@ class BamAlignmentRow {
 
             if (!base) {
                 // Either deletion or skipped (splice junction)
-                const delCount = coverage.del
+                const delCount = coverage!.del
                 if (delCount > 0) {
                     baseScore -= delCount
                 } else if (baseScore === 0) {    // Don't modify insertion score, if any
@@ -140,7 +141,7 @@ class BamAlignmentRow {
                 } else if ((reference === base || '=' === base) && baseScore === 0) {
                     baseScore = 4 - quality / 1000
                 } else if ("X" === base || reference !== base) {
-                    const count = coverage["pos" + base] + coverage["neg" + base]
+                    const count = coverage!["pos" + base] + coverage!["neg" + base]
                     baseScore -= (count + (quality / 1000))
                 }
             }

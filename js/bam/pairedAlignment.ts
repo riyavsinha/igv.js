@@ -1,10 +1,12 @@
 import orientationTypes from "./orientationTypes"
+import type {Alignment} from "./alignmentContainer"
+import type {PopupData} from "../types/feature"
 
 class PairedAlignment {
 
     paired: boolean
-    firstAlignment: any
-    secondAlignment: any | undefined
+    firstAlignment: Alignment
+    secondAlignment: Alignment | undefined
     chr: string
     readName: string
     start: number
@@ -15,26 +17,27 @@ class PairedAlignment {
     connectingStart: number
     connectingEnd: number
 
-    constructor(firstAlignment: any) {
+    constructor(firstAlignment: Alignment) {
 
         this.paired = true
         this.firstAlignment = firstAlignment
         this.chr = firstAlignment.chr
         this.readName = firstAlignment.readName
 
-        if (firstAlignment.start < firstAlignment.mate.position) {
+        const matePosition = firstAlignment.mate!.position
+        if (firstAlignment.start < matePosition) {
             this.start = firstAlignment.start
             this.scStart = firstAlignment.scStart
             this.connectingStart = firstAlignment.start + firstAlignment.lengthOnRef
-            this.connectingEnd = firstAlignment.mate.position
+            this.connectingEnd = matePosition
         } else {
-            this.start = firstAlignment.mate.position
+            this.start = matePosition
             this.scStart = this.start
-            this.connectingStart = firstAlignment.mate.position
+            this.connectingStart = matePosition
             this.connectingEnd = firstAlignment.start
         }
 
-        this.end = Math.max(firstAlignment.mate.position, firstAlignment.start + firstAlignment.lengthOnRef)  // Approximate
+        this.end = Math.max(matePosition, firstAlignment.start + firstAlignment.lengthOnRef)  // Approximate
         this.lengthOnRef = this.end - this.start
 
         let scEnd = Math.max(this.end, firstAlignment.scStart + firstAlignment.scLengthOnRef)
@@ -42,7 +45,7 @@ class PairedAlignment {
 
     }
 
-    setSecondAlignment(secondAlignment: any): void {
+    setSecondAlignment(secondAlignment: Alignment): void {
 
         // TODO -- check the chrs are equal,  error otherwise
         this.secondAlignment = secondAlignment
@@ -70,7 +73,7 @@ class PairedAlignment {
         return (genomicLocation >= s && genomicLocation <= (s + l))
     }
 
-    alignmentContaining(genomicLocation: number, showSoftClips?: boolean): any | undefined {
+    alignmentContaining(genomicLocation: number, showSoftClips?: boolean): Alignment | undefined {
         if (this.firstAlignment.containsLocation(genomicLocation, showSoftClips)) {
             return this.firstAlignment
         } else if (this.secondAlignment && this.secondAlignment.containsLocation(genomicLocation, showSoftClips)) {
@@ -80,7 +83,7 @@ class PairedAlignment {
         }
     }
 
-    async popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>): Promise<any[]> {
+    async popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>): Promise<PopupData[]> {
 
         let nameValues = await this.firstAlignment.popupData(genomicLocation, hiddenTags, showTags)
 
@@ -103,6 +106,34 @@ class PairedAlignment {
         return this.firstAlignment.isProperPair()
     }
 
+    isFirstOfPair(): boolean {
+        return this.firstAlignment.isFirstOfPair()
+    }
+
+    isSecondOfPair(): boolean {
+        return this.firstAlignment.isSecondOfPair()
+    }
+
+    isSecondary(): boolean {
+        return false
+    }
+
+    isSupplementary(): boolean {
+        return false
+    }
+
+    get strand(): boolean {
+        return this.firstAlignment.strand
+    }
+
+    get mq(): number | undefined {
+        return this.firstAlignment.mq
+    }
+
+    getBaseModificationSets(): null {
+        return null
+    }
+
     get fragmentLength(): number {
         return Math.abs(this.firstAlignment.fragmentLength)
     }
@@ -120,10 +151,10 @@ class PairedAlignment {
     }
 
     hasTag(str: string): boolean {
-        return this.firstAlignment.hasTag(str) || (this.secondAlignment && this.secondAlignment.hasTag(str))
+        return this.firstAlignment.hasTag(str) || !!(this.secondAlignment && this.secondAlignment.hasTag(str))
     }
 
-    getTag(tagName: string): any {
+    getTag(tagName: string): string | number | undefined {
         const firstTag = this.firstAlignment.getTag(tagName)
         const secondTag = this.secondAlignment ? this.secondAlignment.getTag(tagName) : undefined
         if (firstTag !== undefined && secondTag !== undefined && firstTag !== secondTag) {
@@ -132,7 +163,7 @@ class PairedAlignment {
         return firstTag !== undefined ? firstTag : secondTag
     }
 
-    getAlignmentAtGenomicLocation(genomicLocation: number): any | undefined {
+    getAlignmentAtGenomicLocation(genomicLocation: number): Alignment | undefined {
         if (this.firstAlignment.containsLocation(genomicLocation)) {
             return this.firstAlignment
         } else if (this.secondAlignment && this.secondAlignment.containsLocation(genomicLocation)) {
@@ -160,7 +191,7 @@ class PairedAlignment {
         switch (groupBy) {
 
             case 'strand':
-                return this.firstAlignment.strand + (this.secondAlignment ? this.secondAlignment.strand : '')
+                return String(this.firstAlignment.strand) + (this.secondAlignment ? String(this.secondAlignment.strand) : '')
             case 'firstOfPairStrand':
                 return String(this.firstOfPairStrand)
             case 'mateChr':
@@ -175,13 +206,13 @@ class PairedAlignment {
             case 'readOrder':
                     return ""
             case 'phase':
-                return this.getTag('HP') || ""
+                return String(this.getTag('HP') ?? "")
             case 'tag':
-                return this.getTag(tag!) || ""
+                return String(this.getTag(tag!) ?? "")
             case 'base':
                 if (chr && pos !== undefined) {
                     const alignment = this.getAlignmentAtGenomicLocation(pos)
-                    if (alignment) {
+                    if (alignment && alignment.readBaseAt) {
                         const baseAtPos = alignment.readBaseAt(pos)
                         if (baseAtPos) {
                             return baseAtPos
@@ -194,9 +225,9 @@ class PairedAlignment {
             case 'insertion':
                 if (chr && pos !== undefined) {
                     const alignment = this.getAlignmentAtGenomicLocation(pos)
-                    if (alignment) {
+                    if (alignment && alignment.insertionAtGenomicLocation && alignment.seq) {
                         const insertion = alignment.insertionAtGenomicLocation(pos)
-                        return insertion ? alignment.seq.substring(insertion.seqOffset, insertion.seqOffset + insertion.len) : ""
+                        return insertion ? alignment.seq.substring(insertion.seqOffset!, insertion.seqOffset! + insertion.len) : ""
                     }
                 }
                 return ""

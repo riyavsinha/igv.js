@@ -1,5 +1,8 @@
 import PairedAlignment from "./pairedAlignment.js"
 import BaseModificationCounts from "./mods/baseModificationCounts.js"
+import type BaseModificationSet from "./mods/baseModificationSet"
+import type BaseModificationKey from "./mods/baseModificationKey"
+import type BamAlignment from "./bamAlignment"
 import BamAlignmentRow from "./bamAlignmentRow.js"
 import {isNumber} from "../util/igvUtils"
 
@@ -32,23 +35,36 @@ interface Alignment {
     scStart: number
     scLengthOnRef: number
     lengthOnRef: number
+    fragmentLength: number
     readName: string
     chr: string
     strand: boolean
+    mq?: number
     seq?: string
     qual?: number[]
     blocks?: AlignmentBlock[]
     gaps?: Array<{ type: string; start: number; len: number }>
-    insertions?: Array<{ start: number }>
-    mate?: { chr: string }
+    insertions?: Array<{ start: number; len: number; seqOffset: number }>
+    mate?: { chr: string; position: number }
+    paired?: boolean
     isPaired(): boolean
     isMateMapped(): boolean
     isFirstOfPair(): boolean
     isSecondOfPair(): boolean
     isSecondary(): boolean
     isSupplementary(): boolean
+    isProperPair(): boolean
+    containsLocation(genomicLocation: number, showSoftClips?: boolean): boolean
     getGroupValue(groupBy: string, expectedPairOrientation?: string): string
-    getBaseModificationSets(): any[] | undefined
+    getBaseModificationSets(): BaseModificationSet[] | null
+    getTag(tag: string): string | number | undefined
+    hasTag(tag: string): boolean
+    gapSizeAt?(position: number): number
+    popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>, refBase?: string, genome?: unknown): Promise<any[]>
+    readBaseAt?(genomicLocation: number): string | undefined
+    readBaseQualityAt?(genomicLocation: number): number
+    insertionAtGenomicLocation?(pos: number): AlignmentBlock | undefined
+    /** Allow duck-typed access to alignment-specific properties */
     [key: string]: any
 }
 
@@ -81,8 +97,9 @@ interface GenomicRange {
 class AlignmentContainer {
 
     #unpacked: Alignment[] = []
-    baseModificationKeys: Set<string> = new Set()
+    baseModificationKeys: Set<BaseModificationKey> = new Set()
 
+    sequence?: string
     alleleFreqThreshold: number
     samplingWindowSize: number
     samplingDepth: number
@@ -92,9 +109,9 @@ class AlignmentContainer {
     length: number
     coverageMap: CoverageMap
     downsampledIntervals: DownsampledInterval[]
-    baseModCounts?: any
+    baseModCounts?: BaseModificationCounts
     alignments: Alignment[]
-    pairsCache: Map<string, any>
+    pairsCache: Map<string, PairedAlignment>
     downsampledReads: Set<string>
     currentBucket: DownsampleBucket
     hasPairs: boolean
@@ -146,7 +163,7 @@ class AlignmentContainer {
         }
         this.packAlignmentRows(alignments, showSoftClips, expectedPairOrientation, groupBy, displayMode)
         if (this.alignments) {
-            delete (this as any).alignments
+            delete (this as unknown as Record<string, unknown>).alignments
         }
     }
 
@@ -164,7 +181,7 @@ class AlignmentContainer {
             })
 
             const group = new Group(groupName)
-            let alignmentRow: any
+            let alignmentRow: BamAlignmentRow = undefined!
             let nextStart = 0
             let nextIDX = 0
             const allocated: Set<Alignment> = new Set()
@@ -295,9 +312,9 @@ class AlignmentContainer {
             this.baseModCounts.computeSimplex()
         }
 
-        delete (this as any).currentBucket
-        delete (this as any).pairsCache
-        delete (this as any).downsampledReads
+        delete (this as unknown as Record<string, unknown>).currentBucket
+        delete (this as unknown as Record<string, unknown>).pairsCache
+        delete (this as unknown as Record<string, unknown>).downsampledReads
 
     }
 
@@ -325,7 +342,7 @@ class AlignmentContainer {
         if (this.alignments) {
             return this.alignments
         } else if (this.packedGroups) {
-            const all: Alignment[] = Array.from(this.packedGroups.values()).flatMap(group => group.rows.flatMap((row: any) => row.alignments))
+            const all: Alignment[] = Array.from(this.packedGroups.values()).flatMap(group => group.rows.flatMap((row: BamAlignmentRow) => row.alignments))
             if (this.#unpacked && this.#unpacked.length > 0) {
                 for (let a of this.#unpacked) {
                     all.push(a)
@@ -354,18 +371,18 @@ class AlignmentContainer {
 interface DownsampleBucketContext {
     samplingDepth: number
     downsampledReads: Set<string>
-    pairsCache: Map<string, any>
+    pairsCache: Map<string, PairedAlignment>
 }
 
 class DownsampleBucket {
 
     start: number
     end: number
-    alignments: any[]
+    alignments: Alignment[]
     downsampledCount: number
     samplingDepth: number
     downsampledReads: Set<string>
-    pairsCache: Map<string, any>
+    pairsCache: Map<string, PairedAlignment>
     hasPairs: boolean
 
     constructor(start: number, end: number, {samplingDepth, downsampledReads, pairsCache}: DownsampleBucketContext) {
@@ -447,6 +464,7 @@ class CoverageMap {
     maximum: number
     threshold: number
     qualityWeight: boolean
+    refSeq?: string
 
     constructor(chr: string, start: number, end: number, alleleFreqThreshold: number) {
 
@@ -484,7 +502,7 @@ class CoverageMap {
         const self = this
 
         if (alignment.blocks === undefined) {
-            incBlockCount(alignment as any)
+            incBlockCount(alignment as unknown as AlignmentBlock)
         } else {
             alignment.blocks.forEach(function (block: AlignmentBlock) {
                 incBlockCount(block)
@@ -650,6 +668,7 @@ class Coverage {
 
     threshold: number;
 
+    /** Dynamic keys: posA, negA, qualA, posT, negT, qualT, etc. */
     [key: string]: any
 
     constructor(alleleThreshold: number) {
@@ -700,7 +719,7 @@ class Group {
 
     pixelTop: number = 0
     pixelBottom: number = 0
-    rows: any[] = []
+    rows: BamAlignmentRow[] = []
     name: string
 
 
@@ -708,7 +727,7 @@ class Group {
         this.name = name
     }
 
-    push(row: any): void {
+    push(row: BamAlignmentRow): void {
         this.rows.push(row)
     }
 
@@ -718,8 +737,8 @@ class Group {
 
     sortRows(options: SortOptions, alignmentContainer: AlignmentContainer): void {
 
-        const newRows: any[] = []
-        const undefinedRow: any[] = []
+        const newRows: BamAlignmentRow[] = []
+        const undefinedRow: BamAlignmentRow[] = []
         for (let row of this.rows) {
             const alignment = row.findAlignment(options.position, options.sortAsPairs)
             if (undefined !== alignment) {
@@ -729,7 +748,7 @@ class Group {
             }
         }
 
-        newRows.sort((rowA: any, rowB: any) => {
+        newRows.sort((rowA: BamAlignmentRow, rowB: BamAlignmentRow) => {
             const direction = options.direction
             const rowAValue = rowA.getSortValue(options, alignmentContainer)
             const rowBValue = rowB.getSortValue(options, alignmentContainer)
@@ -739,7 +758,7 @@ class Group {
             if (rowAValue === undefined && rowBValue !== undefined) return 1
             else if (rowAValue !== undefined && rowBValue === undefined) return -1
 
-            const i = rowAValue > rowBValue ? 1 : (rowAValue < rowBValue ? -1 : 0)
+            const i = rowAValue! > rowBValue! ? 1 : (rowAValue! < rowBValue! ? -1 : 0)
             return true === direction ? i : -i
         })
 
@@ -765,7 +784,7 @@ function canBePaired(alignment: Alignment): boolean {
 
 function pairAlignments(alignments: Alignment[]): Alignment[] {
 
-    const pairCache: Map<string, any> = new Map()
+    const pairCache: Map<string, PairedAlignment> = new Map()
     const result = alignments.map((alignment: Alignment) => {
         if (canBePaired(alignment)) {
             let pairedAlignment = pairCache.get(alignment.readName)
@@ -786,8 +805,8 @@ function pairAlignments(alignments: Alignment[]): Alignment[] {
 }
 
 function unpairAlignments(alignments: Alignment[]): Alignment[] {
-    return alignments.flatMap((alignment: any) => alignment instanceof PairedAlignment ?
-        [alignment.firstAlignment, alignment.secondAlignment].filter(Boolean) :
+    return alignments.flatMap((alignment: Alignment) => alignment instanceof PairedAlignment ?
+        [alignment.firstAlignment, alignment.secondAlignment].filter((a): a is Alignment => !!a) :
         [alignment])
 }
 
@@ -874,3 +893,4 @@ function pairOrientationComparator(expectedPairOrientation: string | undefined):
 
 
 export default AlignmentContainer
+export type {Alignment, AlignmentBlock, Coverage, DownsampledInterval, Group}
