@@ -1,13 +1,21 @@
 import IGVGraphics from "./igv-canvas.js"
 import {IGVColor} from "../node_modules/igv-utils/src/index.js"
 
+import type Browser from "./browser.js"
+import type ReferenceFrame from "./referenceFrame.js"
+import type Genome from "./genome/genome.js"
+import type {Cytoband} from "./genome/cytoband.js"
+
+/** Stain color cache keyed by shade value */
+type StainColorCache = Record<number, string>
+
 /**
  * Class represents an ideogram of a chromsome cytobands.  It is used for the header of a track panel.
  *
  */
 class IdeogramTrack {
 
-    browser: any
+    browser: Browser
     type: string
     id: string
     height: number
@@ -15,9 +23,9 @@ class IdeogramTrack {
     disableButtons: boolean
     ignoreTrackMenu: boolean
     showCytobandNames: boolean
-    trackView: any
+    trackView: { track: IdeogramTrack; repaintViews(): void } | undefined
 
-    constructor(browser: any) {
+    constructor(browser: Browser) {
         this.browser = browser
         this.type = 'ideogram'
         this.id = 'ideogram'
@@ -27,14 +35,14 @@ class IdeogramTrack {
         this.ignoreTrackMenu = true
 
         // Check whether we should show the cytoband names in the ideogram
-        this.showCytobandNames = browser.config.showCytobandNames
+        this.showCytobandNames = !!browser.config.showCytobandNames
     }
 
-    computePixelHeight(ignore: any) {
+    computePixelHeight(_ignore: unknown) {
         return this.height
     }
 
-    draw({context, referenceFrame, pixelWidth, pixelHeight, features}: { context: any; referenceFrame: any; pixelWidth: number; pixelHeight: number; features: any }) {
+    draw({context, referenceFrame, pixelWidth, pixelHeight, features}: { context: CanvasRenderingContext2D; referenceFrame: ReferenceFrame; pixelWidth: number; pixelHeight: number; features: Cytoband[] | undefined }) {
 
         const chr = referenceFrame.chr
         const chromosome = referenceFrame.genome.getChromosome(chr)
@@ -43,7 +51,7 @@ class IdeogramTrack {
             return
         }
 
-        const stainColors: { [key: number]: string } = []
+        const stainColors: StainColorCache = []
 
         drawIdeogram({
             ctx: context,
@@ -62,7 +70,9 @@ class IdeogramTrack {
 
         // Total chromosome length can be > chromosome.bpLength for partial fastas.
         let chrLength = chromosome.bpLength
-        const cytobands = referenceFrame.genome.getCytobands(chr)
+        // Note: getCytobands is async but called synchronously here — this block is effectively dead code.
+        // The actual cytoband data comes via the `features` parameter.
+        const cytobands = referenceFrame.genome.getCytobands(chr) as unknown as Cytoband[] | undefined
         if (cytobands && cytobands.length > 0 && cytobands[cytobands.length - 1].end) {
             chrLength = Math.max(chrLength, cytobands[cytobands.length - 1].end)
             chromosome.bpLength = chrLength   // Correct bp length, bit of a hack
@@ -104,7 +114,7 @@ class IdeogramTrack {
     }
 }
 
-function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainColors, features, showCytobandNames}: { ctx: any; chr: string; referenceFrame: any; genome: any; width: number; height: number; stainColors: any; features: any; showCytobandNames: boolean }) {
+function drawIdeogram({ctx, chr: _chr, referenceFrame: _referenceFrame, genome, width, height, stainColors, features, showCytobandNames}: { ctx: CanvasRenderingContext2D; chr: string; referenceFrame: ReferenceFrame; genome: Genome; width: number; height: number; stainColors: StainColorCache; features: Cytoband[] | undefined; showCytobandNames: boolean }) {
     const shim = 1
     const shim2 = 0.5 * shim
     const ideogramTop = 0
@@ -166,7 +176,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
                 ctx.fillStyle = "rgb(150, 0, 0)"
                 ctx.strokeStyle = "rgb(150, 0, 0)"
                 IGVGraphics.polygon(ctx, xC, yC, true, false)
-            } 
+            }
             else {
                 const backgroundColor = getCytobandColor(stainColors, cytoband);
                 ctx.fillStyle = backgroundColor.color;
@@ -184,7 +194,7 @@ function drawIdeogram({ctx, chr, referenceFrame, genome, width, height, stainCol
     IGVGraphics.roundRect(ctx, shim2, shim2 + ideogramTop, width - 2 * shim2, height - 2 * shim2, (height - 2 * shim2) / 2, false, true)
 }
 
-function drawIdeogramCytobandName(ctx: any, name: string, start: number, end: number, ideogramTop: number, height: number, shade: number | null) {
+function drawIdeogramCytobandName(ctx: CanvasRenderingContext2D, name: string, start: number, end: number, ideogramTop: number, height: number, shade: number | null) {
     const padding = 2; // Padding between the rect and the sides of the ideogram
 
     // Calculate font size to fit the rectangle height and width
@@ -231,10 +241,10 @@ function drawIdeogramCytobandName(ctx: any, name: string, start: number, end: nu
     ctx.restore(); // Restore the context to remove clipping
 }
 
-function getCytobandColor(colors: any, data: any): { color: string; shade: number | null } {
+function getCytobandColor(colors: StainColorCache, data: Cytoband): { color: string; shade: number | null } {
     if (data.type === 'c') { // centromere: "acen"
         return { color: "rgb(150, 10, 10)", shade: null }; // Shade is not relevant here
-    } 
+    }
     else {
         let stain = data.stain; // Stain value
         let shade = 230; // Default shade for 'g'

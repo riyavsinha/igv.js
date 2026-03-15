@@ -129,6 +129,7 @@ export interface BrowserConfig {
     showCircularViewButton?: boolean
     showChromosomeWidget?: boolean
     showSampleNameButton?: boolean
+    showCytobandNames?: boolean
 
     // Layout
     sampleNameViewportWidth?: number

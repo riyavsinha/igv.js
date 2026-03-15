@@ -4,6 +4,7 @@ import TrackViewport from "./trackViewport.js"
 import { IGVMath } from "../node_modules/igv-utils/src/index.js"
 import type TrackView from "./trackView.js"
 import type ReferenceFrame from "./referenceFrame.js"
+import type {Cytoband} from "./genome/cytoband.js"
 
 let timer: ReturnType<typeof setTimeout> | undefined
 const toolTipTimeout = 1e4
@@ -45,7 +46,7 @@ class IdeogramViewport extends TrackViewport {
     }
 
     // @ts-expect-error - IdeogramViewport has different getFeatures signature than TrackViewport
-    async getFeatures(chr: string, start: number, end: number, bpPerPixel: number): Promise<any> {
+    async getFeatures(chr: string, _start: number, _end: number, _bpPerPixel: number): Promise<Cytoband[] | undefined> {
         if (this.featureCache.containsRange(chr)) {
             return this.featureCache.get(chr)
         } else {
@@ -53,7 +54,8 @@ class IdeogramViewport extends TrackViewport {
         }
     }
 
-    async loadFeatures(): Promise<any> {
+    // @ts-expect-error - IdeogramViewport returns cytobands, not FeatureCache
+    async loadFeatures(): Promise<Cytoband[] | undefined> {
         const chr = this.referenceFrame.chr;
         const features = await  this.referenceFrame.genome.getCytobands(chr)
         this.featureCache.set(chr, features)
@@ -143,7 +145,7 @@ class IdeogramViewport extends TrackViewport {
         this.tooltip!.style.display = 'none';
     }
 
-    mouseLeave(event: MouseEvent): void {
+    mouseLeave(_event: MouseEvent): void {
         this.tooltip!.style.display = 'none';
     }
 
@@ -175,7 +177,7 @@ class IdeogramViewport extends TrackViewport {
             this.referenceFrame.end = ee
             this.referenceFrame.bpPerPixel = (ee - ss) / width
 
-            ;(this.browser as any).updateViews(this.referenceFrame, this.browser.trackViews, true)
+            this.browser.updateViews(true)
 
         }
 
@@ -185,7 +187,7 @@ class IdeogramViewport extends TrackViewport {
         this.viewportElement.style.width = width + 'px';
     }
 
-    renderSVGContext(context: any, {deltaX, deltaY}: { deltaX: number; deltaY: number }, includeLabel: boolean = true): void {
+    renderSVGContext(context: { saveWithTranslationAndClipRect(id: string, x: number, y: number, w: number, h: number, clipYOffset: number): void; restore(): void }, {deltaX, deltaY}: { deltaX: number; deltaY: number }, _includeLabel: boolean = true): void {
 
         const {width, height} = this.viewportElement.getBoundingClientRect()
 
@@ -218,17 +220,17 @@ class IdeogramViewport extends TrackViewport {
 }
 
 class IdeogramFeatureCache {
-    features: Map<string, any> = new Map()
+    features: Map<string, Cytoband[] | undefined> = new Map()
 
     containsRange(chr: string): boolean {
         return this.features.has(chr)
     }
 
-    set(chr: string, features: any): void {
+    set(chr: string, features: Cytoband[] | undefined): void {
         this.features.set(chr, features)
     }
 
-    get(chr: string): any {
+    get(chr: string): Cytoband[] | undefined {
         return this.features.get(chr)
     }
 }

@@ -56,7 +56,8 @@
       "Bash(/tmp/test_ts8.ts:*)",
       "Read(//Users/riyavsinha/projects/igv.js/**)",
       "Bash(xargs -I {} bash -c 'grep -l \"\"= .*!\"\" \"\"$@\"\"' _ {} ;)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(npx mocha)"
     ],
     "additionalDirectories": [
       "/Users/riyavsinha/projects/igv.js",
