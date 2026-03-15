@@ -1115,7 +1115,7 @@ class Browser {
             this.alert.present(new Error(`Error creating track.  Could not determine track type for file: ${config.url || config}`), undefined)
         } else {
 
-            if (config.roi && config.roi.length > 0) {
+            if (config.roi && config.roi.length > 0 && track instanceof TrackBase) {
                 track.roiSets = config.roi.map((r: ROIConfig) => new TrackROISet(r, this.genome))
             }
 

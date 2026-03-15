@@ -16,39 +16,63 @@ import BlatTrack from "./blat/blatTrack.js"
 import CNVPytorTrack from "./cnvpytor/cnvpytorTrack.js"
 import ShoeboxTrack from "./shoebox/shoeboxTrack.js"
 import ImageTrack from "./ucsc/imageTrack.js"
+import type {TrackConfig} from "./types/config"
+import type Browser from "./browser.js"
 //import CNVPytorTrack from "./CNVpytor/cnvpytorTrack.js"
 
+/** Union of all built-in track types */
+type Track =
+    | IdeogramTrack
+    | SequenceTrack
+    | FeatureTrack
+    | SegTrack
+    | ShoeboxTrack
+    | WigTrack
+    | MergedTrack
+    | BAMTrack
+    | InteractionTrack
+    | VariantTrack
+    | QTLTrack
+    | GWASTrack
+    | RnaStructTrack
+    | GCNVTrack
+    | SpliceJunctionTrack
+    | BlatTrack
+    | CNVPytorTrack
+    | ImageTrack
 
-const trackFunctions = new Map<string, (config: any, browser: any) => any>([
-        ['ideogram', (config: any, browser: any) => new IdeogramTrack(browser)],
-        ['sequence', (config: any, browser: any) => new SequenceTrack(config, browser)],
-        ['feature', (config: any, browser: any) => new FeatureTrack(config, browser)],
-        ['seg', (config: any, browser: any) => new SegTrack(config, browser)],
-        ['mut', (config: any, browser: any) => new SegTrack(config, browser)],
-        ['maf', (config: any, browser: any) => new SegTrack(config, browser)],
-        ['shoebox', (config: any, browser: any) => new ShoeboxTrack(config, browser)],
-        ['wig', (config: any, browser: any) => new WigTrack(config, browser)],
-        ['merged', (config: any, browser: any) => new MergedTrack(config, browser, undefined)],
-        ['alignment', (config: any, browser: any) => new BAMTrack(config, browser)],
-        ['interaction', (config: any, browser: any) => new InteractionTrack(config, browser)],
-        ['interact', (config: any, browser: any) => new InteractionTrack(config, browser)],
-        ['variant', (config: any, browser: any) => new VariantTrack(config, browser)],
-        ['qtl', (config: any, browser: any) => new QTLTrack(config, browser)],
-        ['eqtl', (config: any, browser: any) => new QTLTrack(config, browser)],
-        ['gwas', (config: any, browser: any) => new GWASTrack(config, browser)],
-        ['arc', (config: any, browser: any) => new RnaStructTrack(config, browser)],
-        ['gcnv', (config: any, browser: any) => new GCNVTrack(config, browser)],
-        ['junction', (config: any, browser: any) => new SpliceJunctionTrack(config, browser)],
-        ['blat', (config: any, browser: any) => new BlatTrack(config, browser)],
-        ['cnvpytor', (config: any, browser: any) => new CNVPytorTrack(config, browser)],
-        ['image', (config: any, browser: any) => new ImageTrack(config, browser)]
+type TrackCreator = (config: TrackConfig, browser: Browser) => Track
+
+const trackFunctions = new Map<string, TrackCreator>([
+        ['ideogram', (config: TrackConfig, browser: Browser) => new IdeogramTrack(browser)],
+        ['sequence', (config: TrackConfig, browser: Browser) => new SequenceTrack(config, browser)],
+        ['feature', (config: TrackConfig, browser: Browser) => new FeatureTrack(config, browser)],
+        ['seg', (config: TrackConfig, browser: Browser) => new SegTrack(config, browser)],
+        ['mut', (config: TrackConfig, browser: Browser) => new SegTrack(config, browser)],
+        ['maf', (config: TrackConfig, browser: Browser) => new SegTrack(config, browser)],
+        ['shoebox', (config: TrackConfig, browser: Browser) => new ShoeboxTrack(config, browser)],
+        ['wig', (config: TrackConfig, browser: Browser) => new WigTrack(config, browser)],
+        ['merged', (config: TrackConfig, browser: Browser) => new MergedTrack(config, browser, undefined)],
+        ['alignment', (config: TrackConfig, browser: Browser) => new BAMTrack(config, browser)],
+        ['interaction', (config: TrackConfig, browser: Browser) => new InteractionTrack(config, browser)],
+        ['interact', (config: TrackConfig, browser: Browser) => new InteractionTrack(config, browser)],
+        ['variant', (config: TrackConfig, browser: Browser) => new VariantTrack(config, browser)],
+        ['qtl', (config: TrackConfig, browser: Browser) => new QTLTrack(config, browser)],
+        ['eqtl', (config: TrackConfig, browser: Browser) => new QTLTrack(config, browser)],
+        ['gwas', (config: TrackConfig, browser: Browser) => new GWASTrack(config, browser)],
+        ['arc', (config: TrackConfig, browser: Browser) => new RnaStructTrack(config, browser)],
+        ['gcnv', (config: TrackConfig, browser: Browser) => new GCNVTrack(config, browser)],
+        ['junction', (config: TrackConfig, browser: Browser) => new SpliceJunctionTrack(config, browser)],
+        ['blat', (config: TrackConfig, browser: Browser) => new BlatTrack(config, browser)],
+        ['cnvpytor', (config: TrackConfig, browser: Browser) => new CNVPytorTrack(config, browser)],
+        ['image', (config: TrackConfig, browser: Browser) => new ImageTrack(config, browser)]
     ])
 
 function knownTrackTypes (): Set<string> {
     return new Set(trackFunctions.keys())
 }
 
-function getTrack (type: string, config: any, browser: any): any | undefined {
+function getTrack (type: string, config: TrackConfig, browser: Browser): Track | undefined {
 
     let trackKey: string
     switch (type) {
@@ -76,13 +100,13 @@ function getTrack (type: string, config: any, browser: any): any | undefined {
         undefined
 }
 
-function registerTrackClass(type: string, trackClass: any): void {
-    trackFunctions.set(type, (config: any, browser: any) => new trackClass(config, browser))
+function registerTrackClass(type: string, trackClass: new (config: TrackConfig, browser: Browser) => any): void {
+    trackFunctions.set(type, (config: TrackConfig, browser: Browser) => new trackClass(config, browser))
 }
 
 
 
-function registerTrackCreatorFunction (type: string, track: (config: any, browser: any) => any): void {
+function registerTrackCreatorFunction (type: string, track: TrackCreator): void {
     trackFunctions.set(type, track)
 }
 
@@ -93,3 +117,5 @@ export {
     registerTrackCreatorFunction,
     knownTrackTypes
 }
+
+export type { Track, TrackCreator }
