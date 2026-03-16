@@ -1,6 +1,7 @@
 import BamReader from "./bamReader.js"
-import AlignmentContainer from "./alignmentContainer"
-import BamUtils from "./bamUtils"
+import AlignmentContainer, {type AlignmentContainerOptions} from "./alignmentContainer"
+import BamUtils, {type BamFilterLike} from "./bamUtils"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
 
 interface ShardedBamConfig {
     url?: string
@@ -10,17 +11,17 @@ interface ShardedBamConfig {
         url: string
         indexURL?: string
     }
-    [key: string]: any
+    [key: string]: unknown
 }
 
 class ShardedBamReader {
 
     config: ShardedBamConfig
-    genome: any
+    genome: BaseFeatureSourceGenome
     bamReaders: Record<string, BamReader>
-    filter: any
+    filter: BamFilterLike | undefined
 
-    constructor(config: ShardedBamConfig, genome: any) {
+    constructor(config: ShardedBamConfig, genome: BaseFeatureSourceGenome) {
 
         this.config = config
         this.genome = genome
@@ -29,7 +30,7 @@ class ShardedBamReader {
         const chrAliasTable: Record<string, string> = {}
 
         config.sources.sequences.forEach(function (chr: string) {
-            const queryChr: string = genome ? genome.getChromosomeName(chr) : chr
+            const queryChr: string = genome?.getChromosomeName?.(chr) ?? chr
             bamReaders[queryChr] = getReader(config, genome, chr)
         })
 
@@ -41,7 +42,7 @@ class ShardedBamReader {
     async readAlignments(chr: string, start: number, end: number): Promise<AlignmentContainer> {
 
         if (!this.bamReaders.hasOwnProperty(chr)) {
-            return new AlignmentContainer(chr, start, end, this.config as any)
+            return new AlignmentContainer(chr, start, end, this.config as AlignmentContainerOptions)
         } else {
 
             let reader: BamReader = this.bamReaders[chr]
@@ -51,14 +52,14 @@ class ShardedBamReader {
     }
 }
 
-function getReader(config: ShardedBamConfig, genome: any, chr: string): BamReader {
+function getReader(config: ShardedBamConfig, genome: BaseFeatureSourceGenome, chr: string): BamReader {
     const tmp: { url: string; indexURL?: string } = {
         url: config.sources.url.replace("$CHR", chr)
     }
     if (config.sources.indexURL) {
         tmp.indexURL = config.sources.indexURL.replace("$CHR", chr)
     }
-    const bamConfig: any = Object.assign(config, tmp)
+    const bamConfig = Object.assign({}, config, tmp)
 
     // TODO -- support non-indexed, htsget, etc
     return new BamReader(bamConfig, genome)

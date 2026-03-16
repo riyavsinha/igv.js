@@ -1,6 +1,6 @@
 import gmodCRAM from "./cram-bundle.js"
 import AlignmentContainer, {type Alignment} from "../bam/alignmentContainer"
-import BamUtils from "../bam/bamUtils"
+import BamUtils, {type TagValue} from "../bam/bamUtils"
 import BamAlignment from "../bam/bamAlignment"
 import AlignmentBlock from "../bam/alignmentBlock"
 import FileHandler from "./fileHandler"
@@ -285,7 +285,7 @@ class CramReader {
 
             alignment.seq = record.getReadBases()
             alignment.qual = record.qualityScores
-            alignment.tagDict = record.tags
+            alignment.tagDict = record.tags as Record<string, TagValue>
             alignment.readName = record.readName
 
             // TODO -- cigar encoded in tag?

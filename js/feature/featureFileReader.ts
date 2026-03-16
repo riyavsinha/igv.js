@@ -392,7 +392,7 @@ class FeatureFileReader {
 
     async loadIndex(): Promise<FeatureIndex> {
         const indexURL: string = this.config.indexURL!
-        return loadIndex(indexURL, this.config)
+        return loadIndex(indexURL, this.config) as Promise<FeatureIndex>
     }
 
     async loadFeaturesFromDataURI(): Promise<GenomicFeature[]> {

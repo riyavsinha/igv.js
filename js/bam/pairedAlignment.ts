@@ -154,7 +154,7 @@ class PairedAlignment {
         return this.firstAlignment.hasTag(str) || !!(this.secondAlignment && this.secondAlignment.hasTag(str))
     }
 
-    getTag(tagName: string): string | number | undefined {
+    getTag(tagName: string): string | number | number[] | null | undefined {
         const firstTag = this.firstAlignment.getTag(tagName)
         const secondTag = this.secondAlignment ? this.secondAlignment.getTag(tagName) : undefined
         if (firstTag !== undefined && secondTag !== undefined && firstTag !== secondTag) {

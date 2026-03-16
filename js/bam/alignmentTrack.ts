@@ -17,7 +17,7 @@ import type AlignmentContainer from "./alignmentContainer"
 import type {Alignment, AlignmentBlock, DownsampledInterval} from "./alignmentContainer"
 import type {TrackConfig} from "../types/config"
 import type Browser from "../browser.js"
-import type {ClickState, TrackViewportLike} from "../types/ui"
+import type {ClickState, DrawConfiguration, TrackViewportLike} from "../types/ui"
 
 
 
@@ -208,9 +208,9 @@ class AlignmentTrack extends TrackBase {
         }
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const alignmentContainer = options.features
+        const alignmentContainer = options.features as AlignmentContainer
         const ctx = options.context
         const bpPerPixel = options.bpPerPixel
         const bpStart = options.bpStart
@@ -275,7 +275,7 @@ class AlignmentTrack extends TrackBase {
             let alignmentY = alignmentRowYInset
             for (let groupName of packedAlignmentGroups.keys()) {
 
-                const group = packedAlignmentGroups.get(groupName)
+                const group = packedAlignmentGroups.get(groupName)!
                 const packedAlignmentRows = group.rows
                 const nRows = packedAlignmentRows.length
                 group.pixelTop = alignmentY
@@ -331,7 +331,7 @@ class AlignmentTrack extends TrackBase {
                     ctx.font = '400 12px sans-serif'
                     const textMetrics = ctx.measureText(groupName)
                     const w = textMetrics.width + 10
-                    const x = -options.pixelShift + options.viewportWidth - w - 10
+                    const x = -(options.pixelShift ?? 0) + options.viewportWidth - w - 10
                     const h = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent + 10
                     const baselineY = Math.min(group.pixelTop + h - 1, group.pixelBottom)
 
@@ -624,7 +624,7 @@ class AlignmentTrack extends TrackBase {
                         if (xPixel > pixelWidth) break  // Off right edge
 
                         let readChar = seq ? seq.charAt(seqOffset + i) : ''
-                        const refChar = offsetBP + i >= 0 ? referenceSequence.charAt(offsetBP + i) : ''
+                        const refChar = (offsetBP + i >= 0 && referenceSequence) ? referenceSequence.charAt(offsetBP + i) : ''
 
                         if (readChar === "=") {
                             readChar = refChar
@@ -632,7 +632,7 @@ class AlignmentTrack extends TrackBase {
                         if (readChar === "X" || refChar !== readChar || isSoftClip || showAllBases) {
 
                             let baseColor = nucleotideColors[readChar] || "rgb(0,0,0)"
-                            if (!isSoftClip && qual !== undefined && qual.length > seqOffset + i) {
+                            if (!isSoftClip && Array.isArray(qual) && qual.length > seqOffset + i) {
                                 const readQual = qual[seqOffset + i]
                                 baseColor = shadedBaseColor(readQual, baseColor)
                             }

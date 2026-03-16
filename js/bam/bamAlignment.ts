@@ -4,8 +4,11 @@ import {byteToUnsignedInt, getBaseModificationSets} from "./mods/baseModificatio
 import orientationTypes from "./orientationTypes"
 import {HGVS} from "../genome/hgvs"
 import {ClinVar} from "../genome/clinVar"
-
 import AlignmentBlock from "./alignmentBlock"
+import type {TagValue} from "./bamUtils"
+import type BaseModificationSet from "./mods/baseModificationSet"
+import type {PopupData} from "../types/feature.js"
+import type Genome from "../genome/genome.js"
 
 const READ_PAIRED_FLAG = 0x1
 const PROPER_PAIR_FLAG = 0x2
@@ -72,7 +75,7 @@ class BamAlignment {
     seq!: string
     qual!: number[] | string
     mate!: Mate
-    tagDict!: Record<string, any>
+    tagDict!: Record<string, TagValue>
     blocks!: AlignmentBlock[]
     insertions?: AlignmentBlock[]
     gaps?: Gap[]
@@ -81,7 +84,7 @@ class BamAlignment {
     scLengthOnRef!: number
     paired?: boolean
 
-    private baseModificationSets: any
+    private baseModificationSets: BaseModificationSet[] | Set<never> | undefined
 
     constructor() {
         this.hidden = false
@@ -139,7 +142,7 @@ class BamAlignment {
         return this.tagDict.hasOwnProperty(tag)
     }
 
-    getTag(key: string): any {
+    getTag(key: string): TagValue | undefined {
         return this.tagDict[key]
     }
 
@@ -182,13 +185,13 @@ class BamAlignment {
      * @param showTags - Set of bam tags to show (overrides hide/show rules)
      * @param refBase - reference base at the location
      * @param genome - genome object
-     * @returns {Promise<any[]>}
+     * @returns {Promise<PopupData[]>}
      */
-    async popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>, refBase?: string, genome?: any): Promise<any[]> {
+    async popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>, refBase?: string, genome?: Genome): Promise<PopupData[]> {
 
         // if the user clicks on a base next to an insertion, show just the
         // inserted bases in a popup (like in desktop IGV).
-        const nameValues: any[] = []
+        const nameValues: PopupData[] = []
 
         // Convert genomic location to int
         genomicLocation = Math.floor(genomicLocation)
@@ -214,7 +217,7 @@ class BamAlignment {
         const readBase = this.readBaseAt(genomicLocation)
         if (refBase) {
             if (readBase && readBase !== refBase && readBase !== '*') {
-                const hgvsNotation = await HGVS.createHGVSAnnotation(genome, this.chr, genomicLocation, refBase, readBase)
+                const hgvsNotation = await HGVS.createHGVSAnnotation(genome!, this.chr, genomicLocation, refBase, readBase)
                 if (hgvsNotation) {
                     const clinVarURL = await ClinVar.getClinVarURL(hgvsNotation)
                     if (clinVarURL) {
@@ -253,7 +256,7 @@ class BamAlignment {
 
         if (this.isPaired()) {
             nameValues.push('<hr/>')
-            nameValues.push({name: 'First in Pair', value: !this.isSecondOfPair(), borderTop: true})
+            nameValues.push({name: 'First in Pair', value: yesNo(!this.isSecondOfPair()), borderTop: true})
             nameValues.push({name: 'Mate is Mapped', value: yesNo(this.isMateMapped())})
             if (this.pairOrientation) {
                 nameValues.push({name: 'Pair Orientation', value: this.pairOrientation})
@@ -272,7 +275,7 @@ class BamAlignment {
         if (tagDict.hasOwnProperty('SA')) {
             nameValues.push('<hr/>')
             nameValues.push({name: 'Supplementary Alignments', value: ''})
-            const sa = createSupplementaryAlignments(tagDict['SA'])
+            const sa = createSupplementaryAlignments(tagDict['SA'] as string)
             if (sa) {
                 nameValues.push('<ul>')
                 for (let s of sa) {
@@ -284,12 +287,14 @@ class BamAlignment {
 
         nameValues.push('<hr/>')
         for (let key in tagDict) {
+            const tagVal = tagDict[key]
+            const displayValue: string | number = Array.isArray(tagVal) ? tagVal.join(', ') : (tagVal ?? '')
             if (showTags?.has(key)) {
-                nameValues.push({name: key, value: tagDict[key]})
+                nameValues.push({name: key, value: displayValue})
             } else if (showTags) {
                 hiddenTags!.add(key)
             } else if (!hiddenTags!.has(key)) {
-                nameValues.push({name: key, value: tagDict[key]})
+                nameValues.push({name: key, value: displayValue})
             }
         }
 
@@ -314,7 +319,7 @@ class BamAlignment {
                             nameValues.push('<b>Base modifications:</b>')
                             found = true
                         }
-                        const lh = Math.round((100 / 255) * byteToUnsignedInt(bmSet.likelihoods.get(i)))
+                        const lh = Math.round((100 / 255) * byteToUnsignedInt(bmSet.likelihoods.get(i)!))
                         nameValues.push(`${bmSet.fullName()} @ likelihood =  ${lh}%`)
                     }
                 }
@@ -395,7 +400,7 @@ class BamAlignment {
         return {left, right}
     }
 
-    getBaseModificationSets(): any {
+    getBaseModificationSets(): BaseModificationSet[] | Set<never> | undefined {
 
         if (!this.baseModificationSets && (this.tagDict["MM"] || this.tagDict["Mm"])) {
 
@@ -403,10 +408,10 @@ class BamAlignment {
             const ml = this.tagDict["ML"] || this.tagDict["Ml"]
 
             if (StringUtils.isString(mm) && (!ml || Array.isArray(ml))) { // minimal validation, 10X uses these reserved tags for something completely different
-                if (mm.length === 0) {
+                if ((mm as string).length === 0) {
                     this.baseModificationSets = EMPTY_SET
                 } else {
-                    this.baseModificationSets = getBaseModificationSets(mm, ml, this.seq, this.isNegativeStrand())
+                    this.baseModificationSets = getBaseModificationSets(mm as string, (ml as number[] | null), this.seq, this.isNegativeStrand())
                 }
             }
         }
@@ -490,9 +495,9 @@ class BamAlignment {
                     return ""
                 }
             case 'phase':
-                return this.getTag('HP') || ""
+                return String(this.getTag('HP') ?? "")
             case 'tag':
-                return this.getTag(tag!) || ""
+                return String(this.getTag(tag!) ?? "")
             case 'base':
                 if (this.chr === chr &&
                     this.start <= pos! &&
@@ -522,7 +527,7 @@ class BamAlignment {
 
 }
 
-const EMPTY_SET = new Set()
+const EMPTY_SET: Set<never> = new Set()
 
 
 function readInt(ba: Uint8Array, offset: number): number {

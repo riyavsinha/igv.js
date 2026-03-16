@@ -3,6 +3,24 @@ import BamAlignment from "./bamAlignment"
 import AlignmentBlock from "./alignmentBlock"
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import BamFilter from "./bamFilter"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
+
+/** BAM tag value: string, number, number array, or null */
+export type TagValue = string | number | number[] | null
+
+/** Something that accepts pushed BamAlignment objects */
+interface Pushable { push(item: BamAlignment): void }
+
+/** A filter with a pass method */
+export type BamFilterLike = BamFilter | { pass: (alignment: BamAlignment) => boolean }
+
+/** Properties set by setReaderDefaults on any BAM reader */
+export interface BamReaderDefaults {
+    filter: BamFilterLike
+    alleleFreqThreshold: number
+    samplingWindowSize: number
+    samplingDepth: number
+}
 
 
 /**
@@ -38,7 +56,7 @@ interface CigarOp {
     ltr: string
 }
 
-interface BamHeader {
+export interface BamHeader {
     magicNumber: number
     size: number
     chrNames: string[]
@@ -47,7 +65,7 @@ interface BamHeader {
 
 const BamUtils = {
 
-    readHeader: async function (url: string, options: any, genome: any): Promise<BamHeader> {
+    readHeader: async function (url: string, options: Record<string, unknown>, genome: BaseFeatureSourceGenome): Promise<BamHeader> {
 
         const compressedBuffer = await igvxhr.loadArrayBuffer(url, options)
         const uncba = BGZip.unbgzf(compressedBuffer)
@@ -59,7 +77,7 @@ const BamUtils = {
      *
      * @returns {{size: *, chrNames: *[], magicNumber: *, chrToIndex: {}}}
      */
-    decodeBamHeader: function (ba: Uint8Array, _genome?: any): BamHeader {
+    decodeBamHeader: function (ba: Uint8Array, _genome?: BaseFeatureSourceGenome): BamHeader {
 
 
         const magic = readInt(ba, 0)
@@ -172,7 +190,7 @@ const BamUtils = {
      *
      * @return true if we have moved beyond the right end of the genomic range.
      */
-    decodeBamRecords: function (ba: Uint8Array, offset: number, alignmentContainer: any[], chrNames: string[], chrIdx: number | undefined, min: number, max: number, filter?: any): boolean | undefined {
+    decodeBamRecords: function (ba: Uint8Array, offset: number, alignmentContainer: Pushable, chrNames: string[], chrIdx: number | undefined, min: number, max: number, filter?: BamFilterLike): boolean | undefined {
 
         while (offset < ba.length) {
 
@@ -299,9 +317,9 @@ const BamUtils = {
         return undefined
     },
 
-    decodeSamRecords: function (sam: string, alignmentContainer: any[], chr: string, min: number, max: number, filter?: any): void {
+    decodeSamRecords: function (sam: string, alignmentContainer: Pushable, chr: string, min: number, max: number, filter?: BamFilterLike): void {
 
-        var lines: string[], i: number, j: number, len: number, tokens: string[], blocks: any, pos: number, qualString: string, rnext: string, pnext: any, lengthOnRef: number,
+        var lines: string[], i: number, j: number, len: number, tokens: string[], blocks: AlignmentBlock[] | undefined, pos: number, qualString: string, rnext: string, pnext: number, lengthOnRef: number,
             alignment: BamAlignment, cigarArray: CigarOp[], started: boolean
 
         lines = StringUtils.splitLines(sam)
@@ -374,20 +392,20 @@ const BamUtils = {
         }
     },
 
-    setReaderDefaults: function (reader: any, config: any): void {
+    setReaderDefaults: function (reader: Partial<BamReaderDefaults>, config: Record<string, unknown>): void {
 
         reader.filter = typeof config.filter === 'function' ?
-            {pass: config.filter} :
-            new BamFilter(config.filter)
+            {pass: config.filter as (alignment: BamAlignment) => boolean} :
+            new BamFilter(config.filter as ConstructorParameters<typeof BamFilter>[0])
 
         if (config.readgroup) {
-            reader.filter.readgroups = new Set([config.readgroup])
+            (reader.filter as BamFilter).readgroups = new Set([config.readgroup as string])
         }
 
-        reader.alleleFreqThreshold = config.alleleFreqThreshold === undefined ? DEFAULT_ALLELE_FREQ_THRESHOLD : config.alleleFreqThreshold
+        reader.alleleFreqThreshold = config.alleleFreqThreshold === undefined ? DEFAULT_ALLELE_FREQ_THRESHOLD : config.alleleFreqThreshold as number
 
-        reader.samplingWindowSize = config.samplingWindowSize === undefined ? DEFAULT_SAMPLING_WINDOW_SIZE : config.samplingWindowSize
-        reader.samplingDepth = config.samplingDepth === undefined ? DEFAULT_SAMPLING_DEPTH : config.samplingDepth
+        reader.samplingWindowSize = config.samplingWindowSize === undefined ? DEFAULT_SAMPLING_WINDOW_SIZE : config.samplingWindowSize as number
+        reader.samplingDepth = config.samplingDepth === undefined ? DEFAULT_SAMPLING_DEPTH : config.samplingDepth as number
 
         if (reader.samplingDepth > MAXIMUM_SAMPLING_DEPTH) {
             console.log("Warning: attempt to set sampling depth > maximum value of " + MAXIMUM_SAMPLING_DEPTH)
@@ -609,11 +627,11 @@ function decodeSamTags(tags: string[]): Record<string, string> {
  * @param ba A byte array (UInt8Array)
  * @returns Tag values
  */
-function decodeBamTags(ba: Uint8Array): Record<string, any> {
+function decodeBamTags(ba: Uint8Array): Record<string, TagValue> {
 
     let p = 0
     const len = ba.length
-    const tags: Record<string, any> = {}
+    const tags: Record<string, TagValue> = {}
     const dataView = new DataView(ba.buffer)
 
     while (p < len) {
@@ -621,7 +639,7 @@ function decodeBamTags(ba: Uint8Array): Record<string, any> {
         p += 2
 
         const type = String.fromCharCode(ba[p++])
-        let value: any
+        let value: TagValue
         if (type === 'A') {
             value = String.fromCharCode(ba[p])
             p++
@@ -641,15 +659,16 @@ function decodeBamTags(ba: Uint8Array): Record<string, any> {
             value = dataView.getFloat32(p, true)
             p += 4
         } else if (type === 'Z') {
-            value = ''
+            let str = ''
             for (; ;) {
                 var cc = ba[p++]
                 if (cc === 0) {
                     break
                 } else {
-                    value += String.fromCharCode(cc)
+                    str += String.fromCharCode(cc)
                 }
             }
+            value = str
         } else if (type === 'B') {
             //'cCsSiIf', corresponding to int8 , uint8 t, int16 t, uint16 t, int32 t, uint32 t and float
             const elementType = String.fromCharCode(ba[p++])
@@ -661,33 +680,34 @@ function decodeBamTags(ba: Uint8Array): Record<string, any> {
             const numElements = dataView.getInt32(p, true)
             p += 4
             const pEnd = p + numElements * elementSize
-            value = []
+            const arr: number[] = []
 
             while (p < pEnd) {
                 switch (elementType) {
                     case 'c':
-                        value.push(dataView.getInt8(p))
+                        arr.push(dataView.getInt8(p))
                         break
                     case 'C':
-                        value.push(dataView.getUint8(p))
+                        arr.push(dataView.getUint8(p))
                         break
                     case 's':
-                        value.push(dataView.getInt16(p, true))
+                        arr.push(dataView.getInt16(p, true))
                         break
                     case 'S':
-                        value.push(dataView.getUint16(p, true))
+                        arr.push(dataView.getUint16(p, true))
                         break
                     case 'i':
-                        value.push(dataView.getInt32(p, true))
+                        arr.push(dataView.getInt32(p, true))
                         break
                     case 'I':
-                        value.push(dataView.getUint32(p, true))
+                        arr.push(dataView.getUint32(p, true))
                         break
                     case 'f':
-                        value.push(dataView.getFloat32(p, true))
+                        arr.push(dataView.getFloat32(p, true))
                 }
                 p += elementSize
             }
+            value = arr
         } else {
             //'Unknown type ' + type;
             value = 'Error unknown type: ' + type

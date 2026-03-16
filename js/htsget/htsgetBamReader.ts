@@ -1,6 +1,6 @@
 import HtsgetReader from "./htsgetReader"
 import AlignmentContainer, {type AlignmentContainerOptions} from "../bam/alignmentContainer"
-import BamUtils from "../bam/bamUtils"
+import BamUtils, {type BamReaderDefaults} from "../bam/bamUtils"
 import {BGZip} from "../../node_modules/igv-utils/src/index.js"
 import ChromAliasManager from "../feature/chromAliasManager"
 import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
@@ -22,7 +22,7 @@ class HtsgetBamReader extends HtsgetReader {
 
     constructor(config: Record<string, unknown>, genome: BaseFeatureSourceGenome) {
         super(config as ConstructorParameters<typeof HtsgetReader>[0], genome)
-        BamUtils.setReaderDefaults(this, config)
+        BamUtils.setReaderDefaults(this as unknown as Partial<BamReaderDefaults>, config)
     }
 
 
@@ -61,7 +61,7 @@ class HtsgetBamReader extends HtsgetReader {
 
         const chrIdx: number = this.header.chrToIndex[chr]
         const alignmentContainer = new AlignmentContainer(chr, start, end, this.config as AlignmentContainerOptions)
-        BamUtils.decodeBamRecords(ba, this.header.size, alignmentContainer as unknown as Parameters<typeof BamUtils.decodeBamRecords>[2], this.header.chrNames, chrIdx, start, end, this.filter)
+        BamUtils.decodeBamRecords(ba, this.header.size, alignmentContainer as unknown as Parameters<typeof BamUtils.decodeBamRecords>[2], this.header.chrNames, chrIdx, start, end, this.filter as Parameters<typeof BamUtils.decodeBamRecords>[7])
         alignmentContainer.finish()
 
         return alignmentContainer

@@ -33,7 +33,7 @@ interface AlignmentLike {
     start: number
     end: number
     mate?: { chr: string; position: number }
-    getTag?(tag: string): string | number | undefined
+    getTag?(tag: string): string | number | number[] | null | undefined
 }
 
 /** BedPE-like feature as accessed by makeBedPEChords */

@@ -3,6 +3,7 @@ import BaseModificationCounts from "./mods/baseModificationCounts.js"
 import type BaseModificationSet from "./mods/baseModificationSet"
 import type BaseModificationKey from "./mods/baseModificationKey"
 import type BamAlignment from "./bamAlignment"
+import type {PopupData} from "../types/feature.js"
 import BamAlignmentRow from "./bamAlignmentRow.js"
 import {isNumber} from "../util/igvUtils"
 
@@ -41,9 +42,9 @@ interface Alignment {
     strand: boolean
     mq?: number
     seq?: string
-    qual?: number[]
+    qual?: number[] | string
     blocks?: AlignmentBlock[]
-    gaps?: Array<{ type: string; start: number; len: number }>
+    gaps?: Array<{ type?: string; start: number; len: number }>
     insertions?: Array<{ start: number; len: number; seqOffset: number }>
     mate?: { chr: string; position: number }
     paired?: boolean
@@ -55,14 +56,14 @@ interface Alignment {
     isSupplementary(): boolean
     isProperPair(): boolean
     containsLocation(genomicLocation: number, showSoftClips?: boolean): boolean
-    getGroupValue(groupBy: string, expectedPairOrientation?: string): string
-    getBaseModificationSets(): BaseModificationSet[] | null
-    getTag(tag: string): string | number | undefined
+    getGroupValue(groupBy: string, expectedPairOrientation?: string): string | undefined
+    getBaseModificationSets(): BaseModificationSet[] | Set<never> | null | undefined
+    getTag(tag: string): string | number | number[] | null | undefined
     hasTag(tag: string): boolean
     gapSizeAt?(position: number): number
-    popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>, refBase?: string, genome?: unknown): Promise<any[]>
+    popupData(genomicLocation: number, hiddenTags?: Set<string>, showTags?: Set<string>, refBase?: string, genome?: unknown): Promise<PopupData[]>
     readBaseAt?(genomicLocation: number): string | undefined
-    readBaseQualityAt?(genomicLocation: number): number
+    readBaseQualityAt?(genomicLocation: number): number | undefined
     insertionAtGenomicLocation?(pos: number): AlignmentBlock | undefined
     /** Allow duck-typed access to alignment-specific properties */
     [key: string]: any
@@ -551,10 +552,10 @@ class CoverageMap {
 
                 const base = (seq == undefined) ? "N" : seq.charAt(seqOffset + j)
                 const key = (alignment.strand) ? "pos" + base : "neg" + base
-                const q = qual && seqOffset + j < qual.length ? qual[seqOffset + j] : 30
+                const q = (Array.isArray(qual) && seqOffset + j < qual.length) ? qual[seqOffset + j] : 30
 
-                ;(self.coverage[i] as any)[key] += 1
-                ;(self.coverage[i] as any)["qual" + base] += q
+                ;(self.coverage[i] as Record<string, number>)[key] += 1
+                ;(self.coverage[i] as Record<string, number>)["qual" + base] += q
 
                 self.coverage[i]!.total += 1
                 self.coverage[i]!.qual += q

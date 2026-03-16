@@ -1,5 +1,6 @@
 import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils"
+import type {LoadConfig} from "../types/config.js"
 import {concatenateArrayBuffers} from "../util/bufferUtils"
 
 const FEXTRA = 4  // gzip spec F.EXTRA flag
@@ -34,13 +35,13 @@ const bgzBlockSize = (data: ArrayBuffer | Uint8Array): number => {
 
 class BGZBlockLoader {
 
-    config: any
+    config: LoadConfig
     cacheBlocks: boolean
     cache: BlockCache | undefined
 
-    constructor(config: any) {
+    constructor(config: LoadConfig) {
         this.config = config
-        this.cacheBlocks = false != config.cacheBlocks   // Default to true
+        this.cacheBlocks = false != (config as Record<string, unknown>).cacheBlocks   // Default to true
         this.cache = undefined
     }
 
@@ -166,6 +167,7 @@ class BGZBlockLoader {
     async loadBLockData(startBlock: number, endBlock: number, options?: LoadBlockOptions): Promise<ArrayBuffer> {
 
         const config = this.config
+        const url = config.url as string
         const skipStart = options && options.skipStart
         const skipEnd = options && options.skipEnd
 
@@ -173,13 +175,13 @@ class BGZBlockLoader {
         let lastBlockSize = 0
         if (!skipEnd) {
             const bsizeOptions = buildOptions(config, {range: {start: endBlock, size: 26}})
-            const abuffer = await igvxhr.loadArrayBuffer(config.url, bsizeOptions)
+            const abuffer = await igvxhr.loadArrayBuffer(url, bsizeOptions)
             lastBlockSize = bgzBlockSize(abuffer)
         }
 
         if (skipStart) {
             const bsizeOptions = buildOptions(config, {range: {start: startBlock, size: 26}})
-            const abuffer = await igvxhr.loadArrayBuffer(config.url, bsizeOptions)
+            const abuffer = await igvxhr.loadArrayBuffer(url, bsizeOptions)
             startBlock += bgzBlockSize(abuffer)
         }
 
@@ -191,7 +193,7 @@ class BGZBlockLoader {
             }
         })
 
-        return igvxhr.loadArrayBuffer(config.url, loadOptions)
+        return igvxhr.loadArrayBuffer(url, loadOptions)
     }
 }
 

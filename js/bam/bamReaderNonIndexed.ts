@@ -1,15 +1,13 @@
-import AlignmentContainer from "./alignmentContainer"
-import BamUtils from "./bamUtils"
+import AlignmentContainer, {type AlignmentContainerOptions} from "./alignmentContainer"
+import BamUtils, {type BamFilterLike} from "./bamUtils"
+import BamAlignment from "./bamAlignment"
 import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions, isDataURL} from "../util/igvUtils.js"
 import ChromAliasManager from "../feature/chromAliasManager"
 import FeatureCache from "../feature/featureCache"
-
-interface BamHeader {
-    chrNames: string[]
-    chrToIndex: Record<string, number>
-    size: number
-}
+import type {LoadConfig} from "../types/config.js"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
+import type {BamHeader} from "./bamUtils"
 
 /**
  * Class for reading a bam file
@@ -20,20 +18,20 @@ interface BamHeader {
 class BamReaderNonIndexed {
 
     chrAliasTable: Map<string, string | undefined> = new Map()
-    config: any
-    genome: any
+    config: LoadConfig
+    genome: BaseFeatureSourceGenome
     bamPath: string
     isDataUri: boolean
-    filter: any
+    filter: BamFilterLike | undefined
     header: BamHeader | undefined
     chromAliasManager: ChromAliasManager | null | undefined
     alignmentCache: FeatureCache | undefined
 
-    constructor(config: any, genome: any) {
+    constructor(config: LoadConfig, genome: BaseFeatureSourceGenome) {
         this.config = config
         this.genome = genome
-        this.bamPath = config.url
-        this.isDataUri = isDataURL(config.url)
+        this.bamPath = config.url as string
+        this.isDataUri = isDataURL(config.url as string)
         BamUtils.setReaderDefaults(this, config)
     }
 
@@ -56,8 +54,8 @@ class BamReaderNonIndexed {
         }
 
         const queryChr: string = this.chromAliasManager ? await this.chromAliasManager.getAliasName(chr) : chr
-        const qAlignments: any[] = this.alignmentCache!.queryFeatures(queryChr, bpStart, bpEnd)
-        const alignmentContainer: AlignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config)
+        const qAlignments = this.alignmentCache!.queryFeatures(queryChr, bpStart, bpEnd) as unknown as BamAlignment[]
+        const alignmentContainer: AlignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config as AlignmentContainerOptions)
         for (let a of qAlignments) {
             alignmentContainer.push(a)
         }
@@ -74,12 +72,12 @@ class BamReaderNonIndexed {
             const arrayBuffer: ArrayBuffer = await igvxhr.loadArrayBuffer(this.bamPath, buildOptions(this.config))
             unc = BGZip.unbgzf(arrayBuffer)
         }
-        const alignments: any[] = this.#parseAlignments(unc)
+        const alignments: BamAlignment[] = this.#parseAlignments(unc)
         this.alignmentCache = new FeatureCache(alignments)
     }
 
-    #parseAlignments(data: Uint8Array): any[] {
-        const alignments: any[] = []
+    #parseAlignments(data: Uint8Array): BamAlignment[] {
+        const alignments: BamAlignment[] = []
         this.header = BamUtils.decodeBamHeader(data)
         this.chromAliasManager = this.genome ? new ChromAliasManager(this.header.chrNames, this.genome) : null
         BamUtils.decodeBamRecords(data, this.header.size, alignments, this.header.chrNames, undefined, 0, Number.MAX_SAFE_INTEGER, this.filter)
@@ -100,7 +98,7 @@ class BamReaderNonIndexed {
         // Try alias
 
         if (this.genome) {
-            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord(chr)
+            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord?.(chr)
             let alias: string | undefined
             if (aliasRecord) {
                 const aliases: string[] = Object.keys(aliasRecord)

@@ -6,6 +6,7 @@ import {PaletteColorTable} from "../util/colorPalletes.js"
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {makePairedAlignmentChords, makeSupplementalAlignmentChords, sendChords} from "../jbrowse/circularViewUtils.js"
 import PairedEndStats from "./pairedEndStats"
+import type PairedAlignment from "./pairedAlignment"
 import AlignmentTrack from "./alignmentTrack.js"
 import CoverageTrack from "./coverageTrack.js"
 import type Browser from "../browser.js"
@@ -148,10 +149,10 @@ class BAMTrack extends TrackBase {
     async getFeatures(chr: string, bpStart: number, bpEnd: number, bpPerPixel: number, viewport: unknown): Promise<AlignmentContainer> {
 
         const alignmentContainer = await (this.featureSource as unknown as BamSource).getAlignments(chr, bpStart, bpEnd)
-        alignmentContainer.viewport = viewport
+        alignmentContainer.viewport = viewport as AlignmentContainer['viewport']
 
         if (alignmentContainer.hasPairs && !this._pairedEndStats && !this.config.maxFragmentLength) {
-            const pairedEndStats = new PairedEndStats(alignmentContainer.allAlignments(), this.config as unknown as ConstructorParameters<typeof PairedEndStats>[1])
+            const pairedEndStats = new PairedEndStats(alignmentContainer.allAlignments() as unknown as PairedAlignment[], this.config as unknown as ConstructorParameters<typeof PairedEndStats>[1])
             if (pairedEndStats.totalCount > 99) {
                 this._pairedEndStats = pairedEndStats
             }

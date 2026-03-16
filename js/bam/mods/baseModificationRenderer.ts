@@ -32,11 +32,10 @@ interface RenderContext {
 
 class BaseModificationRenderer {
 
-    alignmentTrack: any
     context: RenderContext | undefined
 
-    constructor(alignmentTrack: any) {
-        this.alignmentTrack = alignmentTrack
+    constructor(_alignmentTrack: unknown) {
+        // alignmentTrack param preserved for API compatibility but not used
     }
 
     /**

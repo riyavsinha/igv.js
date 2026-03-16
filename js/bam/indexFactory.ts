@@ -1,5 +1,6 @@
 import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils"
+import type {LoadConfig} from "../types/config.js"
 import {parseCsiIndex} from "./csiIndex"
 import {parseBamIndex, parseTabixIndex} from "./bamIndex"
 import {parseTribbleIndex} from "../feature/tribble"
@@ -15,7 +16,7 @@ const TRIBBLE_MAGIC = 1480870228   //  byte[]{'T', 'I', 'D', 'X'};
  * @param config
  *
  */
-async function loadIndex(indexURL: string, config: any): Promise<any> {
+async function loadIndex(indexURL: string, config: LoadConfig): Promise<unknown> {
 
     let arrayBuffer: ArrayBuffer = await igvxhr.loadArrayBuffer(indexURL, buildOptions(config))
     let dv = new DataView(arrayBuffer)

@@ -20,7 +20,7 @@ interface AlignmentBlock {
 
 interface Alignment {
     blocks?: AlignmentBlock[]
-    getBaseModificationSets(): BaseModificationSet[] | null
+    getBaseModificationSets(): BaseModificationSet[] | Set<never> | null | undefined
 }
 
 type LikelihoodMap = Map<BaseModificationKey, Map<number, number[]>>
@@ -58,8 +58,8 @@ class BaseModificationCounts {
         // Only works with block formats
         if (!alignment.blocks) return
 
-        const baseModificationSets: BaseModificationSet[] | null = alignment.getBaseModificationSets()
-        if (baseModificationSets) {
+        const baseModificationSets = alignment.getBaseModificationSets()
+        if (baseModificationSets && baseModificationSets instanceof Array) {
 
             for (let block of alignment.blocks) {
 

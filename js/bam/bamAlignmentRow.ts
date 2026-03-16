@@ -78,7 +78,8 @@ class BamAlignmentRow {
             case "START":
                 return alignment.start
             case "TAG": {
-                return alignment.getTag(tag!)
+                const tagVal = alignment.getTag(tag!)
+                return (tagVal == null || Array.isArray(tagVal)) ? undefined : tagVal
             }
             case "READ_NAME":
                 return alignment.readName
@@ -108,7 +109,7 @@ class BamAlignmentRow {
                 return 0
             }
             const base: string | undefined = alignment.readBaseAt!(genomicLocation)
-            const quality: number = alignment.readBaseQualityAt!(genomicLocation)
+            const quality: number = alignment.readBaseQualityAt!(genomicLocation) ?? 30
 
             const coverageMap = alignmentContainer.coverageMap
             const coverageMapIndex = Math.floor(genomicLocation - coverageMap.bpStart)

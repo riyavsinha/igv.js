@@ -15,7 +15,7 @@ interface BamAlignment {
     isSecondary(): boolean
     isSupplementary(): boolean
     mq: number
-    getTag(tag: string): any
+    getTag(tag: string): string | number | number[] | null | undefined
 }
 
 class BamFilter {
@@ -53,7 +53,7 @@ class BamFilter {
         if (this.supplementary && alignment.isSupplementary()) return false
         if (alignment.mq < this.mq) return false
         if (this.readgroups) {
-            const rg = alignment.getTag('RG')
+            const rg = alignment.getTag('RG') as string
             return this.readgroups.has(rg)
         }
         return true

@@ -7,6 +7,8 @@ import CramReader from "../cram/cramReader.js"
 import {isDataURL} from "../util/igvUtils.js"
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {inferIndexPath} from "../util/fileFormatUtils.js"
+import AlignmentContainer, {type AlignmentContainerOptions} from "./alignmentContainer"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
 
 interface BamSourceConfig {
     url: string
@@ -15,18 +17,23 @@ interface BamSourceConfig {
     sourceType?: string
     format?: string
     name?: string
-    [key: string]: any
+    [key: string]: unknown
+}
+
+interface BamReaderLike {
+    readAlignments(chr: string, start: number, end: number): Promise<AlignmentContainer | unknown[] | undefined>
+    postInit?(): Promise<void>
 }
 
 class BamSource {
 
     config: BamSourceConfig
-    genome: any
-    bamReader: any
+    genome: BaseFeatureSourceGenome
+    bamReader: BamReaderLike
 
-    constructor(config: BamSourceConfig, browser: any) {
+    constructor(config: BamSourceConfig, browser: { genome: BaseFeatureSourceGenome }) {
 
-        const genome: any = browser.genome
+        const genome = browser.genome
 
         this.config = config
         this.genome = genome
@@ -42,9 +49,13 @@ class BamSource {
         } else if ("htsget" === config.sourceType) {
             this.bamReader = new HtsgetBamReader(config, genome)
         } else if ("shardedBam" === config.sourceType) {
-            this.bamReader = new ShardedBamReader(config as any, genome)
+            this.bamReader = new ShardedBamReader(config as unknown as ConstructorParameters<typeof ShardedBamReader>[0], genome)
         } else if ("cram" === config.format) {
-            this.bamReader = new CramReader(config as any, genome, browser)
+            this.bamReader = new CramReader(
+                config as unknown as ConstructorParameters<typeof CramReader>[0],
+                genome as unknown as ConstructorParameters<typeof CramReader>[1],
+                browser as unknown as ConstructorParameters<typeof CramReader>[2]
+            )
         } else {
             if (!this.config.indexURL && config.indexed !== false) {
                 if (StringUtils.isString(this.config.url)) {
@@ -77,14 +88,18 @@ class BamSource {
     }
 
 
-    async getAlignments(chr: string, bpStart: number, bpEnd: number): Promise<any> {
+    async getAlignments(chr: string, bpStart: number, bpEnd: number): Promise<AlignmentContainer> {
 
-        const genome: any = this.genome
+        const result = await this.bamReader.readAlignments(chr, bpStart, bpEnd)
 
-        const alignmentContainer: any = await this.bamReader.readAlignments(chr, bpStart, bpEnd)
+        // Some readers (e.g. HtsgetBamReader for 'all') return empty arrays
+        if (!result || Array.isArray(result)) {
+            return new AlignmentContainer(chr, bpStart, bpEnd, this.config as AlignmentContainerOptions)
+        }
 
+        const alignmentContainer = result
         if (alignmentContainer.hasAlignments) {
-            const sequence: string | undefined = await genome.getSequence(chr, alignmentContainer.start, alignmentContainer.end)
+            const sequence: string | undefined = await this.genome.getSequenceInterval?.(chr, alignmentContainer.start, alignmentContainer.end) as string | undefined
             if (sequence) {
                 alignmentContainer.coverageMap.refSeq = sequence
                 alignmentContainer.sequence = sequence

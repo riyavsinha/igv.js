@@ -19,7 +19,7 @@ const codeValues: Map<string, string> = new Map([
     ["N", "Unknown"]
 ])
 
-const EMPTY_SET: Set<any> = new Set()
+const EMPTY_SET: Set<never> = new Set()
 
 // NOTE: Typo in fallback string "Uknown" -- should be "Unknown"
 function modificationName(modification: string): string {
@@ -38,7 +38,7 @@ function modificationName(modification: string): string {
  * @param sequence
  * @return List<BaseModificationSet>
  */
-function getBaseModificationSets(mm: string, ml: number[] | Uint8Array | null, sequence: string, isNegativeStrand: boolean): BaseModificationSet[] | Set<any> {
+function getBaseModificationSets(mm: string, ml: number[] | Uint8Array | null, sequence: string, isNegativeStrand: boolean): BaseModificationSet[] | Set<never> {
 
     if (!sequence) {
         return EMPTY_SET

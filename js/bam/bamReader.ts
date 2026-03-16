@@ -1,21 +1,15 @@
 import {loadIndex} from "./indexFactory"
-import AlignmentContainer from "./alignmentContainer"
-import BamUtils from "./bamUtils"
+import AlignmentContainer, {type AlignmentContainerOptions} from "./alignmentContainer"
+import BamUtils, {type BamHeader, type BamFilterLike} from "./bamUtils"
 import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils.js"
 import BGZBlockLoader from "./bgzBlockLoader"
-
-interface BamHeader {
-    magicNumber: number
-    size: number
-    chrNames: string[]
-    chrToIndex: Record<string, number>
-    chrAliasTable: Record<string, string>
-}
+import type {LoadConfig} from "../types/config.js"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
 
 interface BamIndex {
     firstBlockPosition: number
-    chunksForRange(chrId: number, bpStart: number, bpEnd: number): any[]
+    chunksForRange(chrId: number, bpStart: number, bpEnd: number): Chunk[]
 }
 
 interface Chunk {
@@ -32,11 +26,11 @@ interface Chunk {
 class BamReader {
 
     chrAliasTable: Map<string, string | undefined> = new Map()
-    config: any
-    genome: any
+    config: LoadConfig
+    genome: BaseFeatureSourceGenome
     bamPath: string
     baiPath: string
-    filter: any
+    filter: BamFilterLike | undefined
     header: BamHeader | undefined
     index: BamIndex | undefined
     chrToIndex: Record<string, number> | undefined
@@ -44,11 +38,11 @@ class BamReader {
     chrNames: Set<string> | undefined
     _blockLoader: BGZBlockLoader
 
-    constructor(config: any, genome: any) {
+    constructor(config: LoadConfig, genome: BaseFeatureSourceGenome) {
         this.config = config
         this.genome = genome
-        this.bamPath = config.url
-        this.baiPath = config.indexURL
+        this.bamPath = config.url as string
+        this.baiPath = config.indexURL as string
         BamUtils.setReaderDefaults(this, config)
 
         this._blockLoader = new BGZBlockLoader(config)
@@ -58,10 +52,10 @@ class BamReader {
         await this.getHeader()   // Called for side effects, and to ensure file is loadable
     }
 
-    async readAlignments(chr: string, bpStart: number, bpEnd: number): Promise<any> {
+    async readAlignments(chr: string, bpStart: number, bpEnd: number): Promise<AlignmentContainer> {
 
         const chrId: number | undefined = await this.#getRefId(chr)
-        const alignmentContainer: AlignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config)
+        const alignmentContainer: AlignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config as AlignmentContainerOptions)
 
         if (chrId === undefined) {
             return alignmentContainer
@@ -77,7 +71,7 @@ class BamReader {
 
             for (let c of chunks) {
                 const ba: Uint8Array = await this._blockLoader.getData(c.minv, c.maxv)
-                const done: boolean = BamUtils.decodeBamRecords(ba, c.minv.offset, alignmentContainer as any, this.header!.chrNames, chrId!, bpStart, bpEnd, this.filter) ?? false
+                const done: boolean = BamUtils.decodeBamRecords(ba, c.minv.offset, alignmentContainer, this.header!.chrNames, chrId!, bpStart, bpEnd, this.filter) ?? false
                 if (done) {
                     break
                 }
@@ -102,7 +96,7 @@ class BamReader {
 
         // Try alias
         if (refId === undefined) {
-            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord(chr)
+            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord?.(chr)
             let alias: string | undefined
             if (aliasRecord) {
                 const aliases: string[] = Object.keys(aliasRecord)
@@ -125,12 +119,10 @@ class BamReader {
      */
     async getHeader(): Promise<BamHeader> {
         if (!this.header) {
-            const genome: any = this.genome
             const index: BamIndex = await this.getIndex()
-            let start: number | undefined
             let len: number
             if (index.firstBlockPosition) {
-                const bsizeOptions: any = buildOptions(this.config, {range: {start: index.firstBlockPosition, size: 26}})
+                const bsizeOptions = buildOptions(this.config, {range: {start: index.firstBlockPosition, size: 26}})
                 const abuffer: ArrayBuffer = await igvxhr.loadArrayBuffer(this.bamPath, bsizeOptions)
                 const bsize: number = BGZip.bgzBlockSize(abuffer)
                 len = index.firstBlockPosition + bsize   // Insure we get the complete compressed block containing the header
@@ -138,15 +130,15 @@ class BamReader {
                 len = 64000
             }
 
-            const options: any = buildOptions(this.config, {range: {start: 0, size: len}})
-            this.header = await BamUtils.readHeader(this.bamPath, options, genome) as any
+            const options = buildOptions(this.config, {range: {start: 0, size: len}})
+            this.header = await BamUtils.readHeader(this.bamPath, options, this.genome)
         }
         return this.header!
     }
 
     async getIndex(): Promise<BamIndex> {
         if (!this.index) {
-            this.index = await loadIndex(this.baiPath, this.config)
+            this.index = await loadIndex(this.baiPath, this.config) as BamIndex
         }
         return this.index!
     }
