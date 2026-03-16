@@ -4,7 +4,6 @@ import baseCNVpytorVCF from './baseCNVpytorVCF.js'
  
 
 class CombinedCaller extends baseCNVpytorVCF {
-    [key: string]: any
 
     /**
      * Creates an instance of CombinedCaller.
@@ -13,7 +12,7 @@ class CombinedCaller extends baseCNVpytorVCF {
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - GC content data indexed by chromosome and bin.
      */
-    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, Record<string, unknown>[]>, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
     }
 
@@ -33,28 +32,28 @@ class CombinedCaller extends baseCNVpytorVCF {
         let overlap_min = omin==null ?  0.05 * this.binSize / 3e9: omin ;
         let min_count = mcount == null ? parseInt((this.binSize / 10000).toString()) : mcount ;
 
-        let gstat_rd0: Record<string, any>[] = []
-        let gstat_rd_all: Record<string, any>[] = []
+        let gstat_rd0: Record<string, unknown>[] = []
+        let gstat_rd_all: Record<string, unknown>[] = []
         let gstat_rd: number[] = []
         let gstat_baf: number[] = []
         let gstat_error: number[] = []
         let gstat_lh: number[][] = []
         let gstat_n: number[] = []
-        let gstat_event: any[] = []
-        
-        for (const [chr, wig] of Object.entries(this.wigFeatures) as [string, any[]][]) {
-            let segments: any[] = []
+        let gstat_event: unknown[] = []
+
+        for (const [chr, wig] of Object.entries(this.wigFeatures)) {
+            let segments: number[][] = []
             let levels: number[] = []
             let likelihoods: number[][] = [];
 
-            (wig as any[]).forEach((bin: any, bin_idx: number) => {
-                if (bin.hets_count > 4 ){
-                    
-                    if( bin.dp_count > min_count ){
+            wig.forEach((bin, bin_idx: number) => {
+                if ((bin.hets_count as number) > 4 ){
+
+                    if( (bin.dp_count as number) > min_count ){
                         if(bin[binScoreField]){
                             segments.push([bin_idx])
-                            levels.push(bin[binScoreField])
-                            likelihoods.push(bin.likelihood_score)
+                            levels.push(bin[binScoreField] as number)
+                            likelihoods.push(bin.likelihood_score as number[])
                             delete bin.likelihood_score
 
                         }
@@ -155,7 +154,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                 overlaps = []
                 for(let i=0; i< levels.length; i++){
                     for(let j=i; j<levels.length; j++){
-                        if(segments[j][0] - segments[i].at(-1) < max_distance * (segments[i].length + segments[j].length)){
+                        if(segments[j][0] - segments[i][segments[i].length - 1] < max_distance * (segments[i].length + segments[j].length)){
                             overlaps.push(normal_overlap_approx(levels[i], error[i], levels[j], error[j]) * likelihood_overlap(likelihoods[i], likelihoods[j]))
                         }
                     }
@@ -173,7 +172,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                 while (i < segments.length - 1){
                     let overlap_value = normal_overlap_approx(levels[i], error[i], levels[j], error[j]) * likelihood_overlap(likelihoods[i], likelihoods[j])
 
-                    if((segments[j][0] - segments[i].at(-1)) < max_distance * (segments[i].length + segments[j].length) && overlap_value == max_overlap){
+                    if((segments[j][0] - segments[i][segments[i].length - 1]) < max_distance * (segments[i].length + segments[j].length) && overlap_value == max_overlap){
                         let merge_level = normal_merge(levels[i], error[i], levels[i + 1], error[i + 1]);
 
                         levels[i] = merge_level.nl
@@ -248,8 +247,8 @@ class CombinedCaller extends baseCNVpytorVCF {
             points = 1
         }
         let x = gUtils.linspace(min_cell_fraction, 1, points)
-        let master_lh: Record<number, any> = {}
-        let germline_lh: Record<number, any> = {}
+        let master_lh: Record<number, number[][]> = {}
+        let germline_lh: Record<number, number[][]> = {}
         for(let cn=10; cn > -1; cn--){
             for(let h1=0; h1 < (cn/2+1); h1++){
                 let h2 = cn - h1
@@ -272,7 +271,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                     if(ei in germline_lh){
                         germline_lh[ei].push([cn, h1, h2, g_lh, 1.0])
                     }else{
-                        germline_lh[ei] = [cn, h1, h2, g_lh, 1.0]
+                        germline_lh[ei] = [[cn, h1, h2, g_lh, 1.0]]
                     }
                     let slh = 0
                     let max_lh = 0
@@ -290,7 +289,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                     if(ei in master_lh){
                         master_lh[ei].push([cn, h1, h2, slh / x.length, max_x])
                     }else{
-                        master_lh[ei] = [cn, h1, h2, slh / x.length, max_x]
+                        master_lh[ei] = [[cn, h1, h2, slh / x.length, max_x]]
                     }
                 }
                 
@@ -308,7 +307,7 @@ class CombinedCaller extends baseCNVpytorVCF {
                                 let tmp_list = master_lh[ei].filter((x: number[]) => (x[0] != germline_lh[ei][0][0]) && (x[1] <= germline_lh[ei][0][1]))
                                 // console.log('tmp_list', tmp_list)
                                 // master_lh[ei] = [germline_lh[ei][0]] + tmp_list
-                                master_lh[ei] = [germline_lh[ei][0]].push(...tmp_list)
+                                master_lh[ei] = [germline_lh[ei][0], ...tmp_list]
                             }
                         }
                     }
@@ -344,7 +343,7 @@ class CombinedCaller extends baseCNVpytorVCF {
         
         var rawbinScore = this.formatDataStructureWig(this.wigFeatures, 'binScore', this.globalMean)
 
-        let gcCorrectedBinScore: Record<string, any>[] = [];
+        let gcCorrectedBinScore: Record<string, unknown>[] = [];
         if (this.gcFlag) {
             gcCorrectedBinScore = this.formatDataStructureWig(this.wigFeatures, 'gcCorrectedBinScore', this.globalMean);
         }
@@ -354,14 +353,14 @@ class CombinedCaller extends baseCNVpytorVCF {
         
     }
     
-    formatDataStructureWig(wigFeatures: Record<string, any[]>, feature_column: string, scaling_factor: number = 1): Record<string, any>[] {
-        const results: Record<string, any>[] = []
-        for (const [chr, wig] of Object.entries(wigFeatures) as [string, any[]][]) {
+    formatDataStructureWig(wigFeatures: Record<string, Record<string, unknown>[]>, feature_column: string, scaling_factor: number = 1): Record<string, unknown>[] {
+        const results: Record<string, unknown>[] = []
+        for (const [chr, wig] of Object.entries(wigFeatures)) {
 
-            wig.forEach((sample: Record<string, any>) => {
+            wig.forEach((sample: Record<string, unknown>) => {
                 var new_sample = { ...sample }
                 if (scaling_factor != 1) {
-                    new_sample.value = sample[feature_column] / scaling_factor * 2
+                    new_sample.value = (sample[feature_column] as number) / scaling_factor * 2
                 }
                 results.push(new_sample)
             })

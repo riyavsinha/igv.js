@@ -8,7 +8,8 @@ const genome_size = 2871000000;
 
 
 class MeanShiftCaller extends baseCNVpytorVCF {
-    [key: string]: any
+    binBands: number[]
+    std?: number
 
     /**
      * Creates an instance of CombinedCaller.
@@ -17,7 +18,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
      * @param {number} binSize - The size of the bins used in the wig data.
      * @param {string} refGenome - reference genome name
      */
-    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, Record<string, unknown>[]>, binSize: number, refGenome: string) {
         super(wigFeatures, binSize, refGenome)
         this.binBands = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128]
     }
@@ -34,10 +35,10 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         // let cnvs = this.cnvCalling(partitionLevels)
         // console.log("cnvs: ", cnvs)
         
-        (Object.entries(this.wigFeatures) as [string, any[]][]).forEach(([chr, chrRD]: [string, any[]]) => {
-            chrRD.forEach((bin: any, index: number) => {
+        Object.entries(this.wigFeatures).forEach(([chr, chrRD]) => {
+            chrRD.forEach((bin: Record<string, unknown>, index: number) => {
                 if (partitionLevels[chr]){
-                    bin.partitionLevel = parseInt(partitionLevels[chr][index])
+                    bin.partitionLevel = Math.trunc(partitionLevels[chr][index])
                 }
                 // bin.cnvCall = parseInt(caller_array[0][chr][index])
             });
@@ -65,19 +66,19 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         });
     }
 
-    partition(repeats: number = 3): any {
+    partition(repeats: number = 3): Record<string, number[]> {
 
         // sort the dictionary based on chromosome names;
-        let sortedDictionary: Record<string, any[]> = {};
+        let sortedDictionary: Record<string, Record<string, unknown>[]> = {};
         Object.keys(this.wigFeatures).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(key => {
             sortedDictionary[key] = this.wigFeatures[key];
         });
 
         let binScoreField = this.gcFlag ? "gcCorrectedBinScore": "binScore" ;
-        
-        var chrLevels: Record<string, any> = {}
+
+        var chrLevels: Record<string, number[]> = {}
         // Object.entries(this.wigFeatures).forEach(([chr, chr_rd]) => {
-        for (const [chr, chrWig] of Object.entries(sortedDictionary) as [string, any[]][]) {
+        for (const [chr, chrWig] of Object.entries(sortedDictionary)) {
 
             // console.log("chr: ", chr, chrWig.length, chrWig)
 
@@ -85,7 +86,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
             var masked = new Array(chrWig.length).fill(false)
 
             // set the level; score from either RAW or GC corrected bin score 
-            var levels = chrWig.map((item: any, index: number) => !masked[index] ? item[binScoreField] : undefined);
+            var levels: number[] = chrWig.map((item: Record<string, unknown>, index: number) => !masked[index] ? item[binScoreField] as number : 0);
             // console.log("Levels: ", chr, levels)
             // var levels = chrWig.map((item, index) => !masked[index] ? item : undefined);
             
@@ -193,7 +194,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
                 border.push(levels.length);
 
                 // reset the mask
-                masked = new Array((this.wigFeatures as any).length).fill(false);
+                masked = new Array(chrWig.length).fill(false);
 
                 // check the borders
                 for (var i = 1; i < border.length; i++) {
@@ -251,7 +252,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         return chrLevels
     }
 
-    cnvCalling(levels: Record<string, any[]>) {
+    cnvCalling(levels: Record<string, number[]>) {
 
         // console.log("levels: ", levels)
         var delta = 0.25 * this.globalMean
@@ -262,9 +263,9 @@ class MeanShiftCaller extends baseCNVpytorVCF {
         // var levels = this.MeanShiftCallerV2(bin_size)
 
         var merged_level: Record<string, number[]> = {}
-        var cnv_levels: Record<string, any>[] = [];
+        var cnv_levels: Record<string, unknown>[] = [];
 
-        (Object.entries(levels) as [string, any[]][]).forEach(([chr, chr_levels]) => {
+        Object.entries(levels).forEach(([chr, chr_levels]) => {
 
             var done = false
             while (!done) {
@@ -303,7 +304,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
 
             // var chr_rd = this.rd[chr]
             var chr_rd: number[] = []
-            Object.entries(this.wigFeatures[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
+            Object.entries(this.wigFeatures[chr]).forEach(([bin, binDict]) => { chr_rd.push(binDict.binScore as number) });
             // console.log('cnv_calling', chr_rd)
 
             //
@@ -311,7 +312,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
             //
 
             var flags = new Array(chr_levels.length).fill("")
-            var segments = []
+            var segments: number[][] = []
 
             // console.log('default levels', chr, chr_levels)
             var b = 0
@@ -326,7 +327,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
 
                 if (border_end > border_start + 1) {
                     // console.log('border min', border_start, border_end)
-                    var adj = adjustToEvalue(this.globalMean, this.std, chr_rd, border_start, border_end, pval)
+                    var adj = adjustToEvalue(this.globalMean, this.std!, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
                         [border_start, border_end] = adj as [number, number];
@@ -339,7 +340,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
                 border_end = b
 
                 if (border_end > border_start + 1) {
-                    adj = adjustToEvalue(this.globalMean, this.std, chr_rd, border_start, border_end, pval)
+                    adj = adjustToEvalue(this.globalMean, this.std!, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
                         [border_start, border_end] = adj as [number, number];
@@ -361,7 +362,7 @@ class MeanShiftCaller extends baseCNVpytorVCF {
                 while ((b < chr_levels.length) && (chr_levels[b] < min)) b += 1;
                 border_end = b;
                 if (border_end > border_start + 1) {
-                    if (gaussianEValue(this.globalMean, this.std, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
+                    if (gaussianEValue(this.globalMean, this.std!, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
                         segments.push([border_start, border_end, -1])
                         flags.fill("d", border_start, border_end)
                     }
@@ -533,9 +534,14 @@ function t_test_2_samples(m1: number, s1: number, n1: number, m2: number, s2: nu
 }
 
 export class Partition {
-    [key: string]: any
+    // Dynamic properties: this.rd is used as both a dict-of-arrays (meanShiftCaller/cnv_calling) and a flat number array (call_mean_shift)
+    [key: string]: unknown
+    rd: unknown
+    mean: number
+    std: number
+    bin_bands: number[]
 
-    constructor(rd: Record<string, any[]>, mean: number, std: number) {
+    constructor(rd: unknown, mean: number, std: number) {
         this.rd = rd
         this.mean = mean
         this.std = std
@@ -557,11 +563,12 @@ export class Partition {
         return new_array
     }
 
-    meanShiftCaller(bin_size: number, repeats: number = 3): any {
+    meanShiftCaller(bin_size: number, repeats: number = 3): Record<string, number[]> {
 
         var ChrLevels: Record<string, number[]> = {};
+        const rdDict = this.rd as Record<string, Record<string, unknown>[]>
 
-        (Object.entries(this.rd) as [string, any[]][]).forEach(([chr, chr_rd]) => {
+        Object.entries(rdDict).forEach(([chr, chr_rd]) => {
             var masked = new Array(chr_rd.length).fill(false)
 
             // set the level
@@ -579,7 +586,7 @@ export class Partition {
                 // not masked level at current bin
                 var nm_levels: number[] = []
 
-                Object.entries(chr_rd).forEach(([k, v]) => { nm_levels.push((v as any).binScore) })
+                Object.entries(chr_rd).forEach(([k, v]) => { nm_levels.push(v.binScore as number) })
                 
                 // set the mask border
                 var mask_borders = [0]
@@ -653,7 +660,7 @@ export class Partition {
                 border.push(levels.length);
 
                 // reset the mask
-                masked = new Array(this.rd.length).fill(false);
+                masked = new Array(chr_rd.length).fill(false);
 
                 // check the borders
                 for (var i = 1; i < border.length; i++) {
@@ -709,14 +716,15 @@ export class Partition {
     }
     call_mean_shift(repeats = 3) {
         const bin_size = 1000;
-        // const genome_size = bin_size * this.rd.length;
-        var masked = new Array(this.rd.length).fill(false);
+        const rdArr = this.rd as number[]
+        // const genome_size = bin_size * rdArr.length;
+        var masked = new Array(rdArr.length).fill(false);
 
         // set the level
-        var levels = new Array(this.rd.length);
-        for (var b = 0; b < this.rd.length; b++) {
+        var levels = new Array(rdArr.length);
+        for (var b = 0; b < rdArr.length; b++) {
             if (!masked[b]) {
-                levels[b] = this.rd[b];
+                levels[b] = rdArr[b];
             }
         }
         this.bin_bands.forEach((bin_band: number, bin_band_index: number) => {
@@ -730,7 +738,7 @@ export class Partition {
             // var nm_levels = not_masked.map((value, index) => {if(value) return this.rd[index]});
             var nm_levels: number[] = [];
             not_masked.forEach((value, index) => {
-                if (value) nm_levels.push(this.rd[index]);
+                if (value) nm_levels.push(rdArr[index]);
             });
 
             // console.log(bin_band, nm_levels);
@@ -815,7 +823,7 @@ export class Partition {
             border.push(levels.length);
 
             // reset the mask
-            masked = new Array(this.rd.length).fill(false);
+            masked = new Array(rdArr.length).fill(false);
 
             // check the borders
             for (var i = 1; i < border.length; i++) {
@@ -893,7 +901,7 @@ export class Partition {
                 if (ttest_1sample_1 > 0.05) {
                     continue;
                 }
-                var raw_seg_data = new DataStat(this.rd.slice(seg[0], seg[1]));
+                var raw_seg_data = new DataStat(rdArr.slice(seg[0], seg[1]));
 
                 masked.fill(true, seg[0], seg[1]);
                 levels.fill(raw_seg_data.mean, seg[0], seg[1]);
@@ -916,11 +924,11 @@ export class Partition {
 
         
         var merged_level: Record<string, number[]> = {}
-        var cnv_levels: Record<string, any>[] = [];
+        var cnv_levels: Record<string, unknown>[] = [];
         // var t_value = cdf(Math.abs(10), (5))
         // console.log('Testing student t test:', t_value)
 
-        (Object.entries(levels) as [string, any[]][]).forEach(([chr, chr_levels]) => {
+        Object.entries(levels).forEach(([chr, chr_levels]) => {
 
             var done = false
             while (!done) {
@@ -959,7 +967,8 @@ export class Partition {
 
             // var chr_rd = this.rd[chr]
             var chr_rd: number[] = []
-            Object.entries(this.rd[chr]).forEach(([bin, binDict]) => { chr_rd.push((binDict as any).binScore) });
+            const rdDict = this.rd as Record<string, Record<string, unknown>[]>
+            rdDict[chr].forEach((binDict) => { chr_rd.push(binDict.binScore as number) });
             // console.log('cnv_calling', chr_rd)
 
             //
@@ -982,7 +991,7 @@ export class Partition {
 
                 if (border_end > border_start + 1) {
                     // console.log('border min', border_start, border_end)
-                    var adj = adjustToEvalue(this.mean, this.std, chr_rd, border_start, border_end, pval)
+                    var adj = adjustToEvalue(this.mean, this.std!, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
                         [border_start, border_end] = adj as [number, number];
@@ -995,7 +1004,7 @@ export class Partition {
                 border_end = b
 
                 if (border_end > border_start + 1) {
-                    adj = adjustToEvalue(this.mean, this.std, chr_rd, border_start, border_end, pval)
+                    adj = adjustToEvalue(this.mean, this.std!, chr_rd, border_start, border_end, pval)
                     // console.log(adj)
                     if (adj) {
                         [border_start, border_end] = adj as [number, number];
@@ -1017,7 +1026,7 @@ export class Partition {
                 while ((b < chr_levels.length) && (chr_levels[b] < min)) b += 1;
                 border_end = b;
                 if (border_end > border_start + 1) {
-                    if (gaussianEValue(this.mean, this.std, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
+                    if (gaussianEValue(this.mean, this.std!, chr_rd, border_start, border_end) < 0.05 / normal_genome_size) {
                         segments.push([border_start, border_end, -1])
                         flags.fill("d", border_start, border_end)
                     }

@@ -10,6 +10,7 @@ import type {TrackConfig} from "../types/config.js"
 import type {ClickState, DrawConfiguration, MenuItem} from "../types/ui.js"
 
 class CNVPytorTrack extends TrackBase {
+    // Dynamic properties set via TrackBase.init() config merging
     [key: string]: any
 
     static DEFAULT_TRACK_HEIGHT = 250
@@ -201,8 +202,8 @@ class CNVPytorTrack extends TrackBase {
 
     getAliasChromsList(chroms: string[]): string[] {
         const nested = chroms.map((chr: string) => {
-            let records = (this.browser.genome.chromAlias as any)?.aliasRecordCache?.get(chr)
-            return Object.values(records) as string[]
+            let records = (this.browser.genome.chromAlias as unknown as { aliasRecordCache?: Map<string, Record<string, string>> } | undefined)?.aliasRecordCache?.get(chr)
+            return records ? Object.values(records) : []
         })
         return nested.flat()
     }
@@ -403,7 +404,7 @@ class CNVPytorTrack extends TrackBase {
         return Promise.all(p)
     }
 
-    update_hasChroms(wigFeatures: Record<string, any>, chroms: string[]){
+    update_hasChroms(wigFeatures: Record<string, unknown>, chroms: string[]){
         for (let binSize in wigFeatures){
             if (!this.hasChroms[binSize]) {
                 this.hasChroms[binSize] = new Set();
@@ -440,7 +441,7 @@ class CNVPytorTrack extends TrackBase {
                     
                     for (let bin_size in tmp_wig){
                         for (const [signal_name, wig] of Object.entries(tmp_wig[bin_size])) {
-                            await this.wigFeatures_obj[bin_size][signal_name].push(...(wig as any[]))
+                            await this.wigFeatures_obj[bin_size][signal_name].push(...(wig as unknown[]))
                         }
                     }
 
@@ -453,7 +454,7 @@ class CNVPytorTrack extends TrackBase {
         }
 
         if (this.tracks) {
-            const promises = this.tracks.map((t: { getFeatures: (chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) => Promise<any> }) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
+            const promises = this.tracks.map((t: { getFeatures: (chr: string, bpStart: number, bpEnd: number, bpPerPixel: number) => Promise<unknown> }) => t.getFeatures(chr, bpStart, bpEnd, bpPerPixel))
             return Promise.all(promises)
         } else {
             return undefined  // This can happen if a redraw is triggered before the track has initialized.
@@ -666,7 +667,7 @@ class CNVPytorTrack extends TrackBase {
     async convertToVariant() {
 
         if (this.variantState) {
-            Object.setPrototypeOf(this, (trackClasses as any).VariantTrack.prototype)
+            Object.setPrototypeOf(this, (trackClasses['VariantTrack'] as { prototype: object }).prototype)
             this.init(this.variantState)
             await this.postInit()
             this.trackView.clearCachedFeatures()

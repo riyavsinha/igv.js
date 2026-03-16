@@ -1,9 +1,7 @@
 // Ambient type declarations for vendor dependencies without their own types
 
 declare module '*hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js' {
-    export function openH5File(url: string, options?: any): Promise<any>
-    const HDF5IndexedReader: any
-    export default HDF5IndexedReader
+    export function openH5File(options: string | Record<string, unknown>): Promise<unknown>
 }
 
 declare module '*hic-straw/src/hicFile.js' {

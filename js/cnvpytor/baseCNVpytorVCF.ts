@@ -151,7 +151,7 @@ class FetchGCInfo {
      * @returns {Object} The GC values.
      */
     async getBinGC(){
-        const gcData: Record<string, any[]> = {};
+        const gcData: Record<string, { start: number; gcContent: number; gcCount: number; atCount: number }[]> = {};
 
         // If no appropriate GC bin size is found, return an empty object
         if (!this.gcBin) {
@@ -214,11 +214,18 @@ class FetchGCInfo {
 }
 
 
+interface GCDataEntry {
+    start: number
+    gcContent: number
+    gcCount: number
+    atCount: number
+}
+
 class baseCNVpytorVCF extends FetchGCInfo {
-    wigFeatures: Record<string, any[]>
+    wigFeatures: Record<string, Record<string, unknown>[]>
     globalMean: number = 0
     globalStd: number = 0
-    gcData: Record<string, any[]> = {}
+    gcData: Record<string, GCDataEntry[]> = {}
     gcFlag: boolean = false
     binScoreField: string = 'binScore'
 
@@ -229,7 +236,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {*} binSize
      * @param {*} refGenome
      */
-    constructor(wigFeatures: Record<string, any[]>, binSize: number, refGenome: string) {
+    constructor(wigFeatures: Record<string, Record<string, unknown>[]>, binSize: number, refGenome: string) {
         super(binSize, refGenome)
         this.wigFeatures = wigFeatures
         this.binSize = binSize
@@ -245,7 +252,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
         
         // Extract all binScore values into a single array
         const binScores = Object.values(this.wigFeatures).reduce(
-            (binResult: number[], bin: any[]) => { return binResult.concat(bin.filter((a: any) => a.binScore > 0).map((a: any) => a.binScore)) }, [] as number[]
+            (binResult: number[], bin: Record<string, unknown>[]) => { return binResult.concat(bin.filter((a) => (a.binScore as number) > 0).map((a) => a.binScore as number)) }, [] as number[]
         )
 
         let data_fitter = new FitingMethod(binScores)
@@ -273,9 +280,9 @@ class baseCNVpytorVCF extends FetchGCInfo {
     getGcCorrectionSignal(rdGlobalMean: number): void {
         let gcRDMean = this.getGcCorrection(rdGlobalMean)
         Object.keys(this.wigFeatures).forEach(chr => {
-            this.wigFeatures[chr].forEach((bin: any) => {
+            this.wigFeatures[chr].forEach((bin: Record<string, unknown>) => {
                     if (bin.binScore){
-                        bin.gcCorrectedBinScore = Math.round(gcRDMean[bin.gc] * bin.binScore)
+                        bin.gcCorrectedBinScore = Math.round(gcRDMean[bin.gc as string] * (bin.binScore as number))
                     }else{
                         bin.gcCorrectedBinScore = null
                     }
@@ -316,7 +323,7 @@ class baseCNVpytorVCF extends FetchGCInfo {
                         gcRD[gcValue] = [];
                     }
                     if (this.wigFeatures[chr][k].binScore){
-                        gcRD[gcValue].push(this.wigFeatures[chr][k].binScore)
+                        gcRD[gcValue].push(this.wigFeatures[chr][k].binScore as number)
                     }
                 }
             }
@@ -350,14 +357,14 @@ class baseCNVpytorVCF extends FetchGCInfo {
      * @param {number} [scaling_factor=1] - The factor by which to scale the feature values.
      * @returns {Array} The formatted data structure.
      */
-    formatDataStructure(feature_column: string, scaling_factor: number = 1): any[] {
-        const results: any[] = []
+    formatDataStructure(feature_column: string, scaling_factor: number = 1): Record<string, unknown>[] {
+        const results: Record<string, unknown>[] = []
         for (const [chr, wig] of Object.entries(this.wigFeatures)) {
 
-            for(let sample of wig as Record<string, any>[]){
-                var new_sample: Record<string, any> = { ...sample }
+            for(let sample of wig){
+                var new_sample: Record<string, unknown> = { ...sample }
                 if (scaling_factor != 1) {
-                    new_sample.value = sample[feature_column] / scaling_factor * 2
+                    new_sample.value = (sample[feature_column] as number) / scaling_factor * 2
                 }
                 results.push(new_sample)
             }
@@ -366,17 +373,17 @@ class baseCNVpytorVCF extends FetchGCInfo {
         return results
     }
 
-    formatDataStructure_BAF(feature_column: string, scaling_factor: number = -1): any[][] {
-        const baf1: any[] = []
-        const baf2: any[] = []
+    formatDataStructure_BAF(feature_column: string, scaling_factor: number = -1): Record<string, unknown>[][] {
+        const baf1: Record<string, unknown>[] = []
+        const baf2: Record<string, unknown>[] = []
         for (const [chr, wig] of Object.entries(this.wigFeatures)) {
 
-            (wig as any[]).forEach((sample: any) => {
+            wig.forEach((sample: Record<string, unknown>) => {
 
                 var baf1_value = { ...sample }
                 var baf2_value = { ...sample }
 
-                let value = sample[feature_column]
+                let value = sample[feature_column] as number
                 if (value != 0.5){
                     baf2_value.value = scaling_factor * (1 - value)
                     baf2.push(baf2_value)

@@ -1,12 +1,17 @@
 
+interface BinRecord {
+    binScore: number
+    [key: string]: unknown
+}
+
 class GetFit {
-    allBins: any
+    allBins: Record<string, BinRecord[]>
 
     /**
      * Creates an instance of GetFit.
      * @param {Object} allBins - An object containing all the bins with their respective data.
      */
-    constructor(allBins: any) {
+    constructor(allBins: Record<string, BinRecord[]>) {
         this.allBins = allBins // Stores all bins data
     }
 
@@ -15,10 +20,10 @@ class GetFit {
      * @returns {Array} An array of bin scores.
      */
 
-    getValues(): any[] {
+    getValues(): number[] {
         const bins = Object.values(this.allBins).reduce(
-            (binResult: any, bin: any) => { return binResult.concat(bin.filter((a: any) => a.binScore > 0).map((a: any) => a.binScore)) }, [])
-        return bins as any[]
+            (binResult: number[], bin: BinRecord[]) => { return binResult.concat(bin.filter((a: BinRecord) => a.binScore > 0).map((a: BinRecord) => a.binScore)) }, [])
+        return bins
     }
 
     /**
@@ -37,12 +42,12 @@ class GetFit {
     }
 
 
-    histogram(data: any[], bins: any[]): any[] {
+    histogram(data: number[], bins: number[]): number[] {
         const step = bins[1] - bins[0];
-        const hist_bins: any[] = [];
+        const hist_bins: Record<number, { count: number }> = {};
 
-        data.forEach((value, index) => {
-            bins.forEach((bin_value, bin_index) => {
+        data.forEach((value) => {
+            bins.forEach((bin_value) => {
                 if (!hist_bins[bin_value]) {
                     hist_bins[bin_value] = { count: 0 };
                 }
@@ -52,8 +57,8 @@ class GetFit {
                 }
             });
         });
-        const dist_p: any[] = []
-        hist_bins.forEach((bin, index) => { dist_p.push(bin.count); });
+        const dist_p: number[] = []
+        Object.values(hist_bins).forEach((bin) => { dist_p.push(bin.count); });
         return dist_p
     }
 
@@ -118,17 +123,17 @@ function linspace(a: number, b: number, n?: number): number[] {
     return ret;
 }
 
-export function histogram2d(data1: any[], data2: any[], binsX: number, binsY: number): any {
+export function histogram2d(data1: number[], data2: number[], binsX: number, binsY: number): { data: number[][] } {
     // Calculate bin sizes
-    const minX = (Math as any).min(data1);
-    const maxX = (Math as any).max(data1);
-    const minY = (Math as any).min(data2);
-    const maxY = (Math as any).max(data2);
+    const minX = Math.min(...data1);
+    const maxX = Math.max(...data1);
+    const minY = Math.min(...data2);
+    const maxY = Math.max(...data2);
     const binSizeX = (maxX - minX) / binsX;
     const binSizeY = (maxY - minY) / binsY;
 
     // Create the histogram array
-    const histogram: any = { data: Array(binsX).fill(null).map(() => Array(binsY).fill(0)) };
+    const histogram = { data: Array(binsX).fill(null).map(() => Array(binsY).fill(0) as number[]) };
 
     // Populate the histogram
     for (let i = 0; i < data1.length; i++) {

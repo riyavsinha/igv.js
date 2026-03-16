@@ -30,10 +30,27 @@ class SignalNames {
 }
 
 
+interface WigRecord {
+    chr: string
+    start: number
+    end: number
+    value: number
+}
+
+interface HDF5Dataset {
+    value: unknown
+    to_array(): Promise<unknown[]>
+}
+
+interface HDF5File {
+    keys: string[]
+    get(key: string): Promise<HDF5Dataset>
+}
+
 class HDF5Reader {
-    config: any
+    config: Record<string, unknown>
     bin_size: number
-    h5_obj: any
+    h5_obj: HDF5File | undefined
     pytorKeys: string[]
     availableBins: number[]
     callers: string[]
@@ -43,7 +60,7 @@ class HDF5Reader {
      * @param {string} h5_file - path for the pytor file
      * @param {integer} bin_size - bin size
      */
-    constructor(config: any, bin_size: number = 100000) {
+    constructor(config: Record<string, unknown>, bin_size: number = 100000) {
 
         this.config = config;
         this.bin_size = bin_size;
@@ -53,17 +70,17 @@ class HDF5Reader {
         this.callers = [];
     }
     
-    async fetch(){
+    async fetch(): Promise<HDF5File> {
 
         if(!this.h5_obj) {
             const options = Object.assign(this.config,  {fetchSize: 1000000, maxSize: 200000000})
-            this.h5_obj = await openH5File(options)
+            this.h5_obj = await openH5File(options) as HDF5File
         }
         return this.h5_obj
     }
 
     /**
-     * 
+     *
      * @returns - a list of keys of the pytor file
      */
     async get_keys(){
@@ -71,7 +88,7 @@ class HDF5Reader {
         return h5_obj.keys
     }
 
-    async get_rd_signal(bin_size: number = this.bin_size, chrom?: string[]): Promise<Record<number, Record<string, any[]>>> {
+    async get_rd_signal(bin_size: number = this.bin_size, chrom?: string[]): Promise<Record<number, Record<string, WigRecord[]>>> {
         // Fetch the pytor file and get keys
         const h5Obj = await this.fetch();
         this.pytorKeys = h5Obj.keys;
@@ -97,8 +114,8 @@ class HDF5Reader {
         return { [bin_size]: wigFeatures };
     }
 
-    async getWigFeatures(rdChromosomes: string[], binSize: number, rdStat: number[]): Promise<Record<string, any[]>> {
-        const wigFeatures: Record<string, any[]> = {
+    async getWigFeatures(rdChromosomes: string[], binSize: number, rdStat: number[]): Promise<Record<string, WigRecord[]>> {
+        const wigFeatures: Record<string, WigRecord[]> = {
             RD_Raw: [],
             RD_Raw_gc_coor: [],
             ReadDepth: [],
@@ -126,18 +143,18 @@ class HDF5Reader {
 
     async getChromosomes(refChroms?: string[]): Promise<string[]> {
         // return chromosome names if they exists in the rd_chromosomes
-        const rdChroms_obj = await this.h5_obj.get("rd_chromosomes");
-        const rdChroms = await rdChroms_obj.value
+        const rdChroms_obj = await this.h5_obj!.get("rd_chromosomes");
+        const rdChroms = await rdChroms_obj.value as string[]
         if(!refChroms){
             return rdChroms
         }else{
             let refChromsSet = new Set(refChroms)
             return rdChroms.filter((item: string) => refChromsSet.has(item));
-            
+
         }
     }
 
-    setCallers(wigFeatures: Record<string, any[]>): void {
+    setCallers(wigFeatures: Record<string, WigRecord[]>): void {
         this.callers = [];
         if (wigFeatures.ReadDepth.length) this.callers.push('ReadDepth');
         if (wigFeatures["2D"].length) this.callers.push('2D');
@@ -158,25 +175,25 @@ class HDF5Reader {
         return segments
     }
 
-    async rd_call_combined(chrom: string, bin_size: number, rd_stat: number[], signal_name_obj: SignalNames): Promise<Record<string, any>[]> {
-        let chr_wig: Record<string, any>[] = [];
+    async rd_call_combined(chrom: string, bin_size: number, rd_stat: number[], signal_name_obj: SignalNames): Promise<WigRecord[]> {
+        let chr_wig: WigRecord[] = [];
 
         let segments: number[][] | undefined
         let mosaic_call_segments = signal_name_obj.signals['Mosaic_segments']
         if (this.pytorKeys.includes(mosaic_call_segments)){
-            const chrom_dataset = await this.h5_obj.get(mosaic_call_segments)
+            const chrom_dataset = await this.h5_obj!.get(mosaic_call_segments)
             const t0 = Date.now()
-            let chrom_data = await chrom_dataset.value
+            let chrom_data = await chrom_dataset.value as number[]
             segments = this.decode_segments(chrom_data)
 
         }
 
         let mosaic_calls = signal_name_obj.signals['Mosaic_calls']
         if (this.pytorKeys.includes(mosaic_calls) && segments){
-            const segments_call_dataset = await this.h5_obj.get(mosaic_calls)
-            let segments_call = await segments_call_dataset.to_array() //create_nested_array(value, shape)
+            const segments_call_dataset = await this.h5_obj!.get(mosaic_calls)
+            let segments_call = await segments_call_dataset.to_array() as number[][] //create_nested_array(value, shape)
             segments.forEach((ind_segment: number[], segment_idx: number) => {
-                ind_segment.forEach((bin_value: number, bin_idx: number) =>{
+                ind_segment.forEach((bin_value: number) =>{
                     chr_wig.push({chr:chrom, start: bin_value*bin_size, end: (bin_value+1) * bin_size, value: (segments_call[0][segment_idx]/rd_stat[4]) *2})
                 })
             })
@@ -194,23 +211,23 @@ class HDF5Reader {
     async rd_stat(bin_size: number): Promise<number[] | undefined> {
     
         let rd_stat_signal =  `rd_stat_${bin_size}_auto`
-        let rd_stat;
+        let rd_stat: number[] | undefined;
         if (this.pytorKeys.includes(rd_stat_signal)){
-            const rd_stat_dataset = await this.h5_obj.get(rd_stat_signal)
-            rd_stat = await rd_stat_dataset.value
+            const rd_stat_dataset = await this.h5_obj!.get(rd_stat_signal)
+            rd_stat = await rd_stat_dataset.value as number[]
         }
         return rd_stat
     }
 
     
-    async get_chr_signal(chrom: string, bin_size: number, signal_name: string, rd_stat: number[]): Promise<Record<string, any>[]> {
+    async get_chr_signal(chrom: string, bin_size: number, signal_name: string, rd_stat: number[]): Promise<WigRecord[]> {
         /* return a list of dictionary for a chromosome */
-        let chr_wig: Record<string, any>[] = [];
+        let chr_wig: WigRecord[] = [];
 
         if (this.pytorKeys.includes(signal_name)){
-            const chrom_dataset = await this.h5_obj.get(signal_name)
+            const chrom_dataset = await this.h5_obj!.get(signal_name)
 
-            let chrom_data = await chrom_dataset.value
+            let chrom_data = await chrom_dataset.value as number[]
             chrom_data.forEach((bin_value: number, bin_idx: number) => {
                 chr_wig.push({chr:chrom, start: bin_idx*bin_size, end: (bin_idx+1) * bin_size, value: (bin_value/rd_stat[4]) *2})
             });
@@ -219,13 +236,13 @@ class HDF5Reader {
     }
 
 
-    async getBafSignals(chrom: string, binSize: number, signalName: string, scalingFactor: number = -1): Promise<[Record<string, any>[], Record<string, any>[]]> {
-        const chrWig1: Record<string, any>[] = [];
-        const chrWig2: Record<string, any>[] = [];
-        
+    async getBafSignals(chrom: string, binSize: number, signalName: string, scalingFactor: number = -1): Promise<[WigRecord[], WigRecord[]]> {
+        const chrWig1: WigRecord[] = [];
+        const chrWig2: WigRecord[] = [];
+
         if (this.pytorKeys.includes(signalName)) {
-            const chromDataset = await this.h5_obj.get(signalName);
-            const chromData = await chromDataset.to_array();
+            const chromDataset = await this.h5_obj!.get(signalName);
+            const chromData = await chromDataset.to_array() as number[];
 
             chromData.forEach((lh: number, binIdx: number) => {
                 if (!isNaN(lh)) {
@@ -301,7 +318,7 @@ function fixString(strings: string[]): string[] {
 //     return nested;
 // }
 
-function create_nested_array(value: number[], shape: number[]): any {
+function create_nested_array(value: number[], shape: number[]): unknown {
     // check that shapes match:
     const total_length = value.length;
     const dims_product = shape.reduce((previous, current) => (previous * current), 1);
@@ -309,7 +326,7 @@ function create_nested_array(value: number[], shape: number[]): any {
         console.warn(`shape product: ${dims_product} does not match length of flattened array: ${total_length}`);
     }
     // Get reshaped output:
-    let output: any = value;
+    let output: unknown[] = value;
     const subdims = shape.slice(1).reverse();
     for (let dim of subdims) {
         // in each pass, replace input with array of slices of input
