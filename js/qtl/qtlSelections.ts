@@ -1,5 +1,19 @@
 import IGVColor from "../../node_modules/igv-utils/src/igv-color.js"
 
+interface QTLLike {
+    chr: string
+    start: number
+    pValue: number
+    [key: string]: unknown
+}
+
+interface QTLSelectionsJSON {
+    phenotypes?: string[]
+    snps?: string[]
+    qtl?: QTLLike
+    [key: string]: unknown
+}
+
 /**
  * Manages XQTL selections.
  */
@@ -7,7 +21,7 @@ class QTLSelections {
 
     phenotypeColors!: Map<string, string>
     snps!: Set<string>
-    qtl: any | null
+    qtl!: QTLLike | null
 
     constructor() {
         this.clear()
@@ -45,8 +59,8 @@ class QTLSelections {
         return !!name && this.phenotypeColors.has(name.toUpperCase())
     }
 
-    hasQTL(qtl: any): boolean {
-        return this.qtl && this.qtl === qtl
+    hasQTL(qtl: QTLLike): boolean {
+        return !!(this.qtl && this.qtl === qtl)
     }
 
     colorForGene(geneName: string): string | undefined {
@@ -57,8 +71,8 @@ class QTLSelections {
      * Returns a plain "json like" object, that is an object that is easily converted to json
      * @returns {{}}
      */
-    toJSON(): any {
-        const obj: any = {}
+    toJSON(): QTLSelectionsJSON {
+        const obj: QTLSelectionsJSON = {}
         if (this.phenotypeColors.size > 0) {
             obj.phenotypes = Array.from(this.phenotypeColors.keys())
         }
@@ -71,7 +85,7 @@ class QTLSelections {
         return obj
     }
 
-    static fromJSON(json: any): QTLSelections {
+    static fromJSON(json: QTLSelectionsJSON): QTLSelections {
         const qtlSelections = new QTLSelections()
         if(json.phenotypes) {
             for(let g of json.phenotypes) {
@@ -90,7 +104,7 @@ class QTLSelections {
     }
 }
 
-function compareQTLs(a: any, b: any): boolean {
+function compareQTLs(a: QTLLike, b: QTLLike): boolean {
     return a.chr === b.chr && a.start === b.start && a.pValue === b.pValue
 }
 

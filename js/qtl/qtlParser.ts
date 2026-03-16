@@ -1,3 +1,6 @@
+import type {DataWrapper, SyncDataWrapper} from "../feature/dataWrapper"
+import type {LoadConfig} from "../types/config"
+
 const MIN_EXPONENT = Math.log10(Number.MIN_VALUE)
 
 /**
@@ -65,14 +68,14 @@ class QTLParser {
     pValueCol: number = -1
     phenotypeColumn: number = -1
     delimiter: string = '\t'
-    config: any
+    config: LoadConfig
     columns: string[] = []
     chrColumn: number = -1
     snpColumn: number = -1
     posColumn: number = -1
     pValueColumn: number = -1
 
-    constructor(config: any) {
+    constructor(config: LoadConfig) {
         this.config = config
 
         //TODO -- allow specifying column
@@ -81,21 +84,22 @@ class QTLParser {
         // this.snpField = config.snpField || "snp"
     }
 
-    async parseHeader(dataWrapper: any) {
+    async parseHeader(dataWrapper: DataWrapper) {
 
         const config = this.config
-        if (config.delimiter) this.delimiter = config.delimiter
+        if (config.delimiter) this.delimiter = config.delimiter as string
 
         const headerLine = await dataWrapper.nextLine()
+        if (!headerLine) return []
         const columns = this.parseHeaderLine(headerLine)
 
         // Config overrides
 
-        if (config.chrColumn) this.chrColumn = config.chrColumn - 1
-        if (config.snpColumn) this.snpColumn = config.snpColumn - 1
-        if (config.posColumn) this.posColumn = config.posColumn - 1
-        if (config.pValueColumn) this.pValueColumn = config.pValueColumn - 1
-        if (config.phenotypeColumn) this.phenotypeColumn = config.phenotypeColumn - 1
+        if (config.chrColumn) this.chrColumn = (config.chrColumn as number) - 1
+        if (config.snpColumn) this.snpColumn = (config.snpColumn as number) - 1
+        if (config.posColumn) this.posColumn = (config.posColumn as number) - 1
+        if (config.pValueColumn) this.pValueColumn = (config.pValueColumn as number) - 1
+        if (config.phenotypeColumn) this.phenotypeColumn = (config.phenotypeColumn as number) - 1
 
         return columns
     }
@@ -143,11 +147,11 @@ class QTLParser {
         return this.columns
     }
 
-    async parseFeatures(dataWrapper: any) {
+    async parseFeatures(dataWrapper: SyncDataWrapper) {
 
         const allFeatures = []
         const headerLine = dataWrapper.nextLine()
-        if (!this.columns) {
+        if (!this.columns && headerLine) {
             this.parseHeaderLine(headerLine)
         }
 

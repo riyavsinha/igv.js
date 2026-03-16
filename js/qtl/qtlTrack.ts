@@ -26,6 +26,7 @@ interface QTLFeature {
 }
 
 class QTLTrack extends TrackBase {
+    /** Dynamic properties set via TrackBase.init() config merging */
     [key: string]: any
 
     constructor(config: TrackConfig, browser: Browser) {
@@ -358,7 +359,7 @@ class QTLTrack extends TrackBase {
 }
 
 
-function compareQTLs(a: QTLFeature, b: QTLFeature): boolean {
+function compareQTLs(a: { chr: string; start: number; pValue: number }, b: { chr: string; start: number; pValue: number }): boolean {
     return a.chr === b.chr && a.start === b.start && a.pValue === b.pValue
 }
 

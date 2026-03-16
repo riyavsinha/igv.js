@@ -1,12 +1,21 @@
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
+import type {LoadConfig} from "../types/config"
+
+interface GtexEqtlJson {
+    chromosome: string
+    pos: number
+    snpId: string
+    geneSymbol: string
+    pValue: number
+    [key: string]: unknown
+}
 
 /**
  * EQTL reader for GTEX webservice
  */
 class GtexReader {
 
-    featureCaches: any[] = []
-    config: any
+    config: LoadConfig
     url: string
     tissueId: string
     datasetId: string
@@ -15,12 +24,12 @@ class GtexReader {
         "chr19", "chr2", "chr20", "chr21", "chr22", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chrM",
         "chrX", "chrY"])
 
-    constructor(config: any) {
+    constructor(config: LoadConfig) {
 
         this.config = config
-        this.url = config.url
-        this.tissueId = config.tissueSiteDetailId
-        this.datasetId = config.datasetId || "gtex_v8"
+        this.url = config.url as string
+        this.tissueId = config.tissueSiteDetailId as string
+        this.datasetId = (config.datasetId as string) || "gtex_v8"
     }
 
     async readFeatures(chr: string, bpStart: number, bpEnd: number) {
@@ -43,7 +52,7 @@ class GtexReader {
         })
 
         if (json && json.singleTissueEqtl) {
-            return json.singleTissueEqtl.map((json: any) => new EQTL(json))
+            return json.singleTissueEqtl.map((json: GtexEqtlJson) => new EQTL(json))
         } else {
             return []
         }
@@ -74,12 +83,12 @@ class EQTL {
     snp: string
     phenotype: string
     pValue: number
-    json: any
+    json: GtexEqtlJson
     px?: number
     py?: number
     radius?: number
 
-    constructor(eqtl: any) {
+    constructor(eqtl: GtexEqtlJson) {
         this.chr = eqtl.chromosome
         this.start = eqtl.pos - 1
         this.end = this.start + 1
