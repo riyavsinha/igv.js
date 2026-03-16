@@ -1,13 +1,13 @@
 import NavbarButton from "../ui/navbarButton.js"
 import {sampleInfoImage, sampleInfoImageHover} from "../ui/navbarIcons/sampleInfo.js"
 import { buttonLabel } from "../ui/navbarIcons/buttonLabel.js"
+import type Browser from "../browser.js"
 
 class SampleInfoControl extends NavbarButton {
 
     showSampleInfo: boolean;
-    [key: string]: any
 
-    constructor(parent: HTMLElement, browser: any) {
+    constructor(parent: HTMLElement, browser: Browser) {
 
         super(parent, browser, 'Sample Info', buttonLabel, sampleInfoImage, sampleInfoImageHover, false)
 
@@ -31,11 +31,11 @@ class SampleInfoControl extends NavbarButton {
 
     }
 
-    performClickWithState(browser: any, doShowSampleInfoOrUndefined: boolean | undefined): void {
+    performClickWithState(browser: Browser, doShowSampleInfoOrUndefined: boolean | undefined): void {
 
         this.showSampleInfo = undefined === doShowSampleInfoOrUndefined ? !this.showSampleInfo : doShowSampleInfoOrUndefined
 
-        const column: HTMLElement = browser.columnContainer.querySelector('.igv-sample-info-column')
+        const column: HTMLElement = browser.columnContainer.querySelector('.igv-sample-info-column')!
         column.style.display = false === this.showSampleInfo ? 'none' : 'flex'
 
         this.setState(this.showSampleInfo)

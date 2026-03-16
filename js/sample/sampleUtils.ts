@@ -1,19 +1,28 @@
 import IGVGraphics from "../igv-canvas.js"
+import type SampleInfo from "./sampleInfo.js"
+
+export interface SamplesDrawData {
+    names: string[]
+    height?: number
+    yOffset?: number
+    groupIndeces?: number[]
+    groups?: Map<string, { count: number }>
+}
 
 const NULL_GROUP: string = 'None'
 const GROUP_MARGIN_HEIGHT: number = 16
 
-function doSortByAttributes(sampleInfo: any, sampleKeys: string[]): boolean {
+function doSortByAttributes(sampleInfo: SampleInfo, sampleKeys: string[]): boolean {
 
 
         const attributeNameSet: Set<string> = new Set(sampleInfo.attributeNames)
         const anySampleKey: string = sampleKeys[0]
-        const dictionary: Record<string, any> | undefined = sampleInfo.getAttributes(anySampleKey)
+        const dictionary: Record<string, string | number> | undefined = sampleInfo.getAttributes(anySampleKey)
 
         if (undefined === dictionary) {
             return false
         } else {
-            const sampleAttributeNames: string[] = Object.keys(sampleInfo.getAttributes(anySampleKey))
+            const sampleAttributeNames: string[] = Object.keys(sampleInfo.getAttributes(anySampleKey)!)
             for (const name of sampleAttributeNames) {
                 if (false === attributeNameSet.has(name)) {
                     return false
@@ -24,7 +33,7 @@ function doSortByAttributes(sampleInfo: any, sampleKeys: string[]): boolean {
     return true
 }
 
-function drawGroupDividers(context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, offset: number, sampleHeight: number, groups: Map<string, any>): void {
+function drawGroupDividers(context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, offset: number, sampleHeight: number, groups: Map<string, { count: number }> | undefined): void {
 
     if (!groups || groups.size === 0) return
 

@@ -2,7 +2,10 @@ import * as DOMUtils from "../ui/utils/dom-utils.js"
 import {appleCrayonRGB} from '../util/colorPalletes.js'
 import IGVGraphics from "../igv-canvas.js"
 import {drawGroupDividers, GROUP_MARGIN_HEIGHT} from "./sampleUtils.js"
+import type {SamplesDrawData} from "./sampleUtils.js"
 import type {C2SContext} from "../canvas2svg.js"
+import type Browser from "../browser.js"
+import type TrackView from "../trackView.js"
 
 const maxSampleNameViewportWidth: number = 200
 const fudgeTextMetricWidth: number = 4
@@ -11,8 +14,8 @@ const maxFontSize: number = 10
 class SampleNameViewport {
 
     guid: string
-    trackView: any
-    browser: any
+    trackView: TrackView
+    browser: Browser
     viewport: HTMLElement
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
@@ -21,7 +24,7 @@ class SampleNameViewport {
     boundClickHandler!: (event: MouseEvent) => void
     boundMouseMoveHandler!: (event: MouseEvent) => void
 
-    constructor(trackView: any, column: HTMLElement, unused: any, width: number) {
+    constructor(trackView: TrackView, column: HTMLElement, unused: unknown, width: number) {
 
         this.guid = DOMUtils.guid()
         this.trackView = trackView
@@ -69,18 +72,18 @@ class SampleNameViewport {
 
         if (typeof this.trackView.track.getSamples === 'function') {
             this.contentTop = contentTop
-            const samples = this.trackView.track.getSamples()
+            const samples = this.trackView.track.getSamples() as SamplesDrawData
             this.repaint(samples)
         }
 
     }
 
     setWidth(width: number): void {
-        (this.viewport as any).innerWidth = width
+        (this.viewport as HTMLElement & { innerWidth: number }).innerWidth = width
         this.checkCanvas()
     }
 
-    async repaint(samples: any): Promise<void> {
+    async repaint(samples: SamplesDrawData): Promise<void> {
 
         if (samples.names.length > 0) {
             if (true === this.browser.showSampleNames) {
@@ -98,17 +101,17 @@ class SampleNameViewport {
 
     }
 
-    draw({context, samples}: {context: CanvasRenderingContext2D, samples: any}): void {
+    draw({context, samples}: {context: CanvasRenderingContext2D, samples: SamplesDrawData}): void {
 
-        IGVGraphics.fillRect(context, 0, 0, context.canvas.width, samples.height, { fillStyle: appleCrayonRGB('snow') })
+        IGVGraphics.fillRect(context, 0, 0, context.canvas.width, samples.height!, { fillStyle: appleCrayonRGB('snow') })
 
         if (samples && samples.names.length > 0) {
 
             const viewportHeight: number = this.viewport.getBoundingClientRect().height
-            const tileHeight: number = samples.height
+            const tileHeight: number = samples.height!
             const shim: number = tileHeight - 2 <= 1 ? 0 : 1
 
-            let y: number =  samples.yOffset - this.contentTop
+            let y: number =  samples.yOffset! - this.contentTop
 
             let rowIndex: number = 0
             this.hitList = {}
@@ -117,7 +120,7 @@ class SampleNameViewport {
 
                 const x: number = 0
                 let yy: number = y + shim
-                if (samples.groupIndeces && samples.groups.size > 0) {
+                if (samples.groupIndeces && samples.groups && samples.groups.size > 0) {
                     yy += (samples.groupIndeces[rowIndex] + 1) * GROUP_MARGIN_HEIGHT
                 }
 
@@ -134,7 +137,7 @@ class SampleNameViewport {
                 }
             }
 
-            drawGroupDividers(context, 0, context.canvas.width, context.canvas.height,  samples.yOffset - this.contentTop, samples.height, samples.groups)
+            drawGroupDividers(context, 0, context.canvas.width, context.canvas.height,  samples.yOffset! - this.contentTop, samples.height!, samples.groups)
         }
     }
 
@@ -142,13 +145,13 @@ class SampleNameViewport {
 
         if (typeof this.trackView.track.getSamples === 'function') {
 
-            const samples = this.trackView.track.getSamples()
+            const samples = this.trackView.track.getSamples() as SamplesDrawData
 
             const yScrollDelta: number = 0   // This is not relevant, scrolling is handled in "draw"
 
             const {width, height} = this.viewport.getBoundingClientRect()
 
-            const str: string = (this.trackView.track.name || this.trackView.track.id).replace(/\W/g, '')
+            const str: string = (this.trackView.track.name || this.trackView.track.id || '').replace(/\W/g, '')
             const id: string = `${str}_sample_names_guid_${DOMUtils.guid()}`
 
             context.saveWithTranslationAndClipRect(id, deltaX, deltaY + yScrollDelta, width, height, -yScrollDelta)
@@ -172,7 +175,7 @@ class SampleNameViewport {
             const config =
                 {
                     label: 'Name Panel Width',
-                    value: this.browser.sampleNameViewportWidth,
+                    value: this.browser.sampleNameViewportWidth || 0,
                     callback: (newWidth: string) => {
                         this.browser.sampleNameViewportWidth = parseInt(newWidth)
                         // for (let {sampleNameViewport} of this.browser.trackViews) {

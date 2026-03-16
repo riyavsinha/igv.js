@@ -5,16 +5,20 @@ import {sampleInfoTileWidth, sampleInfoTileXShim} from "./sampleInfoConstants.js
 import IGVGraphics from "../igv-canvas.js"
 import {defaultRulerHeight} from "../rulerTrack.js"
 import {drawGroupDividers, GROUP_MARGIN_HEIGHT, NULL_GROUP} from "./sampleUtils.js"
+import type {SamplesDrawData} from "./sampleUtils.js"
 import type {C2SContext} from "../canvas2svg.js"
+import type Browser from "../browser.js"
+import type TrackView from "../trackView.js"
+import type {Track} from "../types/ui.js"
 
 const MaxSampleInfoColumnHeight: number = 128
 
 class SampleInfoViewport {
 
     guid: string
-    trackView: any
+    trackView: TrackView
     isIdeogram: boolean
-    browser: any
+    browser: Browser
     viewport: HTMLElement
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
@@ -23,7 +27,7 @@ class SampleInfoViewport {
     boundMouseMoveHandler!: (event: MouseEvent) => void
     boundMouseClickHandler!: (event: MouseEvent) => void
 
-    constructor(trackView: any, column: HTMLElement, width: number) {
+    constructor(trackView: TrackView, column: HTMLElement, width: number) {
 
         this.guid = DOMUtils.guid()
         this.trackView = trackView
@@ -63,7 +67,7 @@ class SampleInfoViewport {
 
         let requiredHeight: number
         if (this.browser.trackViews.length > 1 && this.isIdeogram) {
-            const [at, bt] = [this.browser.ideogramTrackView.track, this.browser.rulerTrackView.track]
+            const [at, bt] = [this.browser.ideogramTrackView!.track, this.browser.rulerTrackView!.track]
             requiredHeight = at.height + bt.height
         } else {
             requiredHeight = this.viewport.clientHeight
@@ -97,7 +101,7 @@ class SampleInfoViewport {
     }
 
     setWidth(width: number): void {
-        (this.viewport as any).innerWidth = width
+        (this.viewport as HTMLElement & { innerWidth: number }).innerWidth = width
         this.resizeCanvas()
     }
 
@@ -138,7 +142,7 @@ class SampleInfoViewport {
         }
 
         if (typeof this.trackView.track.getSamples === 'function') {
-            const samples = this.trackView.track.getSamples()
+            const samples = this.trackView.track.getSamples() as SamplesDrawData
             if (samples.names && samples.names.length > 0) {
                 this.draw({context: this.ctx, samples})
             }
@@ -151,7 +155,7 @@ class SampleInfoViewport {
         return fudge + Math.min(Math.max(...lengths), MaxSampleInfoColumnHeight)
     }
 
-    draw({context, samples}: {context: CanvasRenderingContext2D, samples: any}): void {
+    draw({context, samples}: {context: CanvasRenderingContext2D, samples: SamplesDrawData}): void {
 
         context.clearRect(0, 0, context.canvas.width, context.canvas.height)
 
@@ -168,10 +172,10 @@ class SampleInfoViewport {
 
             let shim: number = 1
 
-            const tileHeight: number = samples.height
+            const tileHeight: number = samples.height!
             shim = tileHeight - 2 * shim <= 1 ? 0 : 1
 
-            let y: number = samples.yOffset - this.contentTop
+            let y: number = samples.yOffset! - this.contentTop
 
             let rowIndex: number = 0
             this.hitList = {}
@@ -182,7 +186,7 @@ class SampleInfoViewport {
                 if (attributes) {
 
                     let yy: number = y + shim
-                    if (samples.groupIndeces && samples.groups.size > 0) {
+                    if (samples.groupIndeces && samples.groups && samples.groups.size > 0) {
                         yy += (samples.groupIndeces[rowIndex] + 1) * GROUP_MARGIN_HEIGHT
                     }
                     if (yy > viewportHeight) {
@@ -192,7 +196,7 @@ class SampleInfoViewport {
 
                         const hh: number = tileHeight - (2 * shim)
 
-                        const attributeEntries: [string, any][] = Object.entries(attributes)
+                        const attributeEntries: [string, string | number][] = Object.entries(attributes) as [string, string | number][]
                         for (const attributeEntry of attributeEntries) {
 
                             const [attribute, value] = attributeEntry
@@ -219,8 +223,8 @@ class SampleInfoViewport {
                 0,
                 viewportWidth,
                 viewportHeight,
-                samples.yOffset - this.contentTop,
-                samples.height,
+                samples.yOffset! - this.contentTop,
+                samples.height!,
                 samples.groups)
         }
 
@@ -267,13 +271,13 @@ class SampleInfoViewport {
 
         if (typeof this.trackView.track.getSamples === 'function') {
 
-            const samples = this.trackView.track.getSamples()
+            const samples = this.trackView.track.getSamples() as SamplesDrawData
 
             const yScrollDelta: number = 0   // This is not relevant, scrolling is handled in "draw"
 
             const {width, height} = this.viewport.getBoundingClientRect()
 
-            const str: string = (this.trackView.track.name || this.trackView.track.id).replace(/\W/g, '')
+            const str: string = (this.trackView.track.name || this.trackView.track.id || '').replace(/\W/g, '')
             const id: string = `${str}_sample_names_guid_${DOMUtils.guid()}`
 
             context.saveWithTranslationAndClipRect(id, deltaX, deltaY + yScrollDelta, width, height, -yScrollDelta)
@@ -308,11 +312,11 @@ class SampleInfoViewport {
                         const {
                             x,
                             y
-                        } = DOMUtils.translateMouseCoordinates(event, this.browser.columnContainer.querySelector('.igv-sample-info-column'))
+                        } = DOMUtils.translateMouseCoordinates(event, this.browser.columnContainer.querySelector('.igv-sample-info-column')!)
                         return {x: Math.floor(x), y: Math.floor(y - parseInt(marginTop, 10))}
                     }
 
-                    const column: HTMLElement = this.browser.columnContainer.querySelector('.igv-sample-info-column')
+                    const column: HTMLElement = this.browser.columnContainer.querySelector('.igv-sample-info-column')!
                     const {x, y} = getXY(column, this.viewport)
 
                     column.setAttribute('title', '')
@@ -368,11 +372,11 @@ class SampleInfoViewport {
                         const {
                             x,
                             y
-                        } = DOMUtils.translateMouseCoordinates(event, this.browser.columnContainer.querySelector('.igv-sample-info-column'))
+                        } = DOMUtils.translateMouseCoordinates(event, this.browser.columnContainer.querySelector('.igv-sample-info-column')!)
                         return {x: Math.floor(x), y: Math.floor(y - parseInt(marginTop, 10))}
                     }
 
-                    const column: HTMLElement = this.browser.columnContainer.querySelector('.igv-sample-info-column')
+                    const column: HTMLElement = this.browser.columnContainer.querySelector('.igv-sample-info-column')!
                     const {x, y} = getXY(column, this.viewport)
 
                     for (const [bbox, value] of entries) {
@@ -382,7 +386,7 @@ class SampleInfoViewport {
                             // do nothing
                         } else {
 
-                            const tracks: any[] = this.browser.findTracks((track: any) => typeof track.sortByAttribute === 'function')
+                            const tracks: Track[] = this.browser.findTracks((track: Track) => typeof track.sortByAttribute === 'function')
                             for (const track of tracks) {
                                 track.sortByAttribute(value)
                             }

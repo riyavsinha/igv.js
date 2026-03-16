@@ -8,6 +8,9 @@ import {distinctColorsPalette} from './sampleInfoPaletteLibrary.js'
 import TrackBase from "../trackBase.js"
 import type Browser from "../browser.js"
 import type {SampleInfoConfig} from "../types/config.js"
+import type {Track} from "../types/ui.js"
+
+type AttributeValue = string | number
 
 class SampleInfo {
 
@@ -17,14 +20,14 @@ class SampleInfo {
 
     sampleInfoFiles!: string[]
     attributeNames!: string[]
-    sampleDictionary!: Record<string, any>
+    sampleDictionary!: Record<string, Record<string, AttributeValue>>
     sampleMappingDictionary!: Record<string, string>
-    colorDictionary!: Record<string, any>
-    attributeRangeLUT!: Record<string, any>
+    colorDictionary!: Record<string, (value?: AttributeValue) => string>
+    attributeRangeLUT!: Record<string, [number, number]>
     initialized!: boolean
 
     constructor(browser: Browser) {
-        const found = browser.tracks.some((t: any) => typeof t.getSamples === 'function')
+        const found = browser.tracks.some((t: Track) => typeof t.getSamples === 'function')
         if (found) {
             browser.sampleInfoControl?.setButtonVisibility(true)
         }
@@ -53,7 +56,7 @@ class SampleInfo {
         return this.attributeCount > 0
     }
 
-    getAttributes(sampleName: string): Record<string, any> | undefined {
+    getAttributes(sampleName: string): Record<string, AttributeValue> | undefined {
 
         const key: string = this.sampleMappingDictionary[sampleName] || sampleName
         return this.sampleDictionary[key]
@@ -70,9 +73,11 @@ class SampleInfo {
             await this.loadSampleInfoFile(config.url)
         } else {
 
-            const samples: Record<string, any> = {...config}
-            for (const [key, record] of Object.entries(samples)) {
-                samples[key] = SampleInfo.toNumericalRepresentation(record as Record<string, any>)
+            const samples: Record<string, Record<string, AttributeValue>> = {}
+            for (const [key, record] of Object.entries(config)) {
+                if (key !== 'url' && typeof record === 'object' && record !== null) {
+                    samples[key] = SampleInfo.toNumericalRepresentation(record as Record<string, AttributeValue>)
+                }
             }
 
             const [value] = Object.values(samples)
@@ -85,10 +90,10 @@ class SampleInfo {
         this.initialized = true
     }
 
-    loadSampleInfoHelper(attributes: string[], samples: Record<string, any>): void {
+    loadSampleInfoHelper(attributes: string[], samples: Record<string, Record<string, AttributeValue>>): void {
 
         // Establish the range of values for each attribute
-        const lut: Record<string, any> = createAttributeRangeLUT(attributes, samples)
+        const lut: Record<string, [number, number]> = createAttributeRangeLUT(attributes, samples)
         accumulateDictionary(this.attributeRangeLUT, lut)
 
         // Ensure unique attribute names list
@@ -226,7 +231,7 @@ class SampleInfo {
 
         const cooked: string[] = lines.filter((line: string) => line.length > 0)
 
-        let samples: Record<string, Record<string, string>> | undefined
+        let samples: Record<string, Record<string, AttributeValue>> | undefined
         for (const line of cooked) {
 
             const record: string[] = line.split('\t')
@@ -253,7 +258,7 @@ class SampleInfo {
         } // for (lines)
 
         for (const [key, record] of Object.entries(samples!)) {
-            (samples as any)[key] = SampleInfo.toNumericalRepresentation(record)
+            samples![key] = SampleInfo.toNumericalRepresentation(record)
         }
 
         this.loadSampleInfoHelper(attributes, samples!)
@@ -270,9 +275,12 @@ class SampleInfo {
 
     #accumulateColorScheme(colorSettings: string[]): void {
 
-        const mappingfunction = (token: string, index: number, array: string[]): any => {
+        type ColorMappingItem = string | number[]
+        type ColorMapping = ColorMappingItem[]
 
-            let result: any
+        const mappingfunction = (token: string, index: number, array: string[]): ColorMappingItem => {
+
+            let result: ColorMappingItem
             switch (index) {
                 case 0:
                     result = token.split(' ').join(SampleInfo.emptySpaceReplacement)
@@ -285,24 +293,29 @@ class SampleInfo {
                     break
                 case 3:
                     result = `rgb(${token})`
+                    break
+                default:
+                    result = token
             }
 
             return result
         }
 
-        const mappings: any[][] = colorSettings.map((setting: string) => {
+        const mappings: ColorMapping[] = colorSettings.map((setting: string) => {
             const list: string[] = setting.split('\t')
-            const result: any[] = list.map(mappingfunction)
+            const result: ColorMapping = list.map(mappingfunction)
             return result
         })
 
-        const triplets: any[][] = mappings
-            .filter((mapping: any[]) => 3 === mapping.length && !mapping.includes('*'))
-            .filter(([a, b, c]: any[]) => !Array.isArray(b))
+        const triplets: ColorMapping[] = mappings
+            .filter((mapping: ColorMapping) => 3 === mapping.length && !mapping.includes('*'))
+            .filter(([a, b, c]: ColorMappingItem[]) => !Array.isArray(b))
 
         const tmp: Record<string, Record<string, string>> = {}
         for (const triplet of triplets) {
-            const [attribute, value, rgb] = triplet
+            const attribute = triplet[0] as string
+            const value = triplet[1] as string
+            const rgb = triplet[2] as string
             if (undefined === tmp[attribute]) {
                 tmp[attribute] = {}
             }
@@ -311,57 +324,60 @@ class SampleInfo {
 
         for (const [k, v] of Object.entries(tmp)) {
             const lut: Record<string, string> = Object.assign({}, v)
-            this.colorDictionary[k] = (attributeValue: string): string => {
+            this.colorDictionary[k] = (attributeValue?: AttributeValue): string => {
 
-                const key: string = attributeValue.toUpperCase()
+                const key: string = String(attributeValue).toUpperCase()
                 const color: string = lut[key] || appleCrayonRGB('snow')
                 return color
             }
         }
 
-        const clamped: any[][] = mappings.filter((mapping: any[]) => Array.isArray(mapping[1]))
+        const clamped: ColorMapping[] = mappings.filter((mapping: ColorMapping) => Array.isArray(mapping[1]))
 
         for (const cl of clamped) {
-            const [a, b] = cl[1]
-            const attribute: string = cl[0]
+            const [a, b] = cl[1] as number[]
+            const attribute = cl[0] as string
 
             if (3 === cl.length) {
 
-                const [_r, _g, _b] = rgbStringTokens(cl[2])!
+                const [_r, _g, _b] = rgbStringTokens(cl[2] as string)!
 
-                this.colorDictionary[attribute] = (attributeValue: number): string => {
-                    attributeValue = IGVMath.clamp(attributeValue, a, b)
-                    const interpolant: number = (attributeValue - a) / (b - a)
+                this.colorDictionary[attribute] = (attributeValue?: AttributeValue): string => {
+                    const v = IGVMath.clamp(attributeValue as number, a, b)
+                    const interpolant: number = (v - a) / (b - a)
                     return rgbaColor(_r, _g, _b, interpolant)
                 }
 
             } else if (4 === cl.length) {
 
-                const [a, b] = cl[1]
-                const [attribute, ignore, rgbA, rgbB] = cl
+                const [a, b] = cl[1] as number[]
+                const attribute = cl[0] as string
+                const rgbA = cl[2] as string
+                const rgbB = cl[3] as string
 
-                this.colorDictionary[attribute] = (attributeValue: number): string => {
-                    attributeValue = IGVMath.clamp(attributeValue, a, b)
-                    const interpolant: number = (attributeValue - a) / (b - a)
+                this.colorDictionary[attribute] = (attributeValue?: AttributeValue): string => {
+                    const v = IGVMath.clamp(attributeValue as number, a, b)
+                    const interpolant: number = (v - a) / (b - a)
                     return rgbStringHeatMapLerp(rgbA, rgbB, interpolant)
                 }
             }
         }
 
-        const wildCards: any[][] = mappings.filter((mapping: any[]) => 3 === mapping.length && mapping.includes('*'))
+        const wildCards: ColorMapping[] = mappings.filter((mapping: ColorMapping) => 3 === mapping.length && mapping.includes('*'))
 
         for (const wildCard of wildCards) {
 
             if ('*' === wildCard[1]) {
-                const [attribute, star, rgb] = wildCard
+                const attribute = wildCard[0] as string
+                const rgb = wildCard[2] as string
 
-                this.colorDictionary[attribute] = (attributeValue: any): string => {
+                this.colorDictionary[attribute] = (attributeValue?: AttributeValue): string => {
 
                     if ('NA' === attributeValue) {
                         return SampleInfo.colorForNA
                     } else {
                         const [min, max] = this.attributeRangeLUT[attribute]
-                        const interpolant: number = (attributeValue - min) / (max - min)
+                        const interpolant: number = ((attributeValue as number) - min) / (max - min)
 
                         const [r, g, b] = rgbStringTokens(rgb)!
                         return rgbaColor(r, g, b, interpolant)
@@ -370,7 +386,8 @@ class SampleInfo {
                 }
 
             } else if ('*' === wildCard[0]) {
-                const [star, attributeValue, rgb] = wildCard
+                const attributeValue = wildCard[1] as string
+                const rgb = wildCard[2] as string
                 this.colorDictionary[attributeValue] = (): string => rgb
             }
 
@@ -378,11 +395,11 @@ class SampleInfo {
 
     }
 
-    static toNumericalRepresentation(obj: Record<string, any>): Record<string, any> {
-        const result: Record<string, any> = Object.assign({}, obj)
+    static toNumericalRepresentation(obj: Record<string, AttributeValue>): Record<string, AttributeValue> {
+        const result: Record<string, AttributeValue> = Object.assign({}, obj)
 
         for (const [key, value] of Object.entries(result)) {
-            if (typeof value === 'string' && !isNaN(value as any)) {
+            if (typeof value === 'string' && !isNaN(Number(value))) {
                 result[key] = Number(value)
             }
         }
@@ -406,7 +423,7 @@ class SampleInfo {
     }
 
     export(): void {
-        const sampleInfoObject: Record<string, any> = {}
+        const sampleInfoObject: Record<string, Record<string, AttributeValue>> = {}
         const reverseSampleMappingDictionary: Record<string, string> = Object.fromEntries(
             Object.entries(this.sampleMappingDictionary).map(([key, value]: [string, string]) => [value, key])
         )
@@ -449,7 +466,7 @@ function createSectionDictionary(string: string): Record<string, string[]> {
     return dictionary
 }
 
-function accumulateDictionary(accumulator: Record<string, any>, dictionary: Record<string, any>): void {
+function accumulateDictionary<T>(accumulator: Record<string, T>, dictionary: Record<string, T>): void {
     for (const [key, value] of Object.entries(dictionary)) {
         if (!(key in accumulator) || accumulator[key] !== value) {
             accumulator[key] = value
@@ -457,14 +474,14 @@ function accumulateDictionary(accumulator: Record<string, any>, dictionary: Reco
     }
 }
 
-function createAttributeRangeLUT(names: string[], dictionary: Record<string, any>): Record<string, any> {
+function createAttributeRangeLUT(names: string[], dictionary: Record<string, Record<string, AttributeValue>>): Record<string, [number, number]> {
 
-    const lut: Record<string, any[]> = {}
+    const lut: Record<string, AttributeValue[]> = {}
     for (const value of Object.values(dictionary)) {
 
         for (const attribute of names) {
 
-            let item = (value as any)[attribute]
+            let item = value[attribute]
 
             if (undefined === lut[attribute]) {
                 lut[attribute] = []
@@ -477,8 +494,8 @@ function createAttributeRangeLUT(names: string[], dictionary: Record<string, any
     } // for (Object.values(sampleDictionary))
 
     // clean up oddball cases.
-    const isNumber = (element: any): boolean => typeof element === 'number'
-    const isString = (element: any): boolean => typeof element === 'string'
+    const isNumber = (element: AttributeValue): boolean => typeof element === 'number'
+    const isString = (element: AttributeValue): boolean => typeof element === 'string'
 
     // remove duplicates
     for (const key of Object.keys(lut)) {
@@ -487,19 +504,19 @@ function createAttributeRangeLUT(names: string[], dictionary: Record<string, any
         const list = Array.from(set)
 
         if (true === list.some(isString) && true === list.some(isNumber)) {
-            lut[key] = list.filter((item: any) => !isString(item))
+            lut[key] = list.filter((item: AttributeValue) => !isString(item))
         } else {
             lut[key] = list
         }
 
         if (!lut[key].some(isString)) {
-            const clone = lut[key].slice()
+            const clone = lut[key] as number[]
             lut[key] = [Math.min(...clone), Math.max(...clone)]
         }
 
     }
 
-    return lut
+    return lut as unknown as Record<string, [number, number]>
 }
 
 export default SampleInfo

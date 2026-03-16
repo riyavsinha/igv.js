@@ -18,7 +18,7 @@ class PlinkSampleInformation {
         this.attributes = {}
     }
 
-    async loadPlinkFile(url: string, config?: any): Promise<PlinkSampleInformation> {
+    async loadPlinkFile(url: string, config?: Record<string, unknown>): Promise<PlinkSampleInformation> {
 
         if (!config) config = {}
 
@@ -59,7 +59,7 @@ class PlinkSampleInformation {
     }
 }
 
-function loadPlinkFile(url: string, config?: any): Promise<PlinkSampleInformation> {
+function loadPlinkFile(url: string, config?: Record<string, unknown>): Promise<PlinkSampleInformation> {
     const si = new PlinkSampleInformation()
     return si.loadPlinkFile(url, config)
 }
