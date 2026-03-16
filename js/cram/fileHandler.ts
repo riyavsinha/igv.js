@@ -4,7 +4,7 @@ import {buildOptions} from "../util/igvUtils"
 interface CramConfig {
     cacheFetches?: boolean
     fetchSize?: number
-    [key: string]: any
+    [key: string]: unknown
 }
 
 interface LoadRange {

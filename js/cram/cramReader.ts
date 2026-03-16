@@ -1,9 +1,12 @@
 import gmodCRAM from "./cram-bundle.js"
-import AlignmentContainer from "../bam/alignmentContainer"
+import AlignmentContainer, {type Alignment} from "../bam/alignmentContainer"
 import BamUtils from "../bam/bamUtils"
 import BamAlignment from "../bam/bamAlignment"
 import AlignmentBlock from "../bam/alignmentBlock"
 import FileHandler from "./fileHandler"
+import type Genome from "../genome/genome"
+import type Browser from "../browser"
+import type BamFilter from "../bam/bamFilter"
 
 
 const READ_STRAND_FLAG: number = 0x10
@@ -12,22 +15,41 @@ const MATE_STRAND_FLAG: number = 0x20
 const CRAM_MATE_STRAND_FLAG: number = 0x1
 const CRAM_MATE_MAPPED_FLAG: number = 0x2
 
+// Minimal interfaces for gMOD CRAM library objects
+interface GmodCramFile {
+    getSamHeader(): Promise<SamHeaderLine[]>;
+}
+
+interface GmodIndexedCramFile {
+    getRecordsForRange(chrIdx: number, start: number, end: number): Promise<CramRecord[]>;
+}
+
 interface CramHeader {
     indexToChr: string[];
     chrToIndex: Record<string, number>;
     chrNames: string[];
-    readGroups: any[];
+    readGroups: SamHeaderDataEntry[][];
+}
+
+interface SamHeaderLine {
+    tag: string;
+    data: SamHeaderDataEntry[];
+}
+
+interface SamHeaderDataEntry {
+    tag: string;
+    value: string;
 }
 
 interface CramConfig {
-    fileHandle?: any;
-    indexFileHandle?: any;
+    fileHandle?: FileHandler | unknown;
+    indexFileHandle?: FileHandler | unknown;
     url: string;
     indexURL: string;
     seqFetch?: (seqID: number, start: number, end: number) => Promise<string>;
     checkSequenceMD5?: boolean;
     fetchSizeLimit?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface CramRecord {
@@ -46,7 +68,7 @@ interface CramRecord {
     };
     readLength: number;
     readFeatures?: CramReadFeature[];
-    tags: Record<string, any>;
+    tags: Record<string, unknown>;
     readName: string;
     qualityScores: number[];
     getReadBases(): string;
@@ -54,7 +76,7 @@ interface CramRecord {
 
 interface CramReadFeature {
     code: string;
-    data: any;
+    data: string | number;
     pos: number;
     refPos: number;
 }
@@ -69,14 +91,14 @@ class CramReader {
 
     chrAliasTable: Map<string, string | undefined> = new Map()
     config: CramConfig;
-    browser: any;
-    genome: any;
-    cramFile: any;
-    indexedCramFile: any;
+    browser: Browser;
+    genome: Genome;
+    cramFile: GmodCramFile;
+    indexedCramFile: GmodIndexedCramFile;
     header!: CramHeader;
-    filter: any;
+    filter!: BamFilter;
 
-    constructor(config: CramConfig, genome: any, browser: any) {
+    constructor(config: CramConfig, genome: Genome, browser: Browser) {
 
         this.config = config
         this.browser = browser
@@ -105,7 +127,7 @@ class CramReader {
             const genome = this.genome
             const header = await this.getHeader()
             const chr: string = genome.getChromosomeName(header.indexToChr[seqID])
-            return this.genome.getSequence(chr, start - 1, end)
+            return (await this.genome.getSequence(chr, start - 1, end)) || ''
         }
     }
 
@@ -117,10 +139,10 @@ class CramReader {
     async getHeader(): Promise<CramHeader> {
 
         if (!this.header) {
-            const samHeader: any[] = await this.cramFile.getSamHeader()
+            const samHeader: SamHeaderLine[] = await this.cramFile.getSamHeader()
             const chrToIndex: Record<string, number> = {}
             const indexToChr: string[] = []
-            const readGroups: any[] = []
+            const readGroups: SamHeaderDataEntry[][] = []
 
             for (let line of samHeader) {
                 if ('SQ' === line.tag) {
@@ -164,7 +186,7 @@ class CramReader {
 
         // Try alias
         if (refId === undefined) {
-            const aliasRecord: any = await this.genome.getAliasRecord(chr)
+            const aliasRecord = await this.genome.getAliasRecord(chr)
             let alias: string | undefined
             if (aliasRecord) {
                 const aliases: string[] = Object.keys(aliasRecord)
@@ -182,13 +204,13 @@ class CramReader {
     }
 
 
-    async readAlignments(chr: string, bpStart: number, bpEnd: number): Promise<any> {
+    async readAlignments(chr: string, bpStart: number, bpEnd: number): Promise<AlignmentContainer | undefined> {
 
         const header: CramHeader = await this.getHeader()
 
         const chrIdx: number | undefined = await this.#getRefId(chr)
 
-        const alignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config as any)
+        const alignmentContainer = new AlignmentContainer(chr, bpStart, bpEnd, this.config as Record<string, unknown>)
 
         if (chrIdx === undefined) {
             return alignmentContainer
@@ -215,10 +237,10 @@ class CramReader {
                         continue
                     }  // Record out-of-range "to the left", skip to next one
 
-                    const alignment: any = decodeCramRecord(record, header.chrNames)
+                    const alignment = decodeCramRecord(record, header.chrNames)
 
                     if (this.filter.pass(alignment)) {
-                        alignmentContainer.push(alignment)
+                        alignmentContainer.push(alignment as unknown as Alignment)
                     }
                 }
 
@@ -235,7 +257,7 @@ class CramReader {
             }
         }
 
-        function decodeCramRecord(record: CramRecord, chrNames: string[]): any {
+        function decodeCramRecord(record: CramRecord, chrNames: string[]): BamAlignment {
 
             const alignment = new BamAlignment()
 
@@ -247,7 +269,7 @@ class CramReader {
             alignment.fragmentLength = record.templateLength || record.templateSize || 0
             alignment.mq = record.mappingQuality
             alignment.end = record.alignmentStart + record.lengthOnRef
-            ;(alignment as any).readGroupId = record.readGroupId
+            ;(alignment as BamAlignment & { readGroupId: number }).readGroupId = record.readGroupId
 
             if (record.mate && record.mate.sequenceId !== undefined) {
                 const strand: boolean = record.mate.flags !== undefined ?
@@ -281,11 +303,11 @@ class CramReader {
 
         }
 
-        function makeBlocks(cramRecord: CramRecord, alignment: any): void {
+        function makeBlocks(cramRecord: CramRecord, alignment: BamAlignment): void {
 
-            const blocks: any[] = []
-            let insertions: any[] | undefined
-            let gaps: any[] | undefined
+            const blocks: AlignmentBlock[] = []
+            let insertions: AlignmentBlock[] | undefined
+            let gaps: { start: number; len: number; type: string }[] | undefined
             let basesUsed: number = 0
             let cigarString: string = ''
 
@@ -297,7 +319,7 @@ class CramReader {
                 for (let feature of cramRecord.readFeatures) {
 
                     const code: string = feature.code
-                    const data: any = feature.data
+                    const data = feature.data
                     const readPos: number = feature.pos - 1
                     const refPos: number = feature.refPos - 1
 
@@ -320,13 +342,14 @@ class CramReader {
                             }
 
                             if ('S' === code) {
+                                const strData = data as string
                                 let scPos: number = refPos
-                                alignment.scLengthOnRef += data.length
+                                alignment.scLengthOnRef += strData.length
                                 if (readPos === 0) {
-                                    alignment.scStart -= data.length
-                                    scPos -= data.length
+                                    alignment.scStart -= strData.length
+                                    scPos -= strData.length
                                 }
-                                const len: number = data.length
+                                const len: number = strData.length
                                 blocks.push(new AlignmentBlock({
                                     start: scPos,
                                     seqOffset: basesUsed,
@@ -339,7 +362,7 @@ class CramReader {
                                 if (insertions === undefined) {
                                     insertions = []
                                 }
-                                const len: number = 'i' === code ? 1 : data.length
+                                const len: number = 'i' === code ? 1 : (data as string).length
                                 insertions.push(new AlignmentBlock({
                                     start: refPos,
                                     len: len,
@@ -352,12 +375,13 @@ class CramReader {
                                 if (!gaps) {
                                     gaps = []
                                 }
+                                const numData = data as number
                                 gaps.push({
                                     start: refPos,
-                                    len: data,
+                                    len: numData,
                                     type: code
                                 })
-                                cigarString += data + code
+                                cigarString += numData + code
                             }
                             break
 
