@@ -6,9 +6,38 @@ import {buildOptions} from "../util/igvUtils.js"
 import TextFeatureSource from "../feature/textFeatureSource.js"
 import ChromAliasManager from "../feature/chromAliasManager"
 import FeatureCache from "../feature/featureCache"
+import type {TrackConfig} from "../types/config.js"
+import type Browser from "../browser.js"
+import type {DrawConfiguration, ClickState} from "../types/ui.js"
+import type Genome from "../genome/genome.js"
+import type TrackView from "../trackView.js"
+
+interface RnaFeature {
+    chr: string
+    start: number
+    end: number
+    startLeft?: number
+    startRight?: number
+    endLeft?: number
+    endRight?: number
+    color: string
+    score: number
+    description?: string
+    drawState?: {
+        x1: number
+        y1: number
+        r1: number
+        x2?: number
+        y2?: number
+        r2?: number
+        sa: number
+        ea: number
+    }
+}
 
 class RnaStructTrack extends TrackBase {
-    [key: string]: any
+    // Dynamic properties set via TrackBase.init() config merging
+    [key: string]: unknown
 
     static defaults = {
         height: 300,
@@ -17,7 +46,7 @@ class RnaStructTrack extends TrackBase {
 
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
 
         super(config, browser)
 
@@ -27,7 +56,7 @@ class RnaStructTrack extends TrackBase {
         } else if (config.arcOrientation === true) {
             this.arcOrientation = "UP"
         } else if (config.arcOrientation) {
-            this.arcOrientation = config.arcOrientation.toUpperCase()
+            this.arcOrientation = (config.arcOrientation as string).toUpperCase()
         } else {
             this.arcOrientation = "UP"
         }
@@ -35,31 +64,31 @@ class RnaStructTrack extends TrackBase {
         if ("bp" === config.format) {
             this.featureSource = new RNAFeatureSource(config, browser.genome)
         } else {
-            this.featureSource = new TextFeatureSource(config, browser.genome) as any
+            this.featureSource = new TextFeatureSource(config, browser.genome)
         }
     }
 
-    async getFeatures(chr: string, start: number, end: number): Promise<any[]> {
+    async getFeatures(chr: string, start: number, end: number): Promise<RnaFeature[]> {
         const visibilityWindow = this.visibilityWindow
-        return this.featureSource!.getFeatures({chr, start, end, visibilityWindow})
+        return this.featureSource!.getFeatures({chr, start, end, visibilityWindow}) as Promise<RnaFeature[]>
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
         const ctx = options.context
 
         const theta = Math.PI / 2
         const pixelWidth = options.pixelWidth
         const pixelHeight = options.pixelHeight
-        const viewportWidth = options.viewportWidth
         const bpPerPixel = options.bpPerPixel
         const bpStart = options.bpStart
         const xScale = bpPerPixel
         const orientation = "UP" === this.arcOrientation
+        const trackHeight = this.height as number
 
         IGVGraphics.fillRect(ctx, 0, options.pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
-        const featureList = options.features
+        const featureList = options.features as RnaFeature[] | undefined
 
         if (featureList) {
 
@@ -71,9 +100,9 @@ class RnaStructTrack extends TrackBase {
                 if (feature.startLeft) {
 
                     let sl = Math.round((feature.startLeft - bpStart) / xScale)
-                    let sr = Math.round((feature.startRight - bpStart) / xScale)
-                    let el = Math.round((feature.endLeft - bpStart) / xScale)
-                    let er = Math.round((feature.endRight - bpStart) / xScale)
+                    let sr = Math.round((feature.startRight! - bpStart) / xScale)
+                    let el = Math.round((feature.endLeft! - bpStart) / xScale)
+                    let er = Math.round((feature.endRight! - bpStart) / xScale)
 
                     ctx.fillStyle = feature.color
                     ctx.strokeStyle = feature.color
@@ -82,7 +111,7 @@ class RnaStructTrack extends TrackBase {
                     // First arc
                     let x1 = (sl + er) / 2
                     let r1 = (er - sl) / 2
-                    let y1 = this.height
+                    let y1 = trackHeight
                     let sa = Math.PI + (Math.PI / 2 - theta)
                     let ea = 2 * Math.PI - (Math.PI / 2 - theta)
 
@@ -123,7 +152,7 @@ class RnaStructTrack extends TrackBase {
                     // First arc
                     let x = (s + e) / 2
                     let r = (e - s) / 2
-                    let y = this.height
+                    let y = trackHeight
                     let sa = Math.PI + (Math.PI / 2 - theta)
                     let ea = 2 * Math.PI - (Math.PI / 2 - theta)
 
@@ -144,17 +173,17 @@ class RnaStructTrack extends TrackBase {
         }
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState): RnaFeature[] {
 
-        const features = super.clickedFeatures(clickState)
+        const features = super.clickedFeatures(clickState) as RnaFeature[]
 
-        const clicked = []
+        const clicked: RnaFeature[] = []
 
         // Sort by score in descending order   (opposite order than drawn)
         sortByScore(features, -1)
 
         for (let f of features) {
-            const ds = f.drawState
+            const ds = f.drawState!
 
             // Distance from arc radius, or outer arc for type ".bp"
             const dx1 = (clickState.canvasX - ds.x1)
@@ -171,9 +200,9 @@ class RnaStructTrack extends TrackBase {
 
             } else {
                 const dx2 = (clickState.canvasX - ds.x2)
-                const dy2 = (clickState.canvasY - ds.y2)
+                const dy2 = (clickState.canvasY - ds.y2!)
                 d2 = Math.sqrt(dx2 * dx2 + dy2 * dy2)
-                innerLim = ds.r2 - 3
+                innerLim = ds.r2! - 3
             }
 
 
@@ -186,7 +215,7 @@ class RnaStructTrack extends TrackBase {
         return clicked
     }
 
-    popupData(clickState: any, features: any) {
+    popupData(clickState: ClickState, features?: RnaFeature[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
 
@@ -203,19 +232,18 @@ class RnaStructTrack extends TrackBase {
                 name: "Toggle arc direction",
                 click: function toggleArcDirectionHandler(this: RnaStructTrack) {
                     this.arcOrientation = "UP" === this.arcOrientation ? "DOWN" : "UP"
-                    this.trackView.repaintViews()
+                    ;(this.trackView as TrackView).repaintViews()
                 }
             }
         ]
     }
 }
 
-function sortByScore(featureList: any[], direction: number): void {
+function sortByScore(featureList: RnaFeature[], direction: number): void {
 
     featureList.sort(function (a, b) {
         const s1 = a.score === undefined ? -Number.MAX_VALUE : a.score
         const s2 = b.score === undefined ? -Number.MAX_VALUE : b.score
-        const t = s1 - s2
         const d = direction === undefined ? 1 : direction
 
         return d * (s1 - s2)
@@ -224,26 +252,23 @@ function sortByScore(featureList: any[], direction: number): void {
 
 
 class RNAFeatureSource {
-    config: any
-    genome: any
+    config: TrackConfig
+    genome: Genome
     chromAliasManager?: ChromAliasManager
     featureCache?: FeatureCache
 
-    constructor(config: any, genome: any) {
+    constructor(config: TrackConfig, genome: Genome) {
         this.config = config
         this.genome = genome
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: { chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number }): Promise<any[] | null> {
-
-
-        const genome = this.genome
+    async getFeatures({chr, start, end}: { chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number }): Promise<RnaFeature[] | null> {
 
         if (!this.featureCache) {
 
             const options = buildOptions(this.config)
 
-            const data = await igvxhr.loadByteArray(this.config.url, options)
+            const data = await igvxhr.loadByteArray(this.config.url as string, options)
 
             if (!data) return null
 
@@ -251,10 +276,10 @@ class RNAFeatureSource {
 
             let header = true
             let line
-            const colors = []
-            const descriptors = []
-            const features = []
-            const chrNames = new Set()
+            const colors: string[] = []
+            const descriptors: string[] = []
+            const features: RnaFeature[] = []
+            const chrNames = new Set<string>()
 
             while ((line = dataWrapper.nextLine()) !== undefined) {
 
@@ -275,38 +300,33 @@ class RNAFeatureSource {
                     const startRightNuc = Number.parseInt(tokens[2]) - 1
                     const endLeftNuc = Number.parseInt(tokens[3])
                     const endRightNuc = Number.parseInt(tokens[4])
-                    var colorIdx = Number.parseInt(tokens[5])
+                    const colorIdx = Number.parseInt(tokens[5])
                     const color = colors[colorIdx]
 
-
-                    let feature: Record<string, any>
+                    let startLeft: number, startRight: number, endLeft: number, endRight: number
                     if (startLeftNuc <= endRightNuc) {
-                        feature = {
-                            chr: chr,
-                            startLeft: Math.min(startLeftNuc, startRightNuc),
-                            startRight: Math.max(startLeftNuc, startRightNuc),
-                            endLeft: Math.min(endLeftNuc, endRightNuc),
-                            endRight: Math.max(endLeftNuc, endRightNuc),
-                            color: color,
-                            score: colorIdx
-                        }
+                        startLeft = Math.min(startLeftNuc, startRightNuc)
+                        startRight = Math.max(startLeftNuc, startRightNuc)
+                        endLeft = Math.min(endLeftNuc, endRightNuc)
+                        endRight = Math.max(endLeftNuc, endRightNuc)
                     } else {
-                        feature = {
-                            chr: chr,
-                            startLeft: Math.min(endLeftNuc, endRightNuc),
-                            startRight: Math.max(endLeftNuc, endRightNuc),
-                            endLeft: Math.min(startLeftNuc, startRightNuc),
-                            endRight: Math.max(startLeftNuc, startRightNuc),
-                            color: color,
-                            score: colorIdx
-                        }
+                        startLeft = Math.min(endLeftNuc, endRightNuc)
+                        startRight = Math.max(endLeftNuc, endRightNuc)
+                        endLeft = Math.min(startLeftNuc, startRightNuc)
+                        endRight = Math.max(startLeftNuc, startRightNuc)
                     }
 
-                    feature.start = feature.startLeft
-                    feature.end = feature.endRight
-
-                    if (descriptors.length > colorIdx) {
-                        feature.description = descriptors[colorIdx]
+                    const feature: RnaFeature = {
+                        chr,
+                        start: startLeft,
+                        end: endRight,
+                        startLeft,
+                        startRight,
+                        endLeft,
+                        endRight,
+                        color,
+                        score: colorIdx,
+                        description: descriptors.length > colorIdx ? descriptors[colorIdx] : undefined
                     }
 
                     chrNames.add(chr)
@@ -314,15 +334,15 @@ class RNAFeatureSource {
                 }
             }
 
-            this.chromAliasManager = new ChromAliasManager(Array.from(chrNames) as string[], genome)
+            this.chromAliasManager = new ChromAliasManager(Array.from(chrNames), this.genome)
 
-            this.featureCache = new FeatureCache(features as any)
+            this.featureCache = new FeatureCache(features)
 
         }
 
         const queryChr = this.chromAliasManager ? await this.chromAliasManager.getAliasName(chr) : chr
 
-        return this.featureCache.queryFeatures(queryChr, start, end)
+        return this.featureCache.queryFeatures(queryChr, start, end) as RnaFeature[]
 
 
     }

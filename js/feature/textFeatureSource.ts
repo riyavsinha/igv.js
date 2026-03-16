@@ -25,7 +25,7 @@ interface TextFeatureSourceReader {
 interface TextFeatureSourceConfig {
     sourceType?: string
     maxWGCount?: number
-    indexURL?: string
+    indexURL?: string | Promise<string>
     queryable?: boolean
     reader?: TextFeatureSourceReader
     type?: string
@@ -44,7 +44,6 @@ interface TextFeatureSourceConfig {
 interface TextFeatureSourceGenome {
     getChromosome(chr: string): { bpLength: number } | undefined
     chromosomeNames?: string[]
-    [key: string]: unknown
 }
 
 interface GetFeaturesParams {
