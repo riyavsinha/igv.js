@@ -22,7 +22,9 @@ async function getClinVarURL(hgvsNotation: string): Promise<string | null> {
         const esearchUrl: string = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?` +
             `db=clinvar&term=${encodedHgvs}&retmode=json`
 
-        const response: Response = await fetch(esearchUrl)
+        const response: Response = await fetch(esearchUrl, {
+            headers: {"User-Agent": "igv.js"}
+        })
 
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`)

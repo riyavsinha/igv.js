@@ -1,17 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip install --dry-run prefect==3.6.20)",
-      "Bash(pip download prefect==3.6.20 --no-deps -d /tmp/test_prefect)",
-      "Bash(uv pip compile app/pyproject.toml --python-version 3.12 -o requirements.txt)",
-      "Bash(git -C /Users/riyavsinha/projects/chrombpnet-registry ls-files --error-unmatch .env gcp-sa-key.json)",
-      "Bash(uv lock)",
-      "Bash(pnpm add @ai-sdk/react)",
-      "Bash(pnpm add ai)",
-      "Bash(pip show langgraph)",
-      "Bash(pip show ai-sdk)",
-      "Read(//Users/riyavsinha/**)",
-      "Bash(pip show langgraph-checkpoint-postgres)",
+      "Bash(pnpm add *)",
+      "Read(//Users/**)",
       "Bash(mkdir:*)",
       "Bash(awk:*)",
       "Bash(go:*)",
@@ -45,16 +36,13 @@
       "Bash(python3:*)",
       "Bash(wc:*)",
       "Update(*)",
-      "Bash(uv run python -m apis.europepmc.api)",
       "Bash(pnpm why *)",
-      "Bash(uv run python render_excalidraw.py *)",
-      "Bash(git -C /Users/riyavsinha/projects/igv.js log --oneline -15)",
       "Bash(xargs -I {} basename {})",
       "Bash(npm ls --depth=0)",
-      "Bash(head -1 /Users/riyavsinha/projects/igv.js/test/*.js)",
+      "Bash(head -1 /**/igv.js/test/*.js)",
       "WebFetch(domain:gist.github.com)",
       "Bash(/tmp/test_ts8.ts:*)",
-      "Read(//Users/riyavsinha/projects/igv.js/**)",
+      "Read(//**/igv.js/**)",
       "Bash(xargs -I {} bash -c 'grep -l \"\"= .*!\"\" \"\"$@\"\"' _ {} ;)",
       "Bash(done)",
       "Bash(npx mocha)",
@@ -63,7 +51,7 @@
       "Bash(/tmp/check_properties.txt:*)"
     ],
     "additionalDirectories": [
-      "/Users/riyavsinha/projects/igv.js",
+      "/**/igv.js",
       "/tmp"
     ]
   }
