@@ -218,7 +218,7 @@ class FeatureParser {
 
         if (("gtf" === this.config.format || "gff3" === this.config.format || "gff" === this.config.format) &&
             this.config.assembleGFF !== false) {
-            return (new GFFHelper(this.config as ConstructorParameters<typeof GFFHelper>[0])).combineFeatures(allFeatures as Parameters<GFFHelper["combineFeatures"]>[0])
+            return (new GFFHelper(this.config as ConstructorParameters<typeof GFFHelper>[0])).combineFeatures(allFeatures as Parameters<GFFHelper["combineFeatures"]>[0]) as unknown as GenomicFeature[]
         } else {
             return allFeatures
         }

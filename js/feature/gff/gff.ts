@@ -6,7 +6,7 @@ interface GFFHeader {
     format: string
 }
 
-function decode(tokens: string[], header: GFFHeader): any | undefined {
+function decode(tokens: string[], header: GFFHeader): GFFFeature | undefined {
 
     const format = header.format
     if (tokens.length < 9) {
@@ -33,7 +33,7 @@ function decode(tokens: string[], header: GFFHeader): any | undefined {
  * Decode a single gff record (1 line in file).  Aggregations such as gene models are constructed at a higher level.
  *      ctg123 . mRNA            1050  9000  .  +  .  ID=mRNA00001;Parent=gene00001
  */
-function decodeGFF3(tokens: string[], header: GFFHeader): any | undefined {
+function decodeGFF3(tokens: string[], header: GFFHeader): GFFFeature | undefined {
 
     const feature = decode(tokens, header)
 
@@ -41,7 +41,7 @@ function decodeGFF3(tokens: string[], header: GFFHeader): any | undefined {
         return
     }
 
-    const attributes: Array<[string, string]> = parseAttributeString(feature.attributeString, feature.delim)
+    const attributes: Array<[string, string]> = parseAttributeString(feature.attributeString!, feature.delim!)
 
     // Search for color value as case insensitive key
     for (let [key, value] of attributes) {
@@ -60,7 +60,7 @@ function decodeGFF3(tokens: string[], header: GFFHeader): any | undefined {
 /**
  * GTF format decoder
  */
-function decodeGTF(tokens: string[], header: GFFHeader): any | undefined {
+function decodeGTF(tokens: string[], header: GFFHeader): GFFFeature | undefined {
 
     const feature = decode(tokens, header)
 
@@ -68,7 +68,7 @@ function decodeGTF(tokens: string[], header: GFFHeader): any | undefined {
         return
     }
 
-    const attributes: Array<[string, string]> = parseAttributeString(feature.attributeString, feature.delim)
+    const attributes: Array<[string, string]> = parseAttributeString(feature.attributeString!, feature.delim!)
 
     // GTF files specify neither ID nor parent fields, but they can be inferred from common conventions
     let idField: string | undefined

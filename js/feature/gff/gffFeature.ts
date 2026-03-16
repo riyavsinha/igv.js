@@ -22,7 +22,8 @@ interface GFFProperties {
     strand?: string
     attributeString?: string
     delim?: string
-    [key: string]: any
+    // Dynamic GFF attributes assigned via Object.assign in GFFFeature constructor
+    [key: string]: unknown
 }
 
 interface Exon {
@@ -35,7 +36,8 @@ interface Exon {
     pseudo?: boolean
     psuedo?: boolean  // NOTE: Typo in original code ("psuedo" instead of "pseudo")
     popupData?: (genomicLocation: number) => (PopupDataItem | string)[]
-    [key: string]: any
+    // Dynamic properties like `number` assigned during exon numbering
+    [key: string]: unknown
 }
 
 class GFFFeature {
@@ -52,10 +54,11 @@ class GFFFeature {
     attributeString: string | undefined
     delim: string | undefined
     readingFrame: number | undefined
-    geneObject: any
+    geneObject: GFFFeature | undefined
     private _attributeCache: Map<string, string | undefined> | undefined;
 
-    [key: string]: any
+    // Dynamic properties assigned via Object.assign from GFF attributes and decoder
+    [key: string]: unknown
 
     constructor(properties: GFFProperties) {
 
@@ -102,7 +105,7 @@ class GFFFeature {
         return pd
     }
 
-    getAttributeValue(attributeName: string): any {
+    getAttributeValue(attributeName: string): unknown {
         if (this.hasOwnProperty(attributeName)) {
             return this[attributeName]
         } else {

@@ -23,8 +23,9 @@ interface GFFFeatureRecord {
     name?: string
     exons?: Array<{ start: number; end: number; number?: number }>
     attributeString?: string
-    getAttributeValue?: (name: string) => any
-    [key: string]: any
+    getAttributeValue?: (name: string) => unknown
+    // Dynamic GFF record properties from parsed attributes
+    [key: string]: unknown
 }
 
 
@@ -44,9 +45,9 @@ class GFFHelper {
             new Set(options.filterTypes)
     }
 
-    combineFeatures(features: GFFFeatureRecord[], genomicInterval?: GenomicInterval): any[] {
+    combineFeatures(features: GFFFeatureRecord[], genomicInterval?: GenomicInterval): (GFFFeature | GFFFeatureRecord)[] {
 
-        let combinedFeatures: any[]
+        let combinedFeatures: (GFFFeature | GFFFeatureRecord)[]
 
         const filterTypes = this.filterTypes
         features = features.filter(f => filterTypes === undefined || !filterTypes.has(f.type))
@@ -116,7 +117,7 @@ class GFFHelper {
         return combinedFeatures
     }
 
-    combineFeaturesByType(features: GFFFeatureRecord[]): any[] {
+    combineFeaturesByType(features: GFFFeatureRecord[]): (GFFFeature | GFFFeatureRecord)[] {
 
         // Build dictionary of genes
         const genes = features.filter(f => "gene" === f.type || f.type.endsWith("_gene"))
@@ -126,8 +127,8 @@ class GFFHelper {
         }
 
         // 1. Build dictionary of transcripts
-        const transcripts: Record<string, any> = Object.create(null)
-        const combinedFeatures: any[] = []
+        const transcripts: Record<string, GFFTranscript> = Object.create(null)
+        const combinedFeatures: (GFFFeature | GFFFeatureRecord)[] = []
         const consumedFeatures: Set<GFFFeatureRecord> = new Set()
         const filterTypes = this.filterTypes
 
@@ -143,7 +144,7 @@ class GFFHelper {
                     consumedFeatures.add(f)
                     const g = geneMap[f.parent!]
                     if (g) {
-                        gffTranscript.geneObject = g
+                        gffTranscript.geneObject = g as unknown as GFFFeature
                         consumedFeatures.add(g)
                     }
                 }
@@ -160,8 +161,7 @@ class GFFHelper {
                         let transcript = transcripts[id]
                         if (!transcript && this.format === "gtf") {
                             // GTF does not require explicit a transcript or mRNA record, start one with this feature.
-                            const psuedoTranscript: any = Object.assign({}, f)
-                            psuedoTranscript.type = "transcript"
+                            const psuedoTranscript: GFFFeatureRecord = Object.assign({}, f, {type: "transcript"})
                             transcript = new GFFTranscript(psuedoTranscript)
                             transcripts[id] = transcript
                             combinedFeatures.push(transcript)
@@ -175,10 +175,10 @@ class GFFHelper {
                                     const e2 = new GFFFeature(f)
                                     transcript.addExon(e2)
                                 } else {
-                                    transcript.addExon(f)
+                                    transcript.addExon(f as GFFFeatureRecord & { start: number; end: number })
                                 }
                             } else {
-                                transcript.addPart(f)
+                                transcript.addPart(new GFFFeature(f))
                             }
                             consumedFeatures.add(f)
                         }
@@ -188,8 +188,8 @@ class GFFHelper {
         }
 
         // Finish transcripts
-        combinedFeatures.forEach(function (f: any) {
-            if (typeof f.finish === "function") {
+        combinedFeatures.forEach(function (f: GFFFeature | GFFFeatureRecord) {
+            if ('finish' in f && typeof f.finish === "function") {
                 f.finish()
             }
         })
@@ -211,9 +211,10 @@ class GFFHelper {
         }
     }
 
-    numberExons(features: any[], genomicInterval?: GenomicInterval): void {
+    numberExons(features: (GFFFeature | GFFFeatureRecord)[], genomicInterval?: GenomicInterval): void {
 
-        for (let f of features) {
+        for (const feature of features) {
+            const f = feature as GFFFeatureRecord
             if (f.exons &&
                 (!genomicInterval ||
                     (f.end <= genomicInterval.end && f.start > genomicInterval.start))) {
@@ -225,17 +226,18 @@ class GFFHelper {
         }
     }
 
-    nameFeatures(features: any[]): void {
+    nameFeatures(features: (GFFFeature | GFFFeatureRecord)[]): void {
         // Find name (label) property
-        for (let f of features) {
+        for (const feature of features) {
+            const f = feature as GFFFeatureRecord
             if(typeof f.getAttributeValue === 'function') {
                 if (this.nameField) {
-                    f.name = f.getAttributeValue(this.nameField)
+                    f.name = f.getAttributeValue(this.nameField) as string | undefined
                 } else {
                     for (let nameField of GFFHelper.gffNameFields) {
                         const v = f.getAttributeValue(nameField)
                         if (v) {
-                            f.name = v
+                            f.name = v as string
                             break
                         }
                     }
