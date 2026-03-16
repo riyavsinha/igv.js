@@ -8,7 +8,7 @@ import {isNumber} from "../util/igvUtils"
 
 const alignmentSpace: number = 2
 
-interface AlignmentContainerOptions {
+export interface AlignmentContainerOptions {
     samplingWindowSize?: number
     samplingDepth?: number
     alleleFreqThreshold?: number

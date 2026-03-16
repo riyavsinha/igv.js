@@ -1,5 +1,6 @@
 import {FileUtils, igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
 
 interface HtsgetConfig {
     format?: string
@@ -8,7 +9,7 @@ interface HtsgetConfig {
     id?: string
     name?: string
     sourceType?: string
-    [key: string]: any
+    [key: string]: unknown
 }
 
 interface HtsgetUrlData {
@@ -26,10 +27,10 @@ interface HtsgetTicket {
 class HtsgetReader {
 
     config: HtsgetConfig
-    genome: any
+    genome: BaseFeatureSourceGenome
     format: string
 
-    constructor(config: HtsgetConfig, genome: any) {
+    constructor(config: HtsgetConfig, genome: BaseFeatureSourceGenome) {
         this.config = config
         this.genome = genome
         if (config.format) {

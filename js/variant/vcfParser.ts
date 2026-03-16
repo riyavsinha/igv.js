@@ -18,7 +18,7 @@ interface FormatFields {
 }
 
 interface DataWrapper {
-    nextLine(): Promise<string | undefined>;
+    nextLine(): string | undefined | Promise<string | undefined>
 }
 
 class VcfParser {
