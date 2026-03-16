@@ -12,8 +12,12 @@ import {decodePSL} from "../feature/decode/ucsc"
 const defaultBlatServer = "https://igv.org/services/blatUCSC.php"
 //const blatServer = "http://localhost:8000/blatUCSC.php"
 
+interface BlatResponse {
+    fields: string[]
+    blat: string[][]
+}
 
-async function blat({url, userSeq, db}: { url?: string, userSeq: string, db: string }): Promise<any[]> {
+async function blat({url, userSeq, db}: { url?: string, userSeq: string, db: string }): Promise<NonNullable<ReturnType<typeof decodePSL>>[]> {
 
     url = url || defaultBlatServer
 
@@ -23,21 +27,21 @@ async function blat({url, userSeq, db}: { url?: string, userSeq: string, db: str
 
     const results = await postData(url, userSeq, db)
 
-    const fields = results.fields
-
-    const features = results.blat.map(decodePSL)
+    const features = results.blat
+        .map((tokens: string[]) => decodePSL(tokens, undefined))
+        .filter((f): f is NonNullable<typeof f> => f !== undefined)
 
     return features
 }
 
-async function postData(url: string = "", userSeq: string, db: string): Promise<any> {
+async function postData(url: string = "", userSeq: string, db: string): Promise<BlatResponse> {
 
     const data = new URLSearchParams();
     data.append("userSeq", userSeq);
     data.append("db", db);
 
     const response = await fetch(url, { method: "post", body: data })
-    return response.json(); // parses JSON response into native JavaScript objects
+    return response.json() as Promise<BlatResponse>
 }
 
 

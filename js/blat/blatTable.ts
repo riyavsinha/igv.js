@@ -2,11 +2,25 @@ import * as DOMUtils from "../ui/utils/dom-utils.js"
 import { StringUtils } from '../../node_modules/igv-utils/src/index.js'
 
 import RegionTableBase from '../ui/regionTableBase.js'
+import type Browser from "../browser.js"
+
+type BlatRecord = (string | number)[]
+
+interface BlatTableConfig {
+    browser: Browser
+    parent: HTMLElement
+    headerTitle: string
+    description: string
+    dismissHandler: () => void
+    columnFormat: {label: string, width: string}[]
+    gotoButtonHandler: (event: Event) => void
+}
 
 class BlatTable extends RegionTableBase {
+    // Dynamic property access — intentional any for RegionTableBase compatibility
     [key: string]: any
 
-    constructor(config: any) {
+    constructor(config: BlatTableConfig) {
 
         const cooked = Object.assign({ 'width':'1024px' }, config)
         super(cooked)
@@ -15,7 +29,7 @@ class BlatTable extends RegionTableBase {
 
     }
 
-    set descriptionDOM(config: any) {
+    set descriptionDOM(config: BlatTableConfig) {
 
         if (config.description) {
 
@@ -43,11 +57,11 @@ class BlatTable extends RegionTableBase {
 
     }
 
-    tableRowDOM(record: any[]): HTMLElement {
+    tableRowDOM(record: BlatRecord): HTMLElement {
 
         const dom = DOMUtils.div({ class: 'igv-roi-table-row' })
 
-        const pretty = record.map(item => isFinite(item) ? StringUtils.numberFormatter(item) : item)
+        const pretty = record.map(item => typeof item === 'number' && isFinite(item) ? StringUtils.numberFormatter(item) : item)
 
         for (let i = 0; i < pretty.length; i++) {
 
@@ -56,7 +70,7 @@ class BlatTable extends RegionTableBase {
 
             const format = this.columnFormat[ i ]
             el.style.width = format.width || 'fit-content'
-            el.innerText = pretty[ i ]
+            el.innerText = String(pretty[ i ])
         }
 
         this.tableRowDOMHelper(dom)
@@ -64,7 +78,7 @@ class BlatTable extends RegionTableBase {
         return dom
     }
 
-    renderTable(records: any[][]): void {
+    renderTable(records: BlatRecord[]): void {
 
         Array.from(this.tableRowContainer.querySelectorAll('.igv-roi-table-row')).forEach(el => el.remove())
 
@@ -80,24 +94,6 @@ class BlatTable extends RegionTableBase {
     }
 
     static getColumnFormatConfiguration(): Array<{ label: string, width: string }> {
-
-        /*
-        return [
-            { label:         'chr', width: '60px' },
-            { label:       'start', width: '100px' },
-            { label:         'end', width: '100px' },
-            { label:      'strand', width: '50px' },
-            { label:       'score', width: '50px' },
-            { label:       'match', width: '50px' },
-            { label:   "mis-match", width: '70px' },
-            { label:  "rep. match", width: '70px' },
-            { label:         "N's", width: '32px' },
-            { label: 'Q gap count', width: '90px' },
-            { label: 'Q gap bases', width: '90px' },
-            { label: 'T gap count', width: '90px' },
-            { label: 'T gap bases', width: '90px' },
-        ]
-        */
 
         return [
             { label:         'chr', width: '7%' },
@@ -116,17 +112,17 @@ class BlatTable extends RegionTableBase {
         ]
     }
 
-    static gotoButtonHandler(this: any, event: Event): void {
+    static gotoButtonHandler(this: BlatTable, event: Event): void {
 
         event.stopPropagation()
 
         const selectedRows = this.tableDOM.querySelectorAll('.igv-roi-table-row-selected')
 
-        const loci = []
+        const loci: string[] = []
         for (const row of selectedRows) {
 
             const record: string[] = []
-            row.querySelectorAll('div').forEach((el: any) => record.push(el.innerText))
+            row.querySelectorAll('div').forEach((el: HTMLDivElement) => record.push(el.innerText))
 
             const [ chr, start, end ] = record
             loci.push(`${ chr }:${ start }-${ end }`)
@@ -139,8 +135,6 @@ class BlatTable extends RegionTableBase {
         this.setTableRowSelectionState(false)
 
         this.browser.search(loci.join(' '))
-
-        // console.log(`browser search( ${loci.join(' ')} )`)
 
     }
 

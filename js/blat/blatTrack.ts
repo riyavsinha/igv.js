@@ -3,6 +3,9 @@ import TrackBase from "../trackBase.js"
 import BlatTable from "./blatTable.js"
 import {blat} from "./blatClient.js"
 import StaticFeatureSource from "../feature/staticFeatureSource.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config"
+import type {GenomicFeature} from "../types/feature"
 
 const maxSequenceSize = 25000
 //const blatServer = "https://genome.ucsc.edu/cgi-bin/hgBlat"
@@ -10,9 +13,10 @@ const defaultBlatServer = "https://igv.org/services/blatUCSC.php"
 //const blatServer = "http://localhost:8000/blatUCSC.php"
 
 class BlatTrack extends FeatureTrack {
+    // Dynamic property access — intentional any for TrackBase config merging
     [key: string]: any
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
         if (!this.name) {
             this.name = 'Blat Results'
@@ -23,7 +27,7 @@ class BlatTrack extends FeatureTrack {
         // On initial creation features are fetched before track construction
         if(config.features) {
             this._features = config.features
-            this.featureSource = new StaticFeatureSource({features: config.features}, this.browser.genome)
+            this.featureSource = new StaticFeatureSource({features: config.features as GenomicFeature[]}, this.browser.genome)
             delete config.features
         }
     }
@@ -35,11 +39,11 @@ class BlatTrack extends FeatureTrack {
             const url = this.browser.config["blatServerURL"] as string
             const features = await blat({url, userSeq: this.sequence, db})
             this._features = features;
-            this.featureSource = new StaticFeatureSource({features}, this.browser.genome)
+            this.featureSource = new StaticFeatureSource({features: features as GenomicFeature[]}, this.browser.genome)
         }
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof TrackBase).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof TrackBase).defaultColor
 
         return this
     }
@@ -48,9 +52,9 @@ class BlatTrack extends FeatureTrack {
 
         if (undefined === this.table) {
 
-            const rows = this._features.map((f: any) => [
-                this.browser.genome.getChromosomeDisplayName(f.chr),
-                (f.start + 1),
+            const rows = this._features.map((f: Record<string, unknown>) => [
+                this.browser.genome.getChromosomeDisplayName(f.chr as string),
+                ((f.start as number) + 1),
                 f.end,
                 f.strand,
                 f.score,
@@ -68,8 +72,8 @@ class BlatTrack extends FeatureTrack {
                 {
                     browser: this.browser,
                     parent: this.browser.columnContainer,
-                    headerTitle: this.config.title,
-                    description: this.sequence,
+                    headerTitle: this.config.title as string,
+                    description: this.sequence as string,
                     dismissHandler: () => {
                         this.table.dismiss()
                         this.table.dispose()
@@ -93,10 +97,10 @@ class BlatTrack extends FeatureTrack {
 
         menuItems.push('<hr/>')
 
-        function click(this: BlatTrack) {
-            this.openTableView()
-        }
-        menuItems.push({ label: 'Open table view', click } as any)
+        const self = this
+        const element = document.createElement('div')
+        element.textContent = 'Open table view'
+        menuItems.push({ element, click() { self.openTableView() } })
 
         return menuItems
     }
@@ -115,7 +119,7 @@ class BlatTrack extends FeatureTrack {
 }
 
 
-async function createBlatTrack({sequence, browser, name, title}: { sequence: string, browser: any, name?: string, title?: string }): Promise<void> {
+async function createBlatTrack({sequence, browser, name, title}: { sequence: string, browser: Browser, name?: string, title?: string }): Promise<void> {
 
     if (sequence.length > maxSequenceSize) {
         browser.alert.present(`Sequence size exceeds maximum allowed length (${sequence.length} > ${maxSequenceSize})`)
@@ -125,7 +129,7 @@ async function createBlatTrack({sequence, browser, name, title}: { sequence: str
     try {
 
         const db = browser.genome.ucscID   // TODO -- blat specific property
-        const url = browser.config["blatServerURL"] || defaultBlatServer
+        const url = (browser.config["blatServerURL"] as string) || defaultBlatServer
         const features = await blat({url, userSeq: sequence, db})
 
         const trackConfig = {
@@ -139,8 +143,8 @@ async function createBlatTrack({sequence, browser, name, title}: { sequence: str
             features
         }
 
-        const track = (await browser.loadTrackList([trackConfig]))[0]
-        track.openTableView()
+        const track = (await browser.loadTrackList([trackConfig as TrackConfig]))[0]
+        if (track) track.openTableView()
 
     } catch (e) {
         browser.alert.present(`Error performing blat search:  ${e}`)
