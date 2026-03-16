@@ -6,6 +6,12 @@ interface LocusOptions {
     end?: number
 }
 
+interface LocusLike {
+    chr: string
+    start: number
+    end: number
+}
+
 class Locus {
 
     chr: string
@@ -19,15 +25,15 @@ class Locus {
     }
 
 
-    contains(locus: Locus): boolean {
+    contains(locus: LocusLike): boolean {
         return locus.chr === this.chr && locus.start >= this.start && locus.end <= this.end
     }
 
-    overlaps(locus: Locus): boolean {
+    overlaps(locus: LocusLike): boolean {
         return locus.chr === this.chr && !(locus.end < this.start || locus.start > this.end)
     }
 
-    extend(l: Locus): void {
+    extend(l: LocusLike): void {
         if (l.chr !== this.chr) return
         this.start = Math.min(l.start, this.start)
         this.end = Math.max(l.end, this.end)

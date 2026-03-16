@@ -3,6 +3,8 @@ import {CircularView} from "../../node_modules/circular-view/dist/circular-view.
 import {createSupplementaryAlignments} from "../bam/supplementaryAlignment"
 import {IGVColor} from "../../node_modules/igv-utils/src/index.js"
 import {getChrColor} from "../util/getChrColor.js"
+import type Browser from "../browser.js"
+import type ReferenceFrame from "../referenceFrame.js"
 
 export interface Chord {
     uniqueId: string
@@ -21,6 +23,55 @@ interface ChromosomeRegion {
     bpLength: number
 }
 
+/** Alignment-like object with mate info, as accessed by circular view chord builders */
+interface AlignmentLike {
+    paired?: boolean
+    firstAlignment?: AlignmentLike
+    secondAlignment?: AlignmentLike
+    readName: string
+    chr: string
+    start: number
+    end: number
+    mate?: { chr: string; position: number }
+    getTag?(tag: string): string | number | undefined
+}
+
+/** BedPE-like feature as accessed by makeBedPEChords */
+interface BedPEFeatureLike {
+    _f?: BedPEFeatureLike
+    chr1: string
+    start1: number
+    end1: number
+    chr2: string
+    start2: number
+    end2: number
+}
+
+/** VCF variant-like feature as accessed by makeVCFChords */
+interface VCFFeatureLike {
+    _f?: VCFFeatureLike
+    chr: string
+    start: number
+    end: number
+    pos: number
+    info: Record<string, string>
+}
+
+/** Feature-like object from chord click callback */
+interface ChordFeature {
+    refName: string
+    chr: string
+    start: number
+    end: number
+    mate?: ChordFeature
+}
+
+interface Genome {
+    wgChromosomeNames?: string[]
+    getChromosome(name: string): { name: string; bpLength: number } | undefined
+    getChromosomeName(name: string): string
+}
+
 const MINIMUM_SV_LENGTH: number = 1000000
 
 const circViewIsInstalled = (): boolean => CircularView.isInstalled()
@@ -29,7 +80,7 @@ const shortChrName = (chrName: string): string => {
     return chrName.startsWith("chr") ? chrName.substring(3) : chrName
 }
 
-const makePairedAlignmentChords = (alignments: any[]): Chord[] => {
+const makePairedAlignmentChords = (alignments: AlignmentLike[]): Chord[] => {
 
     const chords: Chord[] = []
     for (let a of alignments) {
@@ -69,11 +120,11 @@ const makePairedAlignmentChords = (alignments: any[]): Chord[] => {
     return chords
 }
 
-const makeSupplementalAlignmentChords = (alignments: any[]): Chord[] => {
+const makeSupplementalAlignmentChords = (alignments: AlignmentLike[]): Chord[] => {
 
-    const makeChords = (a: any): void => {
-        const sa: string = a.getTag('SA')
-        const supAl: any[] = createSupplementaryAlignments(sa)
+    const makeChords = (a: AlignmentLike): void => {
+        const sa = a.getTag!('SA') as string
+        const supAl = createSupplementaryAlignments(sa)
         let n: number = 0
         for (let s of supAl) {
             if (s.start !== a.start) {
@@ -95,7 +146,7 @@ const makeSupplementalAlignmentChords = (alignments: any[]): Chord[] => {
     const chords: Chord[] = []
     for (let a of alignments) {
         if(a.paired) {
-            makeChords(a.firstAlignment)
+            makeChords(a.firstAlignment!)
             if(a.secondAlignment) {
                 makeChords(a.secondAlignment)
             }
@@ -106,9 +157,9 @@ const makeSupplementalAlignmentChords = (alignments: any[]): Chord[] => {
     return chords
 }
 
-const makeBedPEChords = (features: any[]): Chord[] => {
+const makeBedPEChords = (features: BedPEFeatureLike[]): Chord[] => {
 
-    return features.map((v: any) => {
+    return features.map((v) => {
 
         // If v is a whole-genome feature, get the true underlying variant.
         const f = v._f || v
@@ -128,15 +179,14 @@ const makeBedPEChords = (features: any[]): Chord[] => {
 }
 
 
-const makeVCFChords = (features: any[]): Chord[] => {
+const makeVCFChords = (features: VCFFeatureLike[]): Chord[] => {
 
-    const svFeatures: any[] = features.filter((v: any) => {
+    const svFeatures = features.filter((v) => {
         const f = v._f || v
-        const isLargeEnough: boolean = f.info && f.info.CHR2 && f.info.END &&
-            (f.info.CHR2 !== f.chr || Math.abs(Number.parseInt(f.info.END) - f.pos) > MINIMUM_SV_LENGTH)
-        return isLargeEnough
+        return !!(f.info && f.info.CHR2 && f.info.END &&
+            (f.info.CHR2 !== f.chr || Math.abs(Number.parseInt(f.info.END) - f.pos) > MINIMUM_SV_LENGTH))
     })
-    return svFeatures.map((v: any) => {
+    return svFeatures.map((v) => {
 
         // If v is a whole-genome feature, get the true underlying variant.
         const f = v._f || v
@@ -159,33 +209,33 @@ const makeVCFChords = (features: any[]): Chord[] => {
     })
 }
 
-function makeCircViewChromosomes(genome: any): ChromosomeRegion[] {
+function makeCircViewChromosomes(genome: Genome): ChromosomeRegion[] {
     const regions: ChromosomeRegion[] = []
-    const colors: string[] = []
     if(genome.wgChromosomeNames) {
         for (let chrName of genome.wgChromosomeNames) {
             const chr = genome.getChromosome(chrName)
-            colors.push(getChrColor(chr.name))
-            regions.push(
-                {
-                    name: chr.name,
-                    bpLength: chr.bpLength
-                }
-            )
+            if (chr) {
+                regions.push(
+                    {
+                        name: chr.name,
+                        bpLength: chr.bpLength
+                    }
+                )
+            }
         }
     }
     return regions
 }
 
-function sendChords(chords: Chord[], track: any, refFrame: any, alpha: number): void {
+function sendChords(chords: Chord[], track: { name?: string; color?: unknown; browser: Browser }, refFrame: ReferenceFrame, alpha: number): void {
 
-    const baseColor: string =  track.color || 'rgb(0,0,255)'
+    const baseColor: string = (track.color as string) || 'rgb(0,0,255)'
 
     const chordSetColor: string = IGVColor.addAlpha("all" === refFrame.chr ? baseColor : getChrColor(refFrame.chr), alpha)
     const trackColor: string = IGVColor.addAlpha(baseColor, alpha)
 
     // name the chord set to include locus and filtering information
-    const encodedName: string = track.name.replaceAll(' ', '%20')
+    const encodedName: string = (track.name || '').replace(/ /g, '%20')
     const chordSetName: string = "all" === refFrame.chr ? encodedName :
         `${encodedName}  ${refFrame.chr}:${refFrame.start}-${refFrame.end}`
     track.browser.circularView.addChords(chords, {track: chordSetName, color: chordSetColor, trackColor: trackColor})
@@ -196,18 +246,18 @@ function sendChords(chords: Chord[], track: any, refFrame: any, alpha: number): 
 }
 
 
-function createCircularView(el: HTMLElement, browser: any): any {
+function createCircularView(el: HTMLElement, browser: Browser): InstanceType<typeof CircularView> {
 
     const circularView = new CircularView(el, {
 
-        onChordClick: (feature: any, chordTrack: any, pluginManager: any) => {
+        onChordClick: (feature: { data: unknown }) => {
 
-            const f1 = feature.data
+            const f1 = feature.data as ChordFeature
             const f2 = f1.mate
             addFrameForFeature(f1)
-            addFrameForFeature(f2)
+            if (f2) addFrameForFeature(f2)
 
-            function addFrameForFeature(feature: any): void {
+            function addFrameForFeature(feature: ChordFeature): void {
 
                 feature.chr = browser.genome.getChromosomeName(feature.refName)
                 let frameFound: boolean = false
