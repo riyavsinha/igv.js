@@ -1,5 +1,7 @@
 import {StringUtils} from "../../../node_modules/igv-utils/src/index.js"
 import TrackConfigContainer from "./trackConfigContainer.js"
+import Stanza from "./stanza.js"
+import type {TrackConfig} from "../../types/config.js"
 
 const supportedTypes = new Set([
     "bigbed", "bigwig", "biggenepred", "vcftabix", "refgene",
@@ -26,12 +28,12 @@ const typeFormatMap = new Map<string, string>([
 
 class TrackDbHub {
 
-    groupStanzas: any[]
-    trackStanzas: any[]
+    groupStanzas: Stanza[]
+    trackStanzas: Stanza[]
     groupTrackConfigs?: TrackConfigContainer[]
     groupPriorityMap?: Map<string, number>
 
-    constructor(trackStanzas: any[], groupStanzas: any[]) {
+    constructor(trackStanzas: Stanza[], groupStanzas: Stanza[]) {
         this.groupStanzas = groupStanzas
         this.trackStanzas = trackStanzas
     }
@@ -63,10 +65,10 @@ class TrackDbHub {
             const hasGroups = this.groupStanzas && this.groupStanzas.length > 0
             if (hasGroups) {
                 for (const groupStanza of this.groupStanzas) {
-                    const name = groupStanza.getProperty("name")
+                    const name = groupStanza.getProperty("name")!
                     const defaultOpen = groupStanza.getProperty("defaultIsClosed") === "0"
-                    const priority = groupStanza.hasProperty("priority") ? getPriority(groupStanza.getProperty("priority")) : Number.MAX_SAFE_INTEGER - 1
-                    const container = new TrackConfigContainer(name, groupStanza.getProperty("label"), priority, defaultOpen)
+                    const priority = groupStanza.hasProperty("priority") ? getPriority(groupStanza.getProperty("priority")!) : Number.MAX_SAFE_INTEGER - 1
+                    const container = new TrackConfigContainer(name, groupStanza.getProperty("label")!, priority, defaultOpen)
                     trackContainers.set(name, container)
                     this.groupTrackConfigs.push(container)
                 }
@@ -83,11 +85,11 @@ class TrackDbHub {
                 let parent: TrackConfigContainer | undefined
 
                 if (s.hasOwnProperty("parent")) {
-                    parent = trackContainers.get(s.getOwnProperty("parent"))
+                    parent = trackContainers.get(s.getOwnProperty("parent")!)
                 }
 
                 if (!parent && hasGroups && s.hasProperty("group")) {
-                    const groupName = s.getProperty("group")
+                    const groupName = s.getProperty("group")!
                     if (trackContainers.has(groupName)) {
                         parent = trackContainers.get(groupName)
                     } else {
@@ -100,11 +102,11 @@ class TrackDbHub {
 
                 if (isContainer) {
 
-                    const name = s.getProperty("track")
-                    const priority = s.hasProperty("priority") ? getPriority(s.getProperty("priority")) : Number.MAX_SAFE_INTEGER - 1
+                    const name = s.getProperty("track")!
+                    const priority = s.hasProperty("priority") ? getPriority(s.getProperty("priority")!) : Number.MAX_SAFE_INTEGER - 1
                     const defaultOpen = s.getProperty("defaultIsClosed") === "0"
                     const longLabel = s.getOwnProperty("longLabel")
-                    const label = longLabel && longLabel.length < 50 ? longLabel : s.getOwnProperty("shortLabel")
+                    const label = (longLabel && longLabel.length < 50 ? longLabel : s.getOwnProperty("shortLabel")) || ''
                     const container = new TrackConfigContainer(name, label, priority, defaultOpen)
 
                     if (trackContainers.has(name)) {
@@ -142,19 +144,19 @@ class TrackDbHub {
         return this.groupTrackConfigs
     }
 
-    #getTracksConfigs(filter?: (t: any) => boolean): any[] {
+    #getTracksConfigs(filter?: (t: Stanza) => boolean): TrackConfig[] {
         return this.trackStanzas.filter(t => {
-            return supportedTypes.has(t.format) && t.hasProperty("bigDataUrl") && (!filter || filter(t))
+            return supportedTypes.has(t.format!) && t.hasProperty("bigDataUrl") && (!filter || filter(t))
         })
             .map(t => this.#getTrackConfig(t))
     }
 
 
-    #getTrackConfig(t: any): any {
+    #getTrackConfig(t: Stanza): TrackConfig {
 
-        const format = typeFormatMap.get(t.format) || t.format
+        const format = typeFormatMap.get(t.format!) || t.format
 
-        const config: any = {
+        const config: TrackConfig = {
             "id": t.getProperty("track"),
             "name": t.getProperty("shortLabel"),
             "format": format,
@@ -174,10 +176,10 @@ class TrackDbHub {
         }
 
         if (t.hasProperty("autoScale")) {
-            config.autoscale = t.getProperty("autoScale").toLowerCase() === "on"
+            config.autoscale = t.getProperty("autoScale")!.toLowerCase() === "on"
         }
         if (t.hasProperty("maxHeightPixels")) {
-            const tokens = t.getProperty("maxHeightPixels").split(":")
+            const tokens = t.getProperty("maxHeightPixels")!.split(":")
             config.maxHeight = Number.parseInt(tokens[0])
             config.height = Number.parseInt(tokens[1])
             config.minHeight = Number.parseInt(tokens[2])
@@ -185,15 +187,15 @@ class TrackDbHub {
         // TODO -- graphTypeDefault
         // TODO -- windowingFunction
         if (t.hasProperty("color")) {
-            const c = t.getProperty("color")
+            const c = t.getProperty("color")!
             config.color = c.indexOf(",") > 0 ? `rgb(${c})` : c
         }
         if (t.hasProperty("altColor")) {
-            const c = t.getProperty("altColor")
+            const c = t.getProperty("altColor")!
             config.altColor = c.indexOf(",") > 0 ? `rgb(${c})` : c
         }
         if (t.hasProperty("viewLimits")) {
-            const tokens = t.getProperty("viewLimits").split(":")
+            const tokens = t.getProperty("viewLimits")!.split(":")
             let min: number | undefined, max: number | undefined
             if (tokens.length > 1) {
                 min = Number.parseInt(tokens[0])
@@ -216,7 +218,7 @@ class TrackDbHub {
                 config.visible = false
             }
             else {
-                config.displayMode = vizModeMap.get(t.getProperty("visibility")) || "COLLAPSED"
+                config.displayMode = vizModeMap.get(t.getProperty("visibility")!) || "COLLAPSED"
             }
         }
         if (t.hasProperty("url")) {
@@ -242,11 +244,11 @@ class TrackDbHub {
         }
 
         if (t.hasProperty("metadata")) {
-            config.attributes = parseMetadata(t.getProperty("metadata"))
+            config.attributes = parseMetadata(t.getProperty("metadata")!)
         }
 
         if (t.hasProperty("maxWindowToDraw")) {
-            let maxWindowToDraw = parseInt(t.getProperty("maxWindowToDraw"), 10)
+            let maxWindowToDraw = parseInt(t.getProperty("maxWindowToDraw")!, 10)
             if (maxWindowToDraw > Number.MAX_SAFE_INTEGER) {
                 maxWindowToDraw = Number.MAX_SAFE_INTEGER
             }
@@ -255,7 +257,7 @@ class TrackDbHub {
 
         // IGV does not support "maxWindowCoverage" in the same way as UCSC. Use to limit visibility window
         if (t.hasProperty("maxWindowCoverage")) {
-            let maxWindowToDraw = parseInt(t.getProperty("maxWindowCoverage"), 10)
+            let maxWindowToDraw = parseInt(t.getProperty("maxWindowCoverage")!, 10)
             if (maxWindowToDraw > Number.MAX_SAFE_INTEGER) {
                 maxWindowToDraw = Number.MAX_SAFE_INTEGER
             }

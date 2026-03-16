@@ -9,6 +9,7 @@
 import TrackDbHub from "./trackDbHub.js"
 import {loadStanzas} from "./hubParser.js"
 import {igvxhr} from "../../../node_modules/igv-utils/src/index.js"
+import type {TrackConfig} from "../../types/config.js"
 
 const idMappings = new Map<string, string>([
     ["hg38", "GCF_000001405.40"],
@@ -92,7 +93,7 @@ class Hub {
     }
 
 
-    getGenomeConfig(genomeId?: string): any {
+    getGenomeConfig(genomeId?: string): Record<string, unknown> {
 
         const genomeStanza = genomeId ? this.genomeStanzas.find(s => s.getProperty("genome") === genomeId) : this.genomeStanzas[0]
         if (!genomeStanza) {
@@ -101,7 +102,7 @@ class Hub {
         return this.#getGenomeConfig(genomeStanza)
     }
 
-    #getGenomeConfig(genomeStanza: Stanza): any {
+    #getGenomeConfig(genomeStanza: Stanza): Record<string, unknown> {
 
         const id = genomeStanza.getProperty("genome")
         const gsName =
@@ -111,7 +112,7 @@ class Hub {
             genomeStanza.getProperty("description")
         const name = gsName + (gsName ? ` (${id})` : ` ${id}`)
 
-        const config: any = {
+        const config: Record<string, unknown> = {
 
             id: id,
             name: name,
@@ -211,7 +212,7 @@ class Hub {
     }
 
 
-    #getTracksConfigs(filter?: (t: Stanza) => boolean): any[] {
+    #getTracksConfigs(filter?: (t: Stanza) => boolean): TrackConfig[] {
         if (!this.trackStanzas) return []
         return this.trackStanzas.filter(t => {
             return Hub.supportedTypes.has(t.format!) && t.hasProperty("bigDataUrl") && (!filter || filter(t))
@@ -219,11 +220,11 @@ class Hub {
             .map(t => this.#getTrackConfig(t))
     }
 
-    #getTrackConfig(t: Stanza): any {
+    #getTrackConfig(t: Stanza): TrackConfig {
 
         const format = t.format
 
-        const config: any = {
+        const config: TrackConfig = {
             "id": t.getProperty("track"),
             "name": t.getProperty("shortLabel"),
             "format": format,
@@ -315,7 +316,7 @@ class Hub {
 
 const hubCache = new Map<string, Hub>()
 
-async function loadHub(url: string, options?: any): Promise<Hub> {
+async function loadHub(url: string, options?: Record<string, unknown>): Promise<Hub> {
     if (hubCache.has(url)) {
         return hubCache.get(url)!
     }

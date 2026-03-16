@@ -1,9 +1,11 @@
+import type {TrackConfig} from "../../types/config.js"
+
 class TrackConfigContainer {
         name: string
         priority: number
         label: string
         defaultOpen: boolean
-        tracks: any[]
+        tracks: TrackConfig[]
         children: TrackConfigContainer[]
 
         constructor(name: string, label: string, priority: number, defaultOpen: boolean) {
@@ -20,18 +22,18 @@ class TrackConfigContainer {
                 (!this.children || this.children.length === 0 || this.children.every(child => child.isEmpty()));
         }
 
-        map(callback: (track: any) => void): void {
+        map(callback: (track: TrackConfig) => void): void {
             this.tracks.forEach(callback);
             this.children.forEach(child => child.map(callback));
         }
 
-        findTracks(filter: (track: any) => boolean): any[] {
-            const found: any[] = [];
+        findTracks(filter: (track: TrackConfig) => boolean): TrackConfig[] {
+            const found: TrackConfig[] = [];
             this._find(found, filter);
             return found;
         }
 
-        _find(found: any[], filter: (track: any) => boolean): void {
+        _find(found: TrackConfig[], filter: (track: TrackConfig) => boolean): void {
             this.tracks.forEach(track => {
                 if (filter(track)) {
                     found.push(track);
@@ -56,7 +58,7 @@ class TrackConfigContainer {
 
         setTrackVisibility(loadedTrackPaths: Set<string>): void {
             this.tracks.forEach(track => {
-                track.visible = loadedTrackPaths.has(track.url);
+                track.visible = loadedTrackPaths.has(track.url as string);
             });
             this.children.forEach(child => child.setTrackVisibility(loadedTrackPaths));
         }
