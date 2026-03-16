@@ -364,7 +364,7 @@ class SpliceJunctionTrack extends TrackBase {
 
     clickedFeatures(clickState: ClickState) {
 
-        const allFeatures = super.clickedFeatures(clickState)
+        const allFeatures = super.clickedFeatures(clickState) as GenomicFeature[]
 
         return allFeatures.filter(function (feature) {
             return (feature.isVisible && feature.attributes)
@@ -376,7 +376,7 @@ class SpliceJunctionTrack extends TrackBase {
      */
     popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
-        if (features === undefined) features = this.clickedFeatures(clickState)
+        if (features === undefined) features = this.clickedFeatures(clickState) as GenomicFeature[]
         const genomicLocation = clickState.genomicLocation
 
         const data = []

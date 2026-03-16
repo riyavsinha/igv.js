@@ -241,7 +241,7 @@ function unsetColorMenuItem(trackView: TrackView, label: string): MenuItem {
     return {
         element,
         click: () => {
-            trackView.track.color = trackView.track._initialColor || trackView.track.constructor.defaultColor;
+            trackView.track.color = trackView.track._initialColor || (trackView.track.constructor as { defaultColor?: string }).defaultColor;
             trackView.repaintViews();
         }
     };
@@ -255,7 +255,7 @@ function unsetAltColorMenuItem(trackView: TrackView, label: string): MenuItem {
     return {
         element,
         click: () => {
-            trackView.track.altColor = trackView.track._initialAltColor || trackView.track.constructor.defaultColor;
+            trackView.track.altColor = trackView.track._initialAltColor || (trackView.track.constructor as { defaultColor?: string }).defaultColor;
             trackView.repaintViews();
         }
     };

@@ -281,7 +281,7 @@ class FeatureTrack extends TrackBase {
     clickedFeatures(clickState: ClickState) {
 
         const y = clickState.y - this.margin
-        const allFeatures = super.clickedFeatures(clickState)
+        const allFeatures = super.clickedFeatures(clickState) as GenomicFeature[]
 
         let row
         switch (this.displayMode) {
@@ -305,7 +305,7 @@ class FeatureTrack extends TrackBase {
      */
     popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
-        if (features === undefined) features = this.clickedFeatures(clickState)
+        if (features === undefined) features = this.clickedFeatures(clickState) as GenomicFeature[]
         const genomicLocation = clickState.genomicLocation
         const data = []
         for (let feature of features) {
@@ -420,7 +420,7 @@ class FeatureTrack extends TrackBase {
 
     contextMenuItemList(clickState: ClickState) {
 
-        const features = this.clickedFeatures(clickState)
+        const features = this.clickedFeatures(clickState) as GenomicFeature[]
 
         if (undefined === features || 0 === features.length) {
             return undefined

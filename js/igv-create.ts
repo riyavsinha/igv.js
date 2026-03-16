@@ -4,8 +4,10 @@ import GenomeUtils from "./genome/genomeUtils.js"
 import InputDialog  from "./ui/components/inputDialog.js"
 import createWebSocketClient from "./websocket/websocketClient.js"
 import {setDefaults} from "./util/defaultOptions.js"
+import type {BrowserConfig, SessionObject, TrackConfig} from "./types/config"
+import type {Track} from "./types/ui"
 
-let allBrowsers: any[] = []
+let allBrowsers: Browser[] = []
 
 /**
  * Create an igv.browser instance.  This object defines the public API for interacting with the genome browser.
@@ -14,9 +16,9 @@ let allBrowsers: any[] = []
  * @param config - configuration options.
  *
  */
-async function createBrowser(parentDiv: HTMLElement, config: any): Promise<any> {
+async function createBrowser(parentDiv: HTMLElement, config: BrowserConfig): Promise<Browser> {
 
-    if (undefined === config) config = {}
+    if (undefined === config) config = {} as BrowserConfig
 
     // Initialize pre-defined genomes.  The genome list is shared among all browser instances
     if (!GenomeUtils.KNOWN_GENOMES) {
@@ -32,7 +34,7 @@ async function createBrowser(parentDiv: HTMLElement, config: any): Promise<any> 
         igvxhr.setApiKey(config.apiKey)
     }
     if (config.oauthToken) {
-        igvxhr.setOauthToken(config.oauthToken)
+        igvxhr.setOauthToken(config.oauthToken as string)
     }
     if (config.clientId && (!GoogleAuth.isInitialized())) {
         await GoogleAuth.init({
@@ -54,24 +56,24 @@ async function createBrowser(parentDiv: HTMLElement, config: any): Promise<any> 
     const sessionURL = config.sessionURL || config.session || config.hubURL
     if (sessionURL) {
         await browser.loadSession({
-            url: sessionURL
+            url: sessionURL as string
         })
     } else {
-        await browser.loadSessionObject(config)
+        await browser.loadSessionObject(config as unknown as SessionObject)
     }
 
     browser.navbar.navbarDidResize()
 
     if(config.enableWebSocket) {
-        const host = config.webSocketHost || "localhost"
-        const port = config.webSocketPort || 60141
+        const host = (config.webSocketHost as string) || "localhost"
+        const port = (config.webSocketPort as number) || 60141
         createWebSocketClient(host, port, browser)
     }
 
     return browser
 }
 
-function removeBrowser(browser: any): void {
+function removeBrowser(browser: Browser): void {
     browser.dispose()
     browser.root.remove()
     allBrowsers = allBrowsers.filter(item => item !== browser)
@@ -85,7 +87,7 @@ function removeAllBrowsers(): void {
     allBrowsers = []
 }
 
-function getAllBrowsers(): any[] {
+function getAllBrowsers(): Browser[] {
     return allBrowsers
 }
 
@@ -101,7 +103,7 @@ async function visibilityChange(): Promise<void> {
 
 
 
-function extractQuery(config: any): Record<string, string> {
+function extractQuery(config: BrowserConfig): Record<string, string> {
 
     var i1: number, i2: number, i: number, j: number, s: string, query: Record<string, string>, tokens: string[], uri: string, key: string, value: string
 
@@ -170,7 +172,7 @@ function extractQuery(config: any): Record<string, string> {
                 break
             }
 
-            const trackConfig: any = {url: files[i]}
+            const trackConfig: TrackConfig = {url: files[i]}
             if (indexURLs && indexURLs.length > i) {
                 trackConfig.indexURL = indexURLs[i]
             }
@@ -185,7 +187,7 @@ function extractQuery(config: any): Record<string, string> {
 }
 
 
-async function createTrack(config: any, browser: any): Promise<any> {
+async function createTrack(config: TrackConfig, browser: Browser): Promise<Track | undefined> {
     return await Browser.prototype.createTrack.call(browser, config)
 }
 

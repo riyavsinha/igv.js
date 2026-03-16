@@ -68,7 +68,7 @@ class SampleInfoViewport {
         let requiredHeight: number
         if (this.browser.trackViews.length > 1 && this.isIdeogram) {
             const [at, bt] = [this.browser.ideogramTrackView!.track, this.browser.rulerTrackView!.track]
-            requiredHeight = at.height + bt.height
+            requiredHeight = (at.height ?? 0) + (bt.height ?? 0)
         } else {
             requiredHeight = this.viewport.clientHeight
         }

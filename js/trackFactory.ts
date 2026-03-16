@@ -44,7 +44,7 @@ type Track =
 type TrackCreator = (config: TrackConfig, browser: Browser) => Track
 
 const trackFunctions = new Map<string, TrackCreator>([
-        ['ideogram', (config: TrackConfig, browser: Browser) => new IdeogramTrack(browser)],
+        ['ideogram', (config: TrackConfig, browser: Browser) => new IdeogramTrack(browser) as unknown as Track],
         ['sequence', (config: TrackConfig, browser: Browser) => new SequenceTrack(config, browser)],
         ['feature', (config: TrackConfig, browser: Browser) => new FeatureTrack(config, browser)],
         ['seg', (config: TrackConfig, browser: Browser) => new SegTrack(config, browser)],

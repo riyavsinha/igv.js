@@ -108,7 +108,7 @@ export default async function handleMessage(json: IncomingMessage, browser: Brow
             case 'loadtrack': {
                 const {url, indexURL} = args
                 const track = await browser.loadTrack({url, indexURL})
-                returnMsg.message = `Track ${track.name} loaded successfully`
+                returnMsg.message = `Track ${track?.name} loaded successfully`
                 break
             }
 

@@ -275,7 +275,7 @@ class ShoeboxTrack extends TrackBase {
 
     clickedFeatures(clickState: ClickState) {
 
-        const allFeatures = super.clickedFeatures(clickState)
+        const allFeatures = super.clickedFeatures(clickState) as GenomicFeature[]
         const y = clickState.y
         return allFeatures.filter(function (feature) {
             const rect = feature.pixelRect
@@ -284,7 +284,7 @@ class ShoeboxTrack extends TrackBase {
     }
 
     hoverText(clickState: ClickState) {
-        const features = this.clickedFeatures(clickState)
+        const features = this.clickedFeatures(clickState) as GenomicFeature[]
         if (features && features.length > 0) {
             return `${features[0].sample}: ${features[0].value}`
         }
@@ -292,7 +292,7 @@ class ShoeboxTrack extends TrackBase {
 
     popupData(clickState: ClickState, featureList?: GenomicFeature[]) {
 
-        if (featureList === undefined) featureList = this.clickedFeatures(clickState)
+        if (featureList === undefined) featureList = this.clickedFeatures(clickState) as GenomicFeature[]
 
         const items = []
 

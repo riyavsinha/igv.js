@@ -3,7 +3,7 @@
  */
 
 import type ReferenceFrame from "../referenceFrame.js"
-import type {GenomicFeature, PopupData} from "./feature"
+import type {GenomicFeature} from "./feature"
 import type {TrackConfig} from "./config"
 
 export interface ClickState {
@@ -121,11 +121,8 @@ export interface Track {
     name?: string
     config?: TrackConfig
 
-    // Back-reference (set by TrackView constructor)
-    trackView?: TrackViewLike
-
-    // Layout
-    height: number
+    // Layout (set dynamically via TrackBase.init or constructor)
+    height?: number
     minHeight?: number
     maxHeight?: number
     autoHeight?: boolean
@@ -164,30 +161,15 @@ export interface Track {
     disableButtons?: boolean
 
     // Required methods
-    draw(config: DrawConfiguration): void
-
-    // Optional methods
-    paintAxis?: (ctx: CanvasRenderingContext2D, width: number, height: number, rgba?: string) => void
-    computePixelHeight?: (features: unknown, bpPerPixel?: number) => number
-    getFeatures?: (chr: string, start: number, end: number, bpPerPixel: number, viewport?: unknown) => Promise<unknown>
-    popupData?: (clickState: ClickState, features?: unknown[]) => Promise<PopupData[]> | PopupData[]
-    contextMenuItemList?: (clickState: ClickState) => (string | MenuItem)[] | null | undefined
-    hoverText?: (clickState: ClickState) => string | undefined
-    getSamples?: () => { names: string[]; height?: number; yOffset?: number }
-    createGroupLabels?: () => void
-    doAutoscale?: (features: unknown[]) => DataRange
-    updateScales?: (viewports: unknown[]) => unknown
-    dispose?: () => void
-    description?: string | (() => DocumentFragment | HTMLElement | string)
-    clickedFeatures?: (clickState: ClickState) => unknown[]
+    draw(config: unknown): void
 
     // Variant-specific
     nVariantRows?: number
     variantRowCount?: (count: number) => void
 
-    // Static access pattern — class constructors may have defaultColor
-    constructor: { defaultColor?: string; [key: string]: unknown }
-
-    // Dynamic property access — intentional any for config-merged properties
+    // Dynamic property access — intentional any for config-merged properties.
+    // Methods (computePixelHeight, popupData, etc.) and the constructor property
+    // are accessed via this index signature rather than explicit declarations
+    // to avoid contravariance conflicts with implementations that narrow parameter types.
     [key: string]: any
 }

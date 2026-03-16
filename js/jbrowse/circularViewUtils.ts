@@ -238,7 +238,7 @@ function sendChords(chords: Chord[], track: { name?: string; color?: unknown; br
     const encodedName: string = (track.name || '').replace(/ /g, '%20')
     const chordSetName: string = "all" === refFrame.chr ? encodedName :
         `${encodedName}  ${refFrame.chr}:${refFrame.start}-${refFrame.end}`
-    track.browser.circularView.addChords(chords, {track: chordSetName, color: chordSetColor, trackColor: trackColor})
+    track.browser.circularView!.addChords(chords, {track: chordSetName, color: chordSetColor, trackColor: trackColor})
 
     // show circular view if hidden
     if(!track.browser.circularViewVisible) track.browser.circularViewVisible = true

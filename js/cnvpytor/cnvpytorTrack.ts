@@ -169,12 +169,11 @@ class CNVPytorTrack extends TrackBase {
                     if (t) {
                         t.autoscale = false     // Scaling done from merged track
                         this.tracks.push(t)
+                        if (typeof t.postInit === 'function') {
+                            p.push(t.postInit())
+                        }
                     } else {
                         console.warn("Could not create track " + tconf)
-                    }
-
-                    if (typeof t.postInit === 'function') {
-                        p.push(t.postInit())
                     }
                     i++
                 }
@@ -375,12 +374,11 @@ class CNVPytorTrack extends TrackBase {
                 if (t) {
                     t.autoscale = false     // Scaling done from merged track
                     this.tracks.push(t)
+                    if (typeof t.postInit === 'function') {
+                        p.push(t.postInit())
+                    }
                 } else {
                     console.warn("Could not create track " + tconf)
-                }
-
-                if (typeof t.postInit === 'function') {
-                    p.push(t.postInit())
                 }
                 i++
             }

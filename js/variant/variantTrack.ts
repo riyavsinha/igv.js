@@ -493,7 +493,7 @@ class VariantTrack extends TrackBase {
 
     clickedFeatures(clickState: ClickState) {
 
-        let featureList = super.clickedFeatures(clickState)
+        let featureList = super.clickedFeatures(clickState) as VariantLike[]
 
         const vGap = (this.displayMode === 'EXPANDED') ? this.expandedVGap : this.squishedVGap
         const callHeight = vGap + ("SQUISHED" === this.displayMode ? this.squishedCallHeight : this.expandedCallHeight)
@@ -514,8 +514,8 @@ class VariantTrack extends TrackBase {
                 const variants = "COLLAPSED" === this.displayMode ? featureList : featureList.filter(f => f.row === variantRow)
                 const sampleName = this.sampleKeys[sampleRow]
                 const index = this.header.sampleNameMap.get(sampleName)
-                featureList = variants.map(v => {
-                    const call = v.calls[index]
+                return variants.map(v => {
+                    const call = v.calls![index]
                     // This is hacky, but it avoids expanding all calls in advance in case one is clicked, or
                     // alternatively storing backpoints to the variant for all calls.
                     call.genotypeString = expandGenotype(call, v)

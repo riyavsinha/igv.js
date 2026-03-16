@@ -53,6 +53,20 @@ import {isLocalFile, isGoogleDriveURL} from "./util/sessionResourceValidator.js"
 import type {BrowserConfig, SearchConfig, SessionLoadOptions, SessionObject, TrackConfig, SampleInfoConfig, ROIConfig} from "./types/config"
 import type {Track} from "./types/ui.js"
 import type {VpMouseDown, DragObject} from "./types/browser"
+import type {LocusLike} from "./referenceFrame"
+import type OverlayTrackButton from "./ui/overlayTrackButton.js"
+import type ROITableControl from "./roi/roiTableControl.js"
+import type SampleInfoControl from "./sample/sampleInfoControl.js"
+import type SampleNameControl from "./sample/sampleNameControl.js"
+import type {GenomicFeature} from "./types/feature"
+
+/** Typed interface for the vendored circular-view module */
+interface CircularViewInstance {
+    visible: boolean
+    clearChords(): void
+    addChords(chords: unknown[], options: { track: string; color: string; trackColor: string }): void
+    setAssembly(assembly: { name: string; id: string; chromosomes: unknown }): void
+}
 
 // css - $igv-scrollbar-outer-width: 14px;
 const igv_scrollbar_outer_width: number = 14
@@ -108,7 +122,7 @@ class Browser {
     referenceFrameList: ReferenceFrame[] = []
     genome!: Genome
     centerLineList: ViewportCenterLine[] = []
-    circularView: any
+    circularView: CircularViewInstance | undefined
     circularViewControl: CircularViewControl | undefined
     roiSets: TrackROISet[] = []
     vpMouseDown: VpMouseDown | undefined
@@ -181,7 +195,7 @@ class Browser {
 
         this.on('trackremoved', () => {
 
-            const found = this.findTracks((track: any) => typeof track.getSamples === 'function')
+            const found = this.findTracks((track: Track) => typeof track.getSamples === 'function')
 
             if (0 === found.length) {
 
@@ -433,21 +447,21 @@ class Browser {
         // TODO: deprecated
         this.roiSets = []
 
-        let session: any
+        let session: SessionObject
         if (options.url || options.file) {
             session = await Browser.loadSessionFile(options)
         } else {
-            session = options
+            session = options as unknown as SessionObject
         }
 
         await this.loadSessionObject(session)
     }
 
-    static async loadSessionFile(options: SessionLoadOptions): Promise<any> {
+    static async loadSessionFile(options: SessionLoadOptions): Promise<SessionObject> {
 
         const urlOrFile = options.url || options.file
 
-        let config: any
+        let config: SessionObject
         if (options.url && StringUtils.isString(options.url) && (options.url.startsWith("blob:") || options.url.startsWith("data:"))) {
             const json = Browser.uncompressSession(options.url)
             config = JSON.parse(json)
@@ -460,7 +474,7 @@ class Browser {
             if (filename.endsWith(".xml")) {
                 const knownGenomes = GenomeUtils.KNOWN_GENOMES
                 const string = await igvxhr.loadString(urlOrFile as string)
-                config = new XMLSession(string, knownGenomes!)
+                config = new XMLSession(string, knownGenomes!) as unknown as SessionObject
 
             } else if (filename.endsWith("hub.txt")) {
                 const hub = await loadHub(urlOrFile as string, options)
@@ -476,7 +490,7 @@ class Browser {
         return config
     }
 
-    async loadSessionObject(session: any): Promise<void> {
+    async loadSessionObject(session: SessionObject): Promise<void> {
 
         // Capture current configuration options that might be missing from session
         setDefaults(session, this.config)
@@ -487,7 +501,7 @@ class Browser {
 
         // Check for juicebox session
         if (session.browsers) {
-            session = await translateSession(session)
+            session = await translateSession(session as unknown as Parameters<typeof translateSession>[0]) as unknown as SessionObject
         }
 
         this.navbar.sampleInfoControl.setButtonVisibility(false)
@@ -545,9 +559,14 @@ class Browser {
             return
         }
 
-        const genomeConfig = StringUtils.isString(genomeOrReference) ?
-            await GenomeUtils.expandReference(this.alert, genomeOrReference) :
-            genomeOrReference
+        const genomeConfig: Record<string, unknown> | undefined = StringUtils.isString(genomeOrReference) ?
+            await GenomeUtils.expandReference(this.alert, genomeOrReference as string) as Record<string, unknown> | undefined :
+            genomeOrReference as Record<string, unknown>
+
+        if (!genomeConfig) {
+            console.warn("Could not resolve genome reference")
+            return
+        }
 
         const genome = await this.loadReference(genomeConfig, genomeConfig.locus || session.locus)
 
@@ -573,7 +592,7 @@ class Browser {
 
         // ROIs
         if (session.showROIOverlays !== undefined) {
-            this.roiManager.showOverlays = session.showROIOverlays
+            this.roiManager.showOverlays = session.showROIOverlays as boolean
         }
         this.roiManager.clearROIs()
         if (session.roi) {
@@ -584,13 +603,13 @@ class Browser {
         }
 
         // Sample info
-        const localSampleInfoFiles: any[] = []
-        const googleDriveSampleInfoFiles: any[] = []
+        const localSampleInfoFiles: string[] = []
+        const googleDriveSampleInfoFiles: { fileName: string; trackName: string }[] = []
         if (session.sampleinfo) {
             const sampleInfoArray = Array.isArray(session.sampleinfo) ? session.sampleinfo : [session.sampleinfo]
             for (const sampleInfoConfig of sampleInfoArray) {
                 if (sampleInfoConfig.file) {
-                    localSampleInfoFiles.push(sampleInfoConfig.file)
+                    localSampleInfoFiles.push(sampleInfoConfig.file.name)
                 } else {
                     const googleDriveItem = this.#createGoogleDriveItemIfPresent(sampleInfoConfig, 'Sample info', 'url', 'filename', 'Google Drive file')
                     if (googleDriveItem) {
@@ -603,8 +622,8 @@ class Browser {
         }
 
         // Tracks.  Start with genome tracks, if any, then append session tracks
-        const genomeTracks = genomeConfig.tracks || []
-        const trackConfigurations = session.tracks ? genomeTracks.concat(session.tracks) : genomeTracks
+        const genomeTracks = (genomeConfig.tracks as TrackConfig[]) || []
+        const trackConfigurations: TrackConfig[] = session.tracks ? genomeTracks.concat(session.tracks) : genomeTracks
 
         // Ensure that we always have a sequence track with no explicit URL (=> the reference genome sequence track)
         const pushSequenceTrack = trackConfigurations.filter((track: TrackConfig) => 'sequence' === track.type && !track.url && !track.fastaURL).length === 0
@@ -655,7 +674,7 @@ class Browser {
         }
 
         // Load a hidden track -- used to populate searchable database without creating a track
-        const configHidden = nonLocalTrackConfigurations.filter((config: any) => true === config.hidden)
+        const configHidden = nonLocalTrackConfigurations.filter((config: TrackConfig) => true === config.hidden)
         for (const config of configHidden) {
             const featureSource = FeatureSource(config, this.genome)
             await featureSource.getFeatures({chr: "1", start: 0, end: Number.MAX_SAFE_INTEGER})
@@ -666,7 +685,7 @@ class Browser {
         // If an initial locus is defined and represents a single basedo a "search" here.  This will force micro
         // adjustments after width of track column(s) is known.  This can be an issue when the center gide is shown
         // Without this adjustment the single base would be off center by a few pixels.
-        if (session.locus && Locus.isSingleBaseLocusString(session.locus)) {
+        if (session.locus && typeof session.locus === 'string' && Locus.isSingleBaseLocusString(session.locus)) {
             await this.search(session.locus)
         }
     }
@@ -690,16 +709,16 @@ class Browser {
 
     }
 
-    async loadReference(genomeConfig: any, initialLocus?: any): Promise<any> {
+    async loadReference(genomeConfig: Record<string, unknown>, initialLocus?: unknown): Promise<Genome> {
 
         this.removeAllTracks()   // Do this first, before new genome is set
         this.roiManager.clearROIs()
 
         this.navbar.setEnableTrackSelection(false)
 
-        let genome: any
+        let genome: Genome
         if (genomeConfig.gbkURL) {
-            genome = await loadGenbank(genomeConfig.gbkURL)
+            genome = await loadGenbank(genomeConfig.gbkURL as string) as unknown as Genome
         } else {
             genome = await Genome.createGenome(genomeConfig, this)
         }
@@ -710,25 +729,26 @@ class Browser {
 
         this.navbar.updateGenome(genome)
 
-        let locus = initialLocus || genome.initialLocus
+        let locus: unknown = initialLocus || genome.initialLocus
 
-        if (typeof (locus.chr) !== "undefined" && typeof (locus.start) !== "undefined") {
+        if (locus && typeof locus === 'object' && 'chr' in locus && 'start' in locus) {
 
             // Locus explicitly an object, either {chr, start, end} or {chr, start, bpPerPixel), skip search,
             // bug must still ensure chromosome is loaded
-            await this.genome.loadChromosome(locus.chr)
-            await this.updateLoci([locus], true)
+            const locusObj = locus as { chr: string; start: number; end: number }
+            await this.genome.loadChromosome(locusObj.chr)
+            await this.updateLoci([locusObj as LocusLike], true)
 
         } else {
             if (Array.isArray(locus)) {
                 locus = locus.join(' ')
             }
 
-            const locusFound = await this.search(locus, true)
+            const locusFound = await this.search(locus as string, true)
             if (!locusFound) {
                 console.error(`Cannot set initial locus ${locus}`)
                 if (locus !== genome.initialLocus) {
-                    await this.search(genome.initialLocus)
+                    await this.search(genome.initialLocus!)
                 }
             }
         }
@@ -748,7 +768,7 @@ class Browser {
         return genome
     }
 
-    async expandGenarkAccession(genarkAccession: string): Promise<any> {
+    async expandGenarkAccession(genarkAccession: string): Promise<Record<string, unknown>> {
 
         const url = convertToHubURL(genarkAccession)!
         const hub = await loadHub(url)
@@ -757,52 +777,57 @@ class Browser {
         return genomeConfig
     }
 
-    async loadGenome(idOrConfig: any): Promise<any> {
+    async loadGenome(idOrConfig: string | Record<string, unknown>): Promise<Genome> {
 
-        let genomeConfig: any
+        let genomeConfig: Record<string, unknown> | undefined
 
-        if (idOrConfig.genarkAccession) {
-            genomeConfig = await this.expandGenarkAccession(idOrConfig.genarkAccession)
-        } else {
+        if (!StringUtils.isString(idOrConfig) && (idOrConfig as Record<string, unknown>).genarkAccession) {
+            const cfg = idOrConfig as Record<string, unknown>
+            genomeConfig = await this.expandGenarkAccession(cfg.genarkAccession as string)
+        } else if (!StringUtils.isString(idOrConfig)) {
+            const cfg = idOrConfig as Record<string, unknown>
             // Translate the generic "url" field, used by clients such as igv-webapp
-            if (idOrConfig.url) {
-                if (StringUtils.isString(idOrConfig.url) && idOrConfig.url.endsWith("/hub.txt")) {
-                    idOrConfig.hubURL = idOrConfig.url
-                    delete idOrConfig.url
-                } else if ("gbk" === getFileExtension(idOrConfig.url)) {
-                    idOrConfig.gbkURL = idOrConfig.url
-                    delete idOrConfig.url
+            if (cfg.url) {
+                if (StringUtils.isString(cfg.url) && (cfg.url as string).endsWith("/hub.txt")) {
+                    cfg.hubURL = cfg.url
+                    delete cfg.url
+                } else if ("gbk" === getFileExtension(cfg.url as string)) {
+                    cfg.gbkURL = cfg.url
+                    delete cfg.url
                 }
             }
 
 
-            const isHubGenome = idOrConfig.hubURL || (idOrConfig.url && StringUtils.isString(idOrConfig.url) && idOrConfig.url.endsWith("/hub.txt"))
+            const isHubGenome = cfg.hubURL || (cfg.url && StringUtils.isString(cfg.url) && (cfg.url as string).endsWith("/hub.txt"))
             if (isHubGenome) {
-                const hub = await loadHub(idOrConfig.hubURL || idOrConfig.url, idOrConfig)
+                const hub = await loadHub((cfg.hubURL || cfg.url) as string, cfg as Record<string, unknown>)
                 genomeConfig = hub.getGenomeConfig()
-            } else if (StringUtils.isString(idOrConfig) || !(idOrConfig.url || idOrConfig.fastaURL || idOrConfig.twoBitURL || idOrConfig.gbkURL)) {
-                // Either an ID, a json string, or an object missing required properties.
-                genomeConfig = await GenomeUtils.expandReference(this.alert, idOrConfig)
+            } else if (!(cfg.url || cfg.fastaURL || cfg.twoBitURL || cfg.gbkURL)) {
+                // Object missing required properties.
+                genomeConfig = await GenomeUtils.expandReference(this.alert, cfg) as Record<string, unknown> | undefined
             } else {
-                genomeConfig = idOrConfig
+                genomeConfig = cfg
             }
+        } else {
+            // String ID or json string
+            genomeConfig = await GenomeUtils.expandReference(this.alert, idOrConfig as string) as Record<string, unknown> | undefined
         }
 
-        await this.loadReference(genomeConfig)
+        await this.loadReference(genomeConfig!)
 
-        let tracks: any[]
-        if (genomeConfig.gbkURL || "gbk" === genomeConfig.format) {
+        let tracks: TrackConfig[]
+        if (genomeConfig!.gbkURL || "gbk" === genomeConfig!.format) {
             tracks = [{
                 name: "Annotations",
                 format: "gbk",
-                url: genomeConfig.gbkURL
+                url: genomeConfig!.gbkURL as string
             }]
         } else {
-            tracks = genomeConfig.tracks || []
+            tracks = (genomeConfig!.tracks as TrackConfig[]) || []
         }
 
         // Insure that we always have a sequence track
-        const pushSequenceTrack = tracks.filter((track: any) => track.type === 'sequence').length === 0
+        const pushSequenceTrack = tracks.filter((track: TrackConfig) => track.type === 'sequence').length === 0
         if (pushSequenceTrack) {
             tracks.push({type: "sequence", order: defaultSequenceTrackOrder})
         }
@@ -870,7 +895,7 @@ class Browser {
         }
     }
 
-    setCustomCursorGuideMouseHandler(mouseHandler: any): void {
+    setCustomCursorGuideMouseHandler(mouseHandler: ((data: { start: number; bp: number; end: number; interpolant: number }) => void) | undefined): void {
         this.cursorGuide.customMouseHandler = mouseHandler
     }
 
@@ -886,7 +911,7 @@ class Browser {
         }
     }
 
-    async loadTrackList(configList: any[]): Promise<any[]> {
+    async loadTrackList(configList: TrackConfig[]): Promise<(Track | undefined)[]> {
 
         try {
             this.startSpinner()   // TODO this.startSpinner() when we have one
@@ -899,7 +924,7 @@ class Browser {
                 }
             }
 
-            const promises: Promise<any>[] = []
+            const promises: Promise<Track | undefined>[] = []
             for (const config of configList) {
                 promises.push(this.#loadTrackHelper(config))
             }
@@ -907,7 +932,7 @@ class Browser {
             const loadedTracks = await Promise.all(promises)
 
             // If any tracks are selected show the selection buttons
-            if (this.trackViews.some(({track}: any) => track.selected)) {
+            if (this.trackViews.some(({track}: TrackView) => track.selected)) {
                 this.navbar.setEnableTrackSelection(true)
             }
 
@@ -924,7 +949,7 @@ class Browser {
         }
     }
 
-    async loadTrack(config: any): Promise<any> {
+    async loadTrack(config: TrackConfig): Promise<Track | undefined> {
 
         const loadedTracks = await this.loadTrackList([config])
         if (config.autoscaleGroup) {
@@ -933,24 +958,25 @@ class Browser {
         return loadedTracks[0]
     }
 
-    async #loadTrackHelper(config: any): Promise<any> {
+    async #loadTrackHelper(configOrJson: TrackConfig | string): Promise<Track | undefined> {
 
         // config might be json
-        if (StringUtils.isString(config)) {
-            config = JSON.parse(config)
-        }
+        const config: TrackConfig = StringUtils.isString(configOrJson)
+            ? JSON.parse(configOrJson as string) as TrackConfig
+            : configOrJson as TrackConfig
 
         if (config.format && config.format.toLowerCase() === 'sampleinfo') {
-            return this.loadSampleInfo(config)
+            await this.loadSampleInfo(config as unknown as SampleInfoConfig)
+            return undefined
         }
 
-        let track: any
+        let track: Track | undefined
         try {
             track = await this.createTrack(config)
 
-        } catch (error: any) {
+        } catch (error: unknown) {
 
-            let msg = error.message || error.error || error.toString()
+            let msg = error instanceof Error ? error.message : String(error)
 
             const httpMessages: { [key: string]: string } =
                 {
@@ -963,7 +989,7 @@ class Browser {
                 msg = httpMessages[msg]
             }
 
-            msg = `${msg} : ${FileUtils.isFile(config.url) ? config.url.name : config.url}`
+            msg = `${msg} : ${FileUtils.isFile(config.url) ? (config.url as File).name : config.url}`
             const err = new Error(msg)
             console.error(err)
             throw err
@@ -977,7 +1003,7 @@ class Browser {
         }
     }
 
-    async addTrack(track: any): Promise<any> {
+    async addTrack(track: Track): Promise<Track> {
 
         // Set order field of track here, otherwise track order might get shuffled during asynchronous load
         if (undefined === track.order) {
@@ -1004,7 +1030,7 @@ class Browser {
             }
         }
 
-        track.trackView.enableTrackSelection(this.navbar.getEnableTrackSelection())
+        (track.trackView as TrackView).enableTrackSelection(this.navbar.getEnableTrackSelection())
 
         return track
 
@@ -1018,7 +1044,7 @@ class Browser {
         this.roiManager.clearROIs()
     }
 
-    async getUserDefinedROIs(): Promise<any[]> {
+    async getUserDefinedROIs(): Promise<GenomicFeature[]> {
 
         if (this.roiManager) {
 
@@ -1028,9 +1054,9 @@ class Browser {
             }
 
             const featureHash = await set.getAllFeatures()
-            const featureList: any[] = []
+            const featureList: GenomicFeature[] = []
             for (let value of Object.values(featureHash)) {
-                featureList.push(...(value as any[]))
+                featureList.push(...value)
             }
 
             return featureList
@@ -1045,7 +1071,7 @@ class Browser {
         return list.length > 0 ? list[0] : undefined
     }
 
-    async createTrack(config: any): Promise<any> {
+    async createTrack(config: TrackConfig): Promise<Track | undefined> {
 
         // Resolve function and promise urls
         let url = await URIUtils.resolveURL(config.url || config.fastaURL)
@@ -1066,7 +1092,7 @@ class Browser {
                 }
             } else if (config.sourceType === "htsget") {
                 // Finally check for htsget URL.  This is a longshot
-                await HtsgetReader.inferFormat(config)
+                await HtsgetReader.inferFormat(config as unknown as Parameters<typeof HtsgetReader.inferFormat>[0])
             }
         }
 
@@ -1633,10 +1659,10 @@ class Browser {
     async search(stringOrArray: string | string[], init?: boolean): Promise<boolean> {
 
         const loci = await search(this, stringOrArray as string)
-        return this.updateLoci(loci ?? [], init)
+        return this.updateLoci((loci ?? []) as LocusLike[], init)
     }
 
-    async updateLoci(loci: any[], init?: boolean): Promise<boolean> {
+    async updateLoci(loci: LocusLike[], init?: boolean): Promise<boolean> {
 
         if (loci && loci.length > 0) {
 
@@ -1825,7 +1851,7 @@ class Browser {
         for (const {track} of this.trackViews) {
             try {
 
-                let config: any
+                let config: Record<string, unknown> | undefined
                 if (typeof track.getState === "function") {
                     config = TrackBase.prepareConfigForSession(track.getState())
                 } else if (track.config) {
@@ -1840,9 +1866,9 @@ class Browser {
 
                     config.order = track.order
 
-                    trackJson.push(config)
+                    trackJson.push(config as TrackConfig)
                 }
-            } catch (e: any) {
+            } catch (e: unknown) {
                 const str = `Track: ${track.name}: ${e}`
                 console.error(str)
                 errors.push(str)
@@ -1985,7 +2011,7 @@ class Browser {
             for (const path of this.sampleInfo.sampleInfoFiles) {
                 const config = TrackBase.prepareConfigForSession({url: path})
                 if (config.file) {
-                    localSampleInfoFiles.push(config.file)
+                    localSampleInfoFiles.push(config.file as string)
                 }
                 // Check if the url field contains a Google Drive URL
                 const googleDriveItem = this.#createGoogleDriveItemIfPresent(config, 'Sample info', 'url', 'filename', 'Google Drive file')
@@ -2216,10 +2242,10 @@ class Browser {
 
     static uncompressSession(url: string): string {
 
-        let bytes: any
+        let bytes: Uint8Array
         if (url.indexOf('/gzip;base64') > 0) {
             //Proper dataURI
-            bytes = BGZip.decodeDataURI(url)
+            bytes = BGZip.decodeDataURI(url) as Uint8Array
             let json = ''
             for (let b of bytes) {
                 json += String.fromCharCode(b)
@@ -2232,9 +2258,9 @@ class Browser {
         }
     }
 
-    createCircularView(container: HTMLElement, show?: boolean): any {
+    createCircularView(container: HTMLElement, show?: boolean): CircularViewInstance {
         show = show === true   // convert undefined to boolean
-        this.circularView = createCircularView(container, this)
+        this.circularView = createCircularView(container, this) as unknown as CircularViewInstance
         this.circularViewControl = new CircularViewControl(this.navbar.toggleButtonContainer, this)
         this.circularView.setAssembly({
             name: this.genome.id,
@@ -2257,23 +2283,23 @@ class Browser {
     }
 
     // Navbar delegates
-    get overlayTrackButton(): any {
+    get overlayTrackButton(): OverlayTrackButton {
         return this.navbar.overlayTrackButton
     }
 
-    get roiTableControl(): any {
+    get roiTableControl(): ROITableControl {
         return this.navbar.roiTableControl
     }
 
-    get sampleNameControl(): any {
+    get sampleNameControl(): SampleNameControl {
         return this.navbar.sampleNameControl
     }
 
-    get sampleInfoControl(): any {
+    get sampleInfoControl(): SampleInfoControl {
         return this.navbar.sampleInfoControl
     }
 
-    async blat(sequence: string): Promise<any> {
+    async blat(sequence: string): Promise<void> {
         return createBlatTrack({sequence, browser: this, name: 'Blat', title: 'Blat'})
     }
 

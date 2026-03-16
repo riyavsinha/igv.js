@@ -31,12 +31,7 @@ class ChromosomeSelectWidget {
                     }
                 } else {
                     const chromosome = (await browser.genome.loadChromosome(this.select.value))!
-                    const locusObject: {chr: string, start?: number, end?: number} = {chr: chromosome.name}
-                    if (locusObject.start === undefined && locusObject.end === undefined) {
-                        locusObject.start = 0
-                        locusObject.end = chromosome.bpLength
-                    }
-                    browser.updateLoci([locusObject])
+                    browser.updateLoci([{chr: chromosome.name, start: 0, end: chromosome.bpLength}])
                 }
             }
         })

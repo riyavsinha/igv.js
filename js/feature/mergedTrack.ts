@@ -6,7 +6,7 @@ import {doAutoscale} from "../util/igvUtils.js"
 import type {TrackConfig} from "../types/config"
 import type Browser from "../browser.js"
 import type {ClickState, DrawConfiguration, Track} from "../types/ui"
-import type {GenomicFeature} from "../types/feature"
+import type {GenomicFeature, PopupData} from "../types/feature"
 import type ReferenceFrame from "../referenceFrame.js"
 
 /** Viewport shape used by updateScales — duck-typed from TrackViewport */
@@ -50,11 +50,11 @@ class MergedTrack extends TrackBase {
                 const t = await this.browser.createTrack(tconf)
                 if (t) {
                     this.tracks.push(t)
+                    if (typeof t.postInit === 'function') {
+                        await t.postInit()
+                    }
                 } else {
                     console.warn("Could not create track " + tconf)
-                }
-                if (typeof t.postInit === 'function') {
-                    await t.postInit()
                 }
             }
             // Default to autoscale unless scale if range or autoscale is not otherwise defined
@@ -256,7 +256,7 @@ class MergedTrack extends TrackBase {
         }
     }
 
-    popupData(clickState: ClickState) {
+    popupData(clickState: ClickState): PopupData[] | undefined {
 
         const clickedFeaturesArray = this.clickedFeatures(clickState)
 

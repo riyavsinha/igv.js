@@ -222,9 +222,9 @@ class TrackView {
             let initialTrackColor: string
 
             if (colorSelection === 'color') {
-                initialTrackColor = this.track._initialColor || this.track.constructor.defaultColor || ''
+                initialTrackColor = this.track._initialColor || (this.track.constructor as { defaultColor?: string }).defaultColor || ''
             } else {
-                initialTrackColor = this.track._initialAltColor || this.track.constructor.defaultColor || ''
+                initialTrackColor = this.track._initialAltColor || (this.track.constructor as { defaultColor?: string }).defaultColor || ''
             }
 
             let colorHandlers: { color: (s: string) => void; altColor: (s: string) => void; [key: string]: (s: string) => void }
@@ -261,7 +261,7 @@ class TrackView {
             }
 
             const trackColor = typeof this.track.color === 'string' ? this.track.color : undefined
-            const moreColorsPresentationColor = ('color' === colorSelection ? (trackColor || this.track.constructor.defaultColor) : (this.track.altColor || this.track.constructor.defaultColor)) || ''
+            const moreColorsPresentationColor = ('color' === colorSelection ? (trackColor || (this.track.constructor as { defaultColor?: string }).defaultColor) : (this.track.altColor || (this.track.constructor as { defaultColor?: string }).defaultColor)) || ''
             this.browser.genericColorPicker.configure(initialTrackColor, colorHandlers[colorSelection], moreColorsPresentationColor)
             this.browser.genericColorPicker.present(event as MouseEvent)
 

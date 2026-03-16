@@ -497,7 +497,7 @@ class WigTrack extends TrackBase {
 
     popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
-        if (features === undefined) features = this.clickedFeatures(clickState)
+        if (features === undefined) features = this.clickedFeatures(clickState) as GenomicFeature[]
 
         if (features && features.length > 0) {
 

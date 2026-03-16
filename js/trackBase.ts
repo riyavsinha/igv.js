@@ -26,7 +26,7 @@ class TrackBase {
 
     static defaultColor: string = 'rgb(150,150,150)'
 
-    static defaults: Record<string, any> = {
+    static defaults: Record<string, unknown> = {
         height: 50,
         autoHeight: false,
         visibilityWindow: undefined,
@@ -80,12 +80,13 @@ class TrackBase {
         }
 
         // Base default settings
-        const defaults: Record<string, any> = Object.assign({}, TrackBase.defaults)
+        const defaults: Record<string, unknown> = Object.assign({}, TrackBase.defaults)
 
-        // Overide with class specific default settings
-        if ((this.constructor as any).defaults) {
-            for (let key of Object.keys((this.constructor as any).defaults)) {
-                defaults[key] = (this.constructor as any).defaults[key]
+        // Override with class specific default settings
+        const ctorDefaults = (this.constructor as typeof TrackBase).defaults
+        if (ctorDefaults) {
+            for (let key of Object.keys(ctorDefaults)) {
+                defaults[key] = ctorDefaults[key]
             }
         }
 
@@ -122,19 +123,20 @@ class TrackBase {
         }
 
         if (config.description) {
-            // Override description -- displayed when clicking on track label.  Convert to function if neccessary
+            // Override description -- displayed when clicking on track label.  Convert to function if necessary.
+            // Uses index signature because config.description overrides the typed description() method
             if (typeof config.description === 'function') {
-                (this as any).description = config.description
+                (this as Record<string, unknown>)['description'] = config.description
             } else {
-                (this as any).description = () => config.description
+                (this as Record<string, unknown>)['description'] = () => config.description
             }
         }
     }
 
     async postInit(): Promise<TrackBase> {
 
-        this._initialColor = this.color || (this.constructor as any).defaultColor
-        this._initialAltColor = this.altColor || (this.constructor as any).defaultColor
+        this._initialColor = this.color || (this.constructor as typeof TrackBase).defaultColor
+        this._initialAltColor = this.altColor || (this.constructor as typeof TrackBase).defaultColor
         return this
     }
 
@@ -167,13 +169,13 @@ class TrackBase {
         }
     }
 
-    getState(): Record<string, any> {
+    getState(): Record<string, unknown> {
 
         const isJSONable = (item: unknown): boolean => !(item === undefined || typeof item === 'function' || item instanceof Promise)
 
         // Create copy of config, minus transient properties (convention is name starts with '_').  Also, all
         // function properties are transient as they cannot be saved in json
-        const state: Record<string, any> = {}
+        const state: Record<string, unknown> = {}
 
         const jsonableConfigKeys = Object.keys(this.config).filter((key: string) => isJSONable(this.config[key]))
 
@@ -193,10 +195,11 @@ class TrackBase {
         }
 
         // If user has changed other properties from defaults update state.
-        const defs: Record<string, any> = Object.assign({}, TrackBase.defaults)
-        if ((this.constructor as any).defaults) {
-            for (let key of Object.keys((this.constructor as any).defaults)) {
-                defs[key] = (this.constructor as any).defaults[key]
+        const defs: Record<string, unknown> = Object.assign({}, TrackBase.defaults)
+        const ctorDefs = (this.constructor as typeof TrackBase).defaults
+        if (ctorDefs) {
+            for (let key of Object.keys(ctorDefs)) {
+                defs[key] = ctorDefs[key]
             }
         }
         for (let key of Object.keys(defs)) {
@@ -230,17 +233,17 @@ class TrackBase {
         return this.browser.genome ? this.browser.genome.id : undefined
     }
 
-    setTrackProperties(properties: Record<string, any>): void {
+    setTrackProperties(properties: Record<string, string>): void {
 
         if (this.disposed) return   // This track was removed during async load
 
-        const tracklineConfg: Record<string, any> = {}
+        const tracklineConfg: Record<string, unknown> = {}
         let tokens: string[]
         for (let key of Object.keys(properties)) {
             switch (key.toLowerCase()) {
                 case "usescore":
                     tracklineConfg.useScore = (
-                        properties[key] === 1 || properties[key] === "1" || properties[key] === "on" || properties[key] === true)
+                        properties[key] === "1" || properties[key] === "on")
                     break
                 case "visibility":
                     //0 - hide, 1 - dense, 2 - full, 3 - pack, and 4 - squish
@@ -330,7 +333,7 @@ class TrackBase {
                 this[key] = value
                 if (key === "height" && this.trackView) {
                     try {
-                        const h = Number.parseInt(value)
+                        const h = Number.parseInt(value as string)
                         this.trackView.setTrackHeight(h)
                     } catch (e) {
                         console.error(e)
@@ -340,7 +343,7 @@ class TrackBase {
         }
     }
 
-    clickedFeatures(clickState: ClickState): any[] {
+    clickedFeatures(clickState: ClickState): unknown[] {
 
         // We use the cached features rather than method to avoid async load.  If the
         // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
@@ -570,8 +573,9 @@ class TrackBase {
             }
         }
 
-        if (this.featureSource && typeof (this.featureSource as any).nextFeature === 'function') {
-            return (this.featureSource as any).nextFeature(chr, position, direction, this.visibilityWindow)
+        const fs = this.featureSource as FeatureSource | undefined
+        if (fs && typeof (fs as Record<string, unknown>).nextFeature === 'function') {
+            return (fs as FeatureSource & { nextFeature: (chr: string, position: number, direction: boolean, visibilityWindow: number | undefined) => Promise<GenomicFeature | undefined> }).nextFeature(chr, position, direction, this.visibilityWindow)
         }
     }
 
@@ -599,9 +603,9 @@ class TrackBase {
         }
     }
 
-    static prepareConfigForSession(config: Record<string, any>): Record<string, any> {
+    static prepareConfigForSession(config: Record<string, unknown>): Record<string, unknown> {
 
-        const cooked: Record<string, any> = Object.assign({}, config)
+        const cooked: Record<string, unknown> = Object.assign({}, config)
         const lut: Record<string, string> =
             {
                 url: 'file',

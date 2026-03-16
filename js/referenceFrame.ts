@@ -8,7 +8,7 @@ import type TrackViewport from "./trackViewport.js"
 
 // Reference frame classes.  Converts domain coordinates (usually genomic) to pixel coordinates
 
-interface LocusLike {
+export interface LocusLike {
     chr: string
     start: number
     end: number
