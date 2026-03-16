@@ -80,6 +80,16 @@ This project is undergoing incremental TypeScript `any` elimination. The goal is
 - `js/sample/sampleInfoViewport.ts` (renderSVGContext typed)
 - `js/roi/ROIManager.ts` (renderSVGContext typed)
 
+### Debugging strategy: compare against pre-migration JS
+When investigating runtime errors or type issues introduced during the TS migration, compare current `.ts` code against the original `.js` version at the migration commit:
+1. `git log --all --oneline -- path/to/file.js` — find the last commit before TS migration
+2. `git show <commit>:path/to/file.js | grep -A 10 "relevant_code"` — view the original
+3. Look for method name changes (e.g., `getSequence` → `getSequenceInterval`), parameter handling differences (e.g., `(referenceFrameList)` → `(...args)`), or type casts that change semantics.
+
+Known bugs from migration:
+- `bamSource.ts`: `genome.getSequence()` (returns string) was changed to `genome.getSequenceInterval()` (returns SequenceInterval object), breaking `refSeq.toUpperCase()`. Fixed by restoring `getSequence`.
+- `zoomWidget.ts`: `on('locuschange', (referenceFrameList) => ...)` was changed to `(...args: unknown[])` and then cast `args` as the entire ReferenceFrame[] instead of extracting `args[0]`.
+
 ### Common pitfalls
 - **Don't widen `DrawConfiguration.context`** to include `C2SContext` — it causes cascade errors in every track's `draw()` method. Keep it as `CanvasRenderingContext2D`; C2SContext is assignable to it.
 - **`replace_all` with Edit tool** can catch substrings in method/variable names — be careful (e.g., replacing "SVGContext" also matches "renderSVGContext").

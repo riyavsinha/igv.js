@@ -99,7 +99,7 @@ class BamSource {
 
         const alignmentContainer = result
         if (alignmentContainer.hasAlignments) {
-            const sequence: string | undefined = await this.genome.getSequenceInterval?.(chr, alignmentContainer.start, alignmentContainer.end) as string | undefined
+            const sequence = await this.genome.getSequence?.(chr, alignmentContainer.start, alignmentContainer.end)
             if (sequence) {
                 alignmentContainer.coverageMap.refSeq = sequence
                 alignmentContainer.sequence = sequence
