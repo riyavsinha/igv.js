@@ -10,17 +10,22 @@ import styles from './index.module.css';
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+    <header className={styles.heroBanner}>
       <div className="container">
-        <Heading as="h1" className="hero__title">
+        <Heading as="h1" className={styles.heroTitle}>
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link
-            className="button button--secondary button--lg"
+            className={clsx('button button--lg', styles.primaryButton)}
             to="/docs/">
             Get Started
+          </Link>
+          <Link
+            className={clsx('button button--lg', styles.secondaryButton)}
+            href="https://github.com/riyavsinha/igv.js">
+            GitHub
           </Link>
         </div>
       </div>
@@ -28,13 +33,11 @@ function HomepageHeader() {
   );
 }
 
-
 export default function Home(): ReactNode {
-  const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
       title="Home"
-      description="Comprehensive documentation for igv.js - interactive genome visualization for the web">
+      description="Comprehensive documentation for igv.ts - interactive genome visualization for the web">
       <HomepageHeader />
       <main>
       </main>

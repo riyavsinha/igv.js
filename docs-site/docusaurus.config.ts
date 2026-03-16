@@ -3,7 +3,7 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'igv.js Documentation',
+  title: 'igv.ts',
   tagline: 'Interactive genome visualization for the web',
   favicon: 'img/favicon.ico',
 
@@ -18,6 +18,7 @@ const config: Config = {
   projectName: 'igv.js',
 
   onBrokenLinks: 'warn',
+  trailingSlash: false,
 
   i18n: {
     defaultLocale: 'en',
@@ -45,7 +46,7 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'igv.js',
+      title: 'igv.ts',
       items: [
         {
           type: 'docSidebar',
@@ -61,24 +62,30 @@ const config: Config = {
       ],
     },
     footer: {
-      style: 'dark',
+      style: 'light',
       links: [
         {
-          title: 'Documentation',
+          title: 'Docs',
           items: [
             {label: 'Introduction', to: '/docs/'},
           ],
         },
         {
-          title: 'Resources',
+          title: 'Community',
           items: [
             {label: 'igv.org', href: 'https://igv.org'},
-            {label: 'Official Docs', href: 'https://igv.org/doc/igvjs'},
-            {label: 'GitHub (upstream)', href: 'https://github.com/igvteam/igv.js'},
+            {label: 'Official API Docs', href: 'https://igv.org/doc/igvjs'},
+          ],
+        },
+        {
+          title: 'Source',
+          items: [
+            {label: 'GitHub', href: 'https://github.com/riyavsinha/igv.js'},
+            {label: 'Upstream', href: 'https://github.com/igvteam/igv.js'},
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} igv.js Documentation. Built with Docusaurus.`,
+      copyright: `igv.ts Documentation`,
     },
     prism: {
       theme: prismThemes.github,
