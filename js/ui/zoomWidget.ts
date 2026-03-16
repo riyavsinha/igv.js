@@ -88,7 +88,9 @@ class ZoomWidget {
 
         if (this.slider) {
             const referenceFrame = referenceFrameList[0]
-            const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)!
+            const chromosome = referenceFrame.genome?.getChromosome(referenceFrame.chr)
+            if (!chromosome) return
+            const {bpLength} = chromosome
             const {start, end} = referenceFrame
 
             sliderMax = Math.ceil(Math.log2(bpLength / this.browser.minimumBases()))
