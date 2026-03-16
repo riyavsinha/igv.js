@@ -1,11 +1,14 @@
 import {loadGenbank} from "./genbankParser"
+import type Genbank from "./genbank"
 import StaticFeatureSource from "../feature/staticFeatureSource.js"
-import BaseFeatureSource from "../feature/baseFeatureSource"
+import BaseFeatureSource, {type BaseFeatureSourceGenome} from "../feature/baseFeatureSource"
+import type {GenomicFeature} from "../types/feature"
 
-interface GenbankConfig {
+interface GenbankFeatureSourceConfig {
     url: string;
-    genome?: any;
-    [key: string]: any;
+    genome?: BaseFeatureSourceGenome;
+    // Dynamic config properties merged from track config
+    [key: string]: unknown;
 }
 
 interface FeatureQueryParams {
@@ -18,23 +21,23 @@ interface FeatureQueryParams {
 
 class GenbankFeatureSource extends BaseFeatureSource {
 
-    config: GenbankConfig;
+    config: GenbankFeatureSourceConfig;
     searchable: boolean;
-    featureSource: any;
+    featureSource: StaticFeatureSource | undefined;
 
-    constructor(config: GenbankConfig, genome: any) {
+    constructor(config: GenbankFeatureSourceConfig, genome: BaseFeatureSourceGenome) {
         super(genome)
         this.config = config
         this.searchable = true
     }
 
     // Feature source interface
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: FeatureQueryParams): Promise<any[]> {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: FeatureQueryParams) {
         if(!this.featureSource) {
-            const gbk: any = await loadGenbank(this.config.url)
+            const gbk: Genbank = await loadGenbank(this.config.url)
             this.featureSource = new StaticFeatureSource({
                 genome: this.config.genome,
-                features: gbk.features,
+                features: gbk.features as unknown as GenomicFeature[],
                 searchableFields: ['gene', 'db_xref', 'locus_tag', 'transcript_id']
             }, undefined)
 
@@ -45,8 +48,8 @@ class GenbankFeatureSource extends BaseFeatureSource {
         return false
     }
 
-    search(term: string): any {
-        return this.featureSource.search(term)
+    search(term: string): unknown {
+        return this.featureSource?.search(term)
     }
 }
 

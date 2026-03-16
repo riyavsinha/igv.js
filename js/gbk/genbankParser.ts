@@ -1,17 +1,18 @@
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import getDataWrapper from "../feature/dataWrapper"
+import type {SyncDataWrapper} from "../feature/dataWrapper"
 import Genbank from "./genbank"
 
 const wsRegex: RegExp = /\s+/
 
-const genbankCache: Map<string, any> = new Map()
+const genbankCache: Map<string, Genbank> = new Map()
 
-async function loadGenbank(url: string): Promise<any> {
+async function loadGenbank(url: string): Promise<Genbank> {
     let genbank = genbankCache.get(url)
 
     if (!genbank) {
         const data: string = await igvxhr.loadString(url, {})
-        genbank = parseGenbank(data)
+        genbank = parseGenbank(data)!
         genbank.url = url
         genbankCache.set(url, genbank)
     }
@@ -20,7 +21,7 @@ async function loadGenbank(url: string): Promise<any> {
 }
 
 
-function parseGenbank(data: string): any {
+function parseGenbank(data: string): Genbank | null {
 
     if (!data) return null
 
@@ -67,9 +68,9 @@ function parseGenbank(data: string): any {
 /**
  * Read the origin section.
  */
-function parseSequence(dataWrapper: any): string {
+function parseSequence(dataWrapper: SyncDataWrapper): string {
 
-    let nextLine: string
+    let nextLine: string | undefined
     let sequence = ""
 
     while ((nextLine = dataWrapper.nextLine()) && !nextLine.startsWith("//")) {
@@ -96,12 +97,12 @@ interface GenbankFeature {
 /**
  * Parse genbank FEATURES section
  */
-function parseFeatures(chr: string, dataWrapper: any): GenbankFeature[] {
+function parseFeatures(chr: string, dataWrapper: SyncDataWrapper): GenbankFeature[] {
 
     //Process features until "ORIGIN" or end of file
     const features: GenbankFeature[] = []
     let currentLocQualifier: string
-    let nextLine: string
+    let nextLine: string | undefined
     let errorCount = 0
     let f: GenbankFeature
 

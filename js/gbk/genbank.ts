@@ -6,8 +6,19 @@ interface GenbankConfig {
     locus: string
     accession: string
     aliases: string[] | undefined
-    features: any[]
+    features: GenbankFeature[]
     sequence: string
+}
+
+interface GenbankFeature {
+    chr: string
+    type: string
+    attributes: Record<string, string>
+    getAttributeValue: (key: string) => string
+    start?: number
+    end?: number
+    strand?: string
+    exons?: Array<{ chr: string; start: number; end: number; strand: string }>
 }
 
 interface ChromosomeInfo {
@@ -27,7 +38,7 @@ class Genbank {
     locus: string
     accession: string
     aliases: string[] | undefined
-    features: any[]
+    features: GenbankFeature[]
     sequence: string
     bpLength: number
     url: string | undefined
@@ -118,7 +129,7 @@ class Genbank {
         return undefined
     }
 
-    getCytobands(chr: string): any[] {
+    getCytobands(chr: string): never[] {
         return []
     }
 
