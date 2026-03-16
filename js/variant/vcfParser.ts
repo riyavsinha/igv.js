@@ -28,7 +28,7 @@ class VcfParser {
     construtor() {
     }
 
-    async parseHeader(dataWrapper: DataWrapper, genome: any): Promise<VcfHeader> {
+    async parseHeader(dataWrapper: DataWrapper, genome: unknown): Promise<VcfHeader> {
 
         const header: VcfHeader = {} as VcfHeader
 
@@ -135,7 +135,7 @@ class VcfParser {
                 const tokens: string[] = line.trim().split("\t")
                 if (tokens.length === nExpectedColumns) {
                     const variant = new Variant(tokens);
-                    (variant as any).header = this.header!       // Keep a pointer to the header to interpret fields for popup text
+                    variant.header = this.header!       // Keep a pointer to the header to interpret fields for popup text
                     //variant.line = line              // Uncomment for debugging
                     allFeatures.push(variant)
 

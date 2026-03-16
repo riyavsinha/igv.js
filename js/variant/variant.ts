@@ -34,6 +34,7 @@ class Variant {
     end!: number
     alleles: string[] | undefined
     calls: Call[] | undefined
+    header: Record<string, unknown> | undefined
 
     constructor(tokens: string[]) {
         this.chr = tokens[0] // TODO -- use genome aliases
