@@ -2,14 +2,15 @@ import {buildOptions, isDataURL} from "../util/igvUtils"
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
 import {Cytoband} from "./cytoband"
 import Chromosome from "./chromosome"
+import type {GenomeConfig} from "../types/genome.js"
 
 class CytobandFile {
 
     cytobands: Map<string, Cytoband[]> = new Map()
     url: string
-    config: any
+    config: GenomeConfig
 
-    constructor(url: string, config: any) {
+    constructor(url: string, config: GenomeConfig) {
         this.url = url;
         this.config = config;
     }

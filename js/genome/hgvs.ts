@@ -1,7 +1,23 @@
 import {getCodingLength, getCodingStart, getCodingEnd} from "../feature/exonUtils"
 import {searchFeatures} from "../searchFeatures"
+import type {Exon} from "../types/feature.js"
+import type Browser from "../browser.js"
+import type Genome from "./genome.js"
 
 const log: Console = console
+
+/** Shape of a transcript feature returned from BWSource/MANE search */
+interface TranscriptFeature {
+    chr: string
+    start: number
+    end: number
+    name?: string
+    strand: string
+    exons?: Exon[]
+    getStart(): number
+    getEnd(): number
+    [key: string]: unknown
+}
 
 function isValidHGVS(notation: string): boolean {
     if (!notation) return false
@@ -36,13 +52,13 @@ interface SearchResult {
  * Returns a SearchResult with the corresponding chromosome and position if found,
  * otherwise returns null.
  */
-async function search(hgvs: string, browser: any): Promise<SearchResult | null> {
+async function search(hgvs: string, browser: Browser): Promise<SearchResult | null> {
 
     if (!isValidHGVS(hgvs)) {
         return null
     }
 
-    const genome: any = browser.genome
+    const genome: Genome = browser.genome!
 
     // Determine type and extract accession and position
     const idxG: number = hgvs.indexOf(":g.")
@@ -89,7 +105,7 @@ async function search(hgvs: string, browser: any): Promise<SearchResult | null> 
         const endGroup: string | undefined = match[2]
         // If end is '?' or undefined, use start as end
         const end: number = (endGroup && endGroup !== '?') ? parseInt(endGroup, 10) : start
-        const aliasRecord: any = await genome.getAliasRecord(accession)
+        const aliasRecord = await genome.getAliasRecord(accession)
         const chr: string = aliasRecord ? aliasRecord.chr : accession
         return {chr, start: start - 1, end: end}
 
@@ -134,7 +150,7 @@ async function search(hgvs: string, browser: any): Promise<SearchResult | null> 
     } else if (type === "n") {
 
         // Non-coding transcript mapping: n.123 or n.-123 maps relative to transcript start
-        const transcript: any = await getTranscript(browser, accession)
+        const transcript = await getTranscript(browser, accession)
         if (!transcript) return null
 
         // Parse signed position with optional range and intronic offset (e.g., n.123, n.123_456, n.-7080_-1781, n.123+5)
@@ -167,7 +183,7 @@ async function search(hgvs: string, browser: any): Promise<SearchResult | null> 
 
     } else { // "c"
 
-        const transcript: any = await getTranscript(browser, accession)
+        const transcript = await getTranscript(browser, accession)
         if (transcript) {
             // UTR 5' c.-N with optional range and intronic offset (e.g., c.-211_-215 or c.-211-1058C>G)
             const utr5Matcher: RegExpMatchArray | null = positionPart.match(/^-(\d+)(?:_-(\d+))?([+-]\d+)?/)
@@ -281,22 +297,22 @@ async function search(hgvs: string, browser: any): Promise<SearchResult | null> 
 
 }
 
-async function getTranscript(browser: any, accession: string): Promise<any> {
-    return searchFeatures(browser, accession)
+async function getTranscript(browser: Browser, accession: string): Promise<TranscriptFeature | undefined> {
+    return searchFeatures(browser, accession) as Promise<TranscriptFeature | undefined>
 }
 
 /**
  * Convert a transcript position (1-based, from transcription start) to genomic position
  * for non-coding transcripts. Walks through exons to find the genomic coordinate.
  */
-function transcriptPositionToGenomicPosition(transcript: any, transcriptPos: number): number {
+function transcriptPositionToGenomicPosition(transcript: TranscriptFeature, transcriptPos: number): number {
     // Handle positions upstream of transcript start (negative n. values)
     if (transcriptPos <= 0) {
         const d: number = Math.abs(transcriptPos)
         return transcript.strand === '+' ? (transcript.getStart() - d) : (transcript.getEnd() + d)
     }
 
-    const exons: any[] | undefined = transcript.exons
+    const exons: Exon[] | undefined = transcript.exons
     if (!exons || exons.length === 0) {
         // No exons, treat as simple feature
         if (transcript.strand === '+') {
@@ -310,22 +326,22 @@ function transcriptPositionToGenomicPosition(transcript: any, transcriptPos: num
     let accumulatedLength: number = 0
 
     // Sort exons appropriately based on strand
-    const sortedExons: any[] = exons.slice()
+    const sortedExons: Exon[] = exons.slice()
     if (!positive) {
-        sortedExons.sort((e1: any, e2: any) => e2.getStart() - e1.getStart())
+        sortedExons.sort((e1: Exon, e2: Exon) => e2.start - e1.start)
     } else {
-        sortedExons.sort((e1: any, e2: any) => e1.getStart() - e2.getStart())
+        sortedExons.sort((e1: Exon, e2: Exon) => e1.start - e2.start)
     }
 
     for (const exon of sortedExons) {
-        const exonLength: number = exon.getEnd() - exon.getStart()
+        const exonLength: number = exon.end - exon.start
         if (accumulatedLength + exonLength >= transcriptPos) {
             // Position is in this exon
             const offsetInExon: number = transcriptPos - accumulatedLength - 1
             if (positive) {
-                return exon.getStart() + offsetInExon
+                return exon.start + offsetInExon
             } else {
-                return exon.getEnd() - offsetInExon - 1
+                return exon.end - offsetInExon - 1
             }
         }
         accumulatedLength += exonLength
@@ -342,13 +358,13 @@ function transcriptPositionToGenomicPosition(transcript: any, transcriptPos: num
  * @param codingPosition 1-based coding position
  * @return 0-based genomic position, or -1 if not found.
  */
-function codingToGenomePosition(feature: any, codingPosition: number): number {
+function codingToGenomePosition(feature: TranscriptFeature, codingPosition: number): number {
     if (codingPosition <= 0) {
         return -1
     }
     const cdna: number = codingPosition - 1  // Convert to 0-based
 
-    const exons: any[] | undefined = feature.exons
+    const exons: Exon[] | undefined = feature.exons
     if (!exons) {
         return -1
     }
@@ -361,7 +377,7 @@ function codingToGenomePosition(feature: any, codingPosition: number): number {
 
     let codingLength: number = 0
     for (let i: number = 0; i < exons.length; i++) {
-        const exon: any = positive ? exons[i] : exons[exons.length - 1 - i]
+        const exon: Exon = positive ? exons[i] : exons[exons.length - 1 - i]
         const exonCodingLength: number = getCodingLength(exon)
         if (codingLength + exonCodingLength > cdna) {
             const cdnaOffset: number = cdna - codingLength
@@ -381,9 +397,9 @@ function codingToGenomePosition(feature: any, codingPosition: number): number {
  * Returns genomic HGVS notation: <RefSeqAccession>:g.<position>
  * Example: NC_000001.11:g.1234567
  */
-async function getHGVSPosition(genome: any, chr: string, position: number): Promise<string | undefined> {
+async function getHGVSPosition(genome: Genome, chr: string, position: number): Promise<string | undefined> {
     try {
-        const aliasRecord: any = await genome.getAliasRecord(chr)
+        const aliasRecord = await genome.getAliasRecord(chr)
         let accession: string | null = null
 
         if (aliasRecord) {
@@ -420,10 +436,10 @@ async function getHGVSPosition(genome: any, chr: string, position: number): Prom
  * @param alternate The alternate base (single-character string)
  * @return HGVS notation string, or undefined if error
  */
-async function createHGVSAnnotation(genome: any, chr: string, position: number, reference: string, alternate: string): Promise<string | undefined> {
+async function createHGVSAnnotation(genome: Genome, chr: string, position: number, reference: string, alternate: string): Promise<string | undefined> {
 
     try {
-        const transcript: any = await genome.getManeTranscriptAt(chr, position)
+        const transcript = await genome.getManeTranscriptAt(chr, position) as TranscriptFeature | null
 
         if (transcript && transcript.exons) {
 
@@ -441,7 +457,7 @@ async function createHGVSAnnotation(genome: any, chr: string, position: number, 
 
             let transcriptName: string | undefined = transcript.name
             for (const key of Object.keys(transcript)) {
-                const value: any = transcript[key]
+                const value: unknown = transcript[key]
                 if (typeof value === 'string' && (value.startsWith("NM_") || value.startsWith("NR_"))) {
                     transcriptName = value
                     break
@@ -540,7 +556,7 @@ async function createHGVSAnnotation(genome: any, chr: string, position: number, 
         }
 
         // Fallback to genomic notation
-        const aliasRecord: any = await genome.getAliasRecord(chr)
+        const aliasRecord = await genome.getAliasRecord(chr)
         let accession: string = chr
 
         if (aliasRecord) {
@@ -568,7 +584,7 @@ function complementBase(base: string): string {
     return complementMap[base] || base
 }
 
-function genomeToCodingPosition(genomePosition: number, positive: boolean, exons: any[]): number {
+function genomeToCodingPosition(genomePosition: number, positive: boolean, exons: Exon[]): number {
 
     if (exons) {
 
@@ -581,7 +597,7 @@ function genomeToCodingPosition(genomePosition: number, positive: boolean, exons
 
         for (let exnum: number = 0; exnum < exons.length; exnum++) {
 
-            const exon: any = positive ? exons[exnum] : exons[exons.length - 1 - exnum]
+            const exon: Exon = positive ? exons[exnum] : exons[exons.length - 1 - exnum]
 
             if (exon.start <= genomePosition && exon.end > genomePosition) {
                 const delta: number = positive

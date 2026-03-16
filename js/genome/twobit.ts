@@ -7,6 +7,7 @@
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import BinaryParser from "../binary"
 import BPTree from "../bigwig/bpTree"
+import type {GenomeConfig} from "../types/genome.js"
 
 const twoBit: string[] = ['T', 'C', 'A', 'G']
 const byteTo4Bases: string[] = []
@@ -21,7 +22,7 @@ for (let i = 0; i < 256; i++) {
 const maskedByteTo4Bases: string[] = byteTo4Bases.map(bases => bases.toLowerCase())
 
 interface TwobitIndex {
-    search(name: string): Promise<{ offset: number } | undefined> | Promise<any>
+    search(name: string): Promise<{ offset: number } | undefined>
 }
 
 interface SequenceRecordMeta {
@@ -38,15 +39,15 @@ class TwobitSequence {
     metaIndex: Map<string, SequenceRecordMeta> = new Map()
     chromosomeNames: string[] | undefined
     url: string
-    config: any
+    config: GenomeConfig
     bptURL: string | undefined
     index: TwobitIndex | undefined
     version: number | undefined
     sequenceCount: number | undefined
     reserved: number | undefined
 
-    constructor(config: any) {
-        this.url = config.twoBitURL || config.fastaURL
+    constructor(config: GenomeConfig) {
+        this.url = (config.twoBitURL || config.fastaURL) as string
         this.config = config
         if(config.twoBitBptURL) {
             this.bptURL = config.twoBitBptURL
@@ -55,7 +56,7 @@ class TwobitSequence {
 
     async init(): Promise<void> {
         if(this.bptURL) {
-            this.index = await BPTree.loadBpTree(this.bptURL, this.config, 0, undefined)
+            this.index = await BPTree.loadBpTree(this.bptURL, this.config, 0, undefined) as unknown as TwobitIndex
         } else {
             const idx: Map<string, number> = await this._readIndex()
             this.index = {

@@ -12,17 +12,19 @@
 import {buildOptions} from "../util/igvUtils"
 import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
 import ChromAliasDefaults from "./chromAliasDefaults"
+import type Genome from "./genome.js"
+import type {GenomeConfig} from "../types/genome.js"
 
 class ChromAliasFile {
 
     aliasRecordCache: Map<string, Record<string, string>> = new Map()
     aliasURL: string
-    config: any
-    genome: any
+    config: GenomeConfig
+    genome: Genome
     headings: string[] | undefined
     altNameSets: string[] | undefined
 
-    constructor(aliasURL: string, config: any, genome: any) {
+    constructor(aliasURL: string, config: GenomeConfig, genome: Genome) {
         this.aliasURL = aliasURL
         this.config = config
         this.genome = genome

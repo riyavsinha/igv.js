@@ -4,13 +4,15 @@
 
 import SequenceInterval from "./sequenceInterval"
 import Chromosome from "./chromosome"
+import type Browser from "../browser.js"
+import type ReferenceFrame from "../referenceFrame.js"
 
 interface SequenceReader {
     chromosomes?: Map<string, Chromosome>
     chromosomeNames?: string[]
-    init(): Promise<any>
+    init(): Promise<unknown>
     readSequence(chr: string, start: number, end: number): Promise<string | null>
-    getSequenceRecord?(chr: string): any
+    getSequenceRecord?(chr: string): unknown
     getFirstChromosomeName?(): string
 }
 
@@ -21,9 +23,9 @@ class CachedSequence {
     #cachedIntervals: SequenceInterval[] = []
     #maxIntervals: number = 10   // TODO - this should be >= the number of viewports for multi-locus view
     sequenceReader: SequenceReader
-    browser: any
+    browser: Browser | undefined
 
-    constructor(sequenceReader: SequenceReader, browser?: any) {
+    constructor(sequenceReader: SequenceReader, browser?: Browser) {
         this.sequenceReader = sequenceReader
         this.browser = browser
     }
@@ -32,8 +34,8 @@ class CachedSequence {
         return this.sequenceReader.chromosomes
     }
 
-    async getSequenceRecord(chr: string): Promise<any> {
-        return this.sequenceReader.getSequenceRecord ? this.sequenceReader.getSequenceRecord(chr) : undefined
+    async getSequenceRecord(chr: string): Promise<Chromosome | undefined> {
+        return this.sequenceReader.getSequenceRecord ? this.sequenceReader.getSequenceRecord(chr) as Chromosome | undefined : undefined
     }
 
     async getSequence(chr: string, start: number, end: number): Promise<string | null | undefined> {
@@ -65,7 +67,7 @@ class CachedSequence {
         // Filter out out-of-view cached intervals.  Don't try this if there are too many frames, inefficient
         if (this.browser && this.browser.referenceFrameList.length < 100) {
             this.#cachedIntervals = this.#cachedIntervals.filter(i => {
-                const b: boolean = undefined !== this.browser.referenceFrameList.find((frame: any) => frame.overlaps(i))
+                const b: boolean = undefined !== this.browser!.referenceFrameList.find((frame: ReferenceFrame) => frame.overlaps(i))
                 if(!b) {
                    // console.log("Filtering " + i.locusString)
                 }
@@ -120,8 +122,8 @@ class CachedSequence {
     }
 
 
-    async init(): Promise<any> {
-        return this.sequenceReader.init()
+    async init(): Promise<void> {
+        await this.sequenceReader.init()
     }
 
     get chromosomeNames(): string[] | undefined {
@@ -133,7 +135,7 @@ class CachedSequence {
     }
 
     #isIntervalInView(interval: SequenceInterval): void {
-        this.browser.referenceFrameList
+        this.browser!.referenceFrameList
     }
 }
 

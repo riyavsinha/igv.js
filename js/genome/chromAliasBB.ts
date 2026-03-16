@@ -1,5 +1,7 @@
 import BWReader from "../bigwig/bwReader"
 import ChromAliasDefaults from "./chromAliasDefaults"
+import type Genome from "./genome.js"
+import type {GenomeConfig} from "../types/genome.js"
 
 /**
  * Chromosome alias source backed by a UCSC bigbed file
@@ -13,9 +15,9 @@ import ChromAliasDefaults from "./chromAliasDefaults"
 class ChromAliasBB {
 
     aliasRecordCache: Map<string, Record<string, string>> = new Map()
-    reader: any
+    reader: BWReader
 
-    constructor(url: string, config: any, genome: any) {
+    constructor(url: string, config: GenomeConfig, genome: Genome) {
         config = config || {}
         config.url = url
         this.reader = new BWReader(config, genome)
@@ -62,7 +64,7 @@ class ChromAliasBB {
      */
     async search(alias: string): Promise<Record<string, string> | undefined> {
         if (!this.aliasRecordCache.has(alias)) {
-            const aliasRecord = await this.reader.search(alias)
+            const aliasRecord = await this.reader.search(alias) as Record<string, string> | undefined
             if (aliasRecord) {
                 ChromAliasDefaults.addCaseAliases(aliasRecord)
                 for (let key of Object.keys(aliasRecord)) {

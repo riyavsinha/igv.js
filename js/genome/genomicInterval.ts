@@ -2,9 +2,9 @@ class GenomicInterval {
     chr: string
     start: number
     end: number
-    features: any
+    features: unknown
 
-    constructor(chr: string, start: number, end: number, features: any) {
+    constructor(chr: string, start: number, end: number, features: unknown) {
         this.chr = chr
         this.start = start
         this.end = end

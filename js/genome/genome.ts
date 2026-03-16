@@ -11,6 +11,14 @@ import ChromAliasDefaults from "./chromAliasDefaults"
 import {updateReference} from "./updateReference"
 import BWSource from "../bigwig/bwSource"
 import {Cytoband} from "./cytoband"
+import type Browser from "../browser.js"
+import type {GenomeConfig} from "../types/genome.js"
+import type SequenceInterval from "./sequenceInterval.js"
+import type CachedSequence from "./cachedSequence.js"
+import type NonIndexedFasta from "./nonIndexedFasta.js"
+import type ChromSizes from "./chromSizes.js"
+
+type SequenceType = CachedSequence | ChromSizes | NonIndexedFasta | undefined
 
 const ucsdIDMap: Map<string, string> = new Map([
     ["1kg_ref", "hg18"],
@@ -48,14 +56,14 @@ class Genome {
     #wgChromosomeNames: string[] | undefined
     #aliasRecordCache: Map<string, Record<string, string> | undefined> = new Map()
 
-    config: any
-    browser: any
+    config: GenomeConfig
+    browser: Browser
     id: string
     ucscID: string
     blatDB: string
     name: string | undefined
     nameSet: string | undefined
-    sequence: any
+    sequence: SequenceType
     cytobandSource: CytobandSource | undefined
     chromosomes!: Map<string, Chromosome>
     chromosomeNames: string[] | undefined
@@ -66,7 +74,7 @@ class Genome {
     maneFeatureSource: BWSource | undefined
     rsDBFeatureSource: BWSource | undefined
 
-    static async createGenome(options: any, browser: any): Promise<Genome> {
+    static async createGenome(options: GenomeConfig, browser: Browser): Promise<Genome> {
 
         updateReference(options)
         const genome = new Genome(options, browser)
@@ -74,14 +82,14 @@ class Genome {
         return genome
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: GenomeConfig, browser: Browser) {
         this.config = config
         this.browser = browser
         this.id = config.id || generateGenomeID(config)
-        this.ucscID = config.ucscID || ucsdIDMap.get(this.id) || this.id
-        this.blatDB = config.blatDB || this.ucscID
+        this.ucscID = (config.ucscID as string | undefined) || ucsdIDMap.get(this.id) || this.id
+        this.blatDB = (config.blatDB as string | undefined) || this.ucscID
         this.name = config.name
-        this.nameSet = config.nameSet
+        this.nameSet = config.nameSet as string | undefined
     }
 
 
@@ -97,30 +105,30 @@ class Genome {
             if (config.cytobandURL) {
                 this.cytobandSource = new CytobandFile(config.cytobandURL, Object.assign({}, config))
             } else if (config.cytobandBbURL) {
-                this.cytobandSource = new CytobandFileBB(config.cytobandBbURL, Object.assign({}, config), this)
+                this.cytobandSource = new CytobandFileBB(config.cytobandBbURL as string, Object.assign({}, config), this)
             }
         }
 
         // Search for chromosomes, that is an array of chromosome objects containing name and length.  This is
         // optional but required to support whole genome view.
-        if (this.sequence.chromosomes) {
-            this.chromosomes = this.sequence.chromosomes
+        if (this.sequence!.chromosomes) {
+            this.chromosomes = this.sequence!.chromosomes
         } else if (config.chromSizesURL) {
-            this.chromosomes = await loadChromSizes(config.chromSizesURL)
+            this.chromosomes = await loadChromSizes(config.chromSizesURL as string)
         } else {
             this.chromosomes = new Map()   // Cache, chromosome are added as they are loaded
         }
 
         // Search for chromosome names.  This is optional but required to support the chromosome pulldown
-        if (this.sequence.chromosomeNames) {
-            this.chromosomeNames = this.sequence.chromosomeNames    // Twobit files can supply chromosome names unless they use an external index
+        if (this.sequence!.chromosomeNames) {
+            this.chromosomeNames = this.sequence!.chromosomeNames    // Twobit files can supply chromosome names unless they use an external index
         } else if (this.chromosomes.size > 0) {
             this.chromosomeNames = Array.from(this.chromosomes.keys())
         }
 
         // Chromosome alias
         if (config.chromAliasBbURL) {
-            this.chromAlias = new ChromAliasBB(config.chromAliasBbURL, Object.assign({}, config), this)
+            this.chromAlias = new ChromAliasBB(config.chromAliasBbURL as string, Object.assign({}, config), this)
         } else if (config.aliasURL) {
             this.chromAlias = new ChromAliasFile(config.aliasURL, Object.assign({}, config), this)
         } else if (this.chromosomeNames) {
@@ -154,11 +162,11 @@ class Genome {
     }
 
     get description(): string {
-        return this.config.description || `${this.id}\n${this.name}`
+        return (this.config.description as string | undefined) || `${this.id}\n${this.name}`
     }
 
     get infoURL(): string | undefined {
-        return this.config.infoURL
+        return this.config.infoURL as string | undefined
     }
 
     showWholeGenomeView(): boolean | undefined {
@@ -171,12 +179,12 @@ class Genome {
      *
      * @returns {any}
      */
-    toJSON(): any {
+    toJSON(): Record<string, unknown> {
         return Object.assign({}, this.config, {tracks: undefined})
     }
 
     get initialLocus(): string | undefined {
-        return this.config.locus ? this.config.locus : this.getHomeChromosomeName()
+        return this.config.locus ? this.config.locus as string : this.getHomeChromosomeName()
     }
 
     getHomeChromosomeName(): string | undefined {
@@ -217,7 +225,7 @@ class Genome {
 
         if (!this.chromosomes.has(chr)) {
             let chromosome: Chromosome | undefined
-            const sequenceRecord = await this.sequence.getSequenceRecord(chr)
+            const sequenceRecord = await this.sequence!.getSequenceRecord(chr)
             if (sequenceRecord) {
                 chromosome = new Chromosome(chr, 0, sequenceRecord.bpLength)
             }
@@ -274,7 +282,7 @@ class Genome {
     }
 
     get showChromosomeWidget(): boolean | undefined {
-        return this.config.showChromosomeWidget
+        return this.config.showChromosomeWidget as boolean | undefined
     }
 
     /**
@@ -363,9 +371,9 @@ class Genome {
         return this.bpLength
     }
 
-    async getSequence(chr: string, start: number, end: number): Promise<string | undefined> {
+    async getSequence(chr: string, start: number, end: number): Promise<string | null | undefined> {
         chr = this.getChromosomeName(chr)
-        return this.sequence.getSequence(chr, start, end)
+        return this.sequence!.getSequence(chr, start, end)
     }
 
     /**
@@ -376,8 +384,8 @@ class Genome {
      * @param start
      * @param end
      */
-    getSequenceInterval(chr: string, start: number, end: number): any {
-        if (typeof this.sequence.getSequenceInterval === 'function') {
+    getSequenceInterval(chr: string, start: number, end: number): SequenceInterval | undefined {
+        if (this.sequence && 'getSequenceInterval' in this.sequence) {
             return this.sequence.getSequenceInterval(chr, start, end)
         } else {
             return undefined
@@ -385,7 +393,7 @@ class Genome {
     }
 
     getHubURLs(): string[] | undefined {
-        return this.config.hubs
+        return this.config.hubs as string[] | undefined
     }
 
     /**
@@ -394,7 +402,7 @@ class Genome {
      * @param {string} name - The name of the Mane transcript to search for.
      * @return {Promise<Object|null>} A Promise resolving to the Mane transcript object if found, or null otherwise.
      */
-    async getManeTranscript(name: string): Promise<any | null> {
+    async getManeTranscript(name: string): Promise<unknown> {
 
         if (!this.maneFeatureSource && this.config.maneBbURL) {
             this.loadManeFeatureSource()
@@ -424,7 +432,7 @@ class Genome {
      * @param position Genomic position (0-based coordinate) to check for overlap with a Mane transcript.
      * @return {Promise<*|null>} The feature representing the Mane transcript overlapping the specified position, or null if none is found.
      */
-    async getManeTranscriptAt(chr: string, position: number): Promise<any | null> {
+    async getManeTranscriptAt(chr: string, position: number): Promise<unknown> {
         if (!this.maneFeatureSource && this.config.maneBbURL) {
             this.loadManeFeatureSource()
         }
@@ -432,7 +440,7 @@ class Genome {
             try {
                 const start = position
                 const end = position + 1
-                const features = await this.maneFeatureSource.getFeatures({chr, start, end} as any)
+                const features = await this.maneFeatureSource.getFeatures({chr, start, end, bpPerPixel: 1})
                 if (features) {
                     for (const feature of features) {
                         if (feature.start <= position && feature.end >= position) {
@@ -449,7 +457,7 @@ class Genome {
 
     loadManeFeatureSource(): void {
         if (this.config.maneBbURL != null) {
-            const bbConfig: any = {url: this.config.maneBbURL}
+            const bbConfig: Record<string, unknown> = {url: this.config.maneBbURL}
             if (this.config.maneTrixURL) {
                 bbConfig.trixURL = this.config.maneTrixURL
             }
@@ -490,13 +498,13 @@ function isDigit(val: string): boolean {
     return /^\d+$/.test(val)
 }
 
-function generateGenomeID(config: any): string {
+function generateGenomeID(config: GenomeConfig): string {
     if (config.id !== undefined) {
         return config.id
     } else if (config.fastaURL && StringUtils.isString(config.fastaURL) && !config.fastaURL.startsWith("data:")) {
         return config.fastaURL
-    } else if (config.fastaURL && config.fastaURL.name) {
-        return config.fastaURL.name
+    } else if (config.fastaURL && typeof config.fastaURL === 'object' && (config.fastaURL as {name?: string}).name) {
+        return (config.fastaURL as {name: string}).name
     } else {
         return ""
     }

@@ -15,7 +15,11 @@ export interface GenomeConfig {
     chromSizesURL?: string
     twoBitURL?: string
     twoBitBptURL?: string
-    chromosomeOrder?: string[]
+    chromosomeOrder?: string[] | string
+    format?: string
+    compressedIndexURL?: string
+    withCredentials?: boolean
+    nameSet?: string
     /** Allow arbitrary additional properties */
     [key: string]: unknown
 }

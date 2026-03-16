@@ -2,6 +2,7 @@ import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index
 import Chromosome from "./chromosome"
 import {buildOptions, isDataURL} from "../util/igvUtils"
 import SequenceInterval from "./sequenceInterval"
+import type {GenomeConfig} from "../types/genome.js"
 
 const splitLines: (text: string) => string[] = StringUtils.splitLines
 
@@ -21,16 +22,16 @@ class NonIndexedFasta {
     sequences: Map<string, SequenceSlice[]> = new Map()
     fastaURL: string
     withCredentials: boolean | undefined
-    config: Record<string, any>
+    config: Record<string, unknown>
 
-    constructor(reference: any) {
+    constructor(reference: GenomeConfig) {
 
-        this.fastaURL = reference.fastaURL
-        this.withCredentials = reference.withCredentials
+        this.fastaURL = reference.fastaURL!
+        this.withCredentials = reference.withCredentials as boolean | undefined
 
 
         // Build a track-like config object from the referenceObject
-        const config: Record<string, any> = {}
+        const config: Record<string, unknown> = {}
         for (let key in reference) {
             if (reference.hasOwnProperty(key) && !reservedProperties.has(key)) {
                 config[key] = reference[key]

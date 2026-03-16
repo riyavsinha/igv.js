@@ -8,7 +8,7 @@ import {translationDict} from "./util/translationDict.js"
 import type Browser from "./browser.js"
 import type {TrackConfig} from "./types/config.js"
 import type {ClickState, DrawConfiguration, MenuItem, TrackViewLike} from "./types/ui.js"
-import type {SequenceSource} from "./types/genome.js"
+import type {GenomeConfig, SequenceSource} from "./types/genome.js"
 import type Genome from "./genome/genome.js"
 
 const defaultSequenceTrackOrder = Number.MIN_SAFE_INTEGER
@@ -395,7 +395,7 @@ class WrappedFasta {
     }
 
     async init() {
-        this.fasta = await loadSequence(this.config) as SequenceSource
+        this.fasta = await loadSequence(this.config as GenomeConfig) as SequenceSource
         this.chrNameMap = new Map()
         for (let name of this.fasta.chromosomeNames || []) {
             this.chrNameMap.set(this.genome.getChromosomeName(name), name)

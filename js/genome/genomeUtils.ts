@@ -1,28 +1,34 @@
 import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {convertToHubURL} from "../ucsc/ucscUtils.js"
 import {loadHub} from "../ucsc/hub/hub.js"
+import type {GenomeConfig} from "../types/genome.js"
+import type {BrowserConfig} from "../types/config.js"
+
+interface AlertLike {
+    present(alert: Error | string, callback?: (() => void) | undefined): void
+}
 
 const DEFAULT_GENOMES_URL: string = "https://igv.org/genomes/genomes3.json"
 const BACKUP_GENOMES_URL: string = "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/genomes/web/genomes.json"
 
 const GenomeUtils: {
-    KNOWN_GENOMES: Record<string, any> | undefined
-    initializeGenomes: (config: any) => Promise<void>
+    KNOWN_GENOMES: Record<string, GenomeConfig> | undefined
+    initializeGenomes: (config: BrowserConfig) => Promise<void>
     isWholeGenomeView: (chr: string) => boolean
-    expandReference: (alert: any, idOrConfig: string | Record<string, unknown>) => Promise<any>
+    expandReference: (alert: AlertLike, idOrConfig: string | Record<string, unknown>) => Promise<GenomeConfig | Record<string, unknown> | undefined>
 } = {
 
     KNOWN_GENOMES: undefined,
 
-    initializeGenomes: async function (config: any): Promise<void> {
+    initializeGenomes: async function (config: BrowserConfig): Promise<void> {
 
         if (!GenomeUtils.KNOWN_GENOMES) {
 
-            let table: Record<string, any> = {}
+            let table: Record<string, GenomeConfig> = {}
 
-            const processJson = (jsonArray: any[], table: Record<string, any>): Record<string, any> => {
-                jsonArray.forEach(function (json: any) {
-                    table[json.id] = json
+            const processJson = (jsonArray: GenomeConfig[], table: Record<string, GenomeConfig>): Record<string, GenomeConfig> => {
+                jsonArray.forEach(function (json: GenomeConfig) {
+                    table[json.id!] = json
                 })
                 return table
             }
@@ -30,12 +36,12 @@ const GenomeUtils: {
             // Get default genomes
             if (config.loadDefaultGenomes !== false) {
                 try {
-                    const jsonArray: any[] = await igvxhr.loadJson(DEFAULT_GENOMES_URL, {timeout: 2000})
+                    const jsonArray: GenomeConfig[] = await igvxhr.loadJson(DEFAULT_GENOMES_URL, {timeout: 2000})
                     processJson(jsonArray, table)
                 } catch (error) {
                     try {
                         console.error("Error initializing default genomes:", error)
-                        const jsonArray: any[] = await igvxhr.loadJson(BACKUP_GENOMES_URL, {timeout: 10000})
+                        const jsonArray: GenomeConfig[] = await igvxhr.loadJson(BACKUP_GENOMES_URL, {timeout: 10000})
                         processJson(jsonArray, table)
                     } catch (e) {
                         console.error("Error initializing backup genomes:", error)
@@ -44,10 +50,10 @@ const GenomeUtils: {
             }
 
             // Append user-defined genomes, which might override defaults
-            const genomeList: any = config.genomeList || config.genomes
+            const genomeList: GenomeConfig[] | string | undefined = (config.genomeList || config.genomes) as GenomeConfig[] | string | undefined
             if (genomeList) {
                 if (typeof genomeList === 'string') {
-                    const jsonArray: any[] = await igvxhr.loadJson(genomeList, {})
+                    const jsonArray: GenomeConfig[] = await igvxhr.loadJson(genomeList, {})
                      processJson(jsonArray, table)
                 } else {
                      processJson(genomeList, table)
@@ -62,7 +68,7 @@ const GenomeUtils: {
     },
 
     // Expand a genome id to a reference object, if needed
-    expandReference: async function (alert: any, idOrConfig: string | Record<string, unknown>): Promise<any> {
+    expandReference: async function (alert: AlertLike, idOrConfig: string | Record<string, unknown>): Promise<GenomeConfig | Record<string, unknown> | undefined> {
 
         // idOrConfig might be a json string?  I'm actually not sure how this arises.
         if (StringUtils.isString(idOrConfig) && (idOrConfig as string).startsWith("{")) {
@@ -84,13 +90,13 @@ const GenomeUtils: {
         }
 
         if (genomeID) {
-            const knownGenomes: Record<string, any> | undefined = GenomeUtils.KNOWN_GENOMES
-            let reference: any = knownGenomes ? knownGenomes[genomeID] : undefined
+            const knownGenomes = GenomeUtils.KNOWN_GENOMES
+            let reference: GenomeConfig | Record<string, unknown> | undefined = knownGenomes ? knownGenomes[genomeID] : undefined
             if (!reference) {
                 if ((genomeID.startsWith("GCA_") || genomeID.startsWith("GCF_")) && genomeID.length >= 13) {
                     try {
                         const hubURL = convertToHubURL(genomeID)!
-                        const hub: any = await loadHub(hubURL)
+                        const hub = await loadHub(hubURL)
                         reference = hub.getGenomeConfig(genomeID)
                     } catch (e) {
                         console.error(e)
@@ -103,7 +109,7 @@ const GenomeUtils: {
             }
             return reference
         } else {
-            return idOrConfig
+            return idOrConfig as Record<string, unknown>
         }
     }
 }
