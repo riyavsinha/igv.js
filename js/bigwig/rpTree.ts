@@ -20,7 +20,7 @@ interface RPTreeHeader {
     rootNodeOffset: number
 }
 
-interface RPTreeItem {
+export interface RPTreeItem {
     isLeaf: boolean
     startChrom: number
     startBase: number
@@ -37,7 +37,7 @@ interface RPTreeNode {
 }
 
 interface Loader {
-    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+    loadArrayBuffer(path: string, options?: Record<string, unknown>): Promise<ArrayBuffer>
 }
 
 export default class RPTree {

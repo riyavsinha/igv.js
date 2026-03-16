@@ -45,7 +45,7 @@ interface BPTreeNode {
 type BPTreeType = 'BPTree' | 'BPChromTree'
 
 interface Loader {
-    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+    loadArrayBuffer(path: string, options?: Record<string, unknown>): Promise<ArrayBuffer>
 }
 
 /**

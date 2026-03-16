@@ -1,4 +1,4 @@
-import RPTree from "./rpTree"
+import RPTree, {type RPTreeItem} from "./rpTree"
 import BinaryParser from "../binary"
 import {BGZip, igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions, isDataURL} from "../util/igvUtils"
@@ -7,6 +7,7 @@ import {parseAutoSQL} from "../util/ucscUtils"
 import Trix from "./trix"
 import BPTree from "./bpTree"
 import ChromTree from "./chromTree"
+import type {BaseFeatureSourceGenome} from "../feature/baseFeatureSource.js"
 
 
 const BIGWIG_MAGIC_LTH = 0x888FFC26 // BigWig Magic Low to High
@@ -18,10 +19,10 @@ const BBFILE_EXTENDED_HEADER_HEADER_SIZE = 64
 const BUFFER_SIZE = 512000     //  buffer
 
 interface Loader {
-    loadArrayBuffer(path: string, options?: object): Promise<ArrayBuffer>
+    loadArrayBuffer(path: string, options?: Record<string, unknown>): Promise<ArrayBuffer>
 }
 
-interface BBHeader {
+export interface BBHeader {
     bwVersion: number
     nZoomLevels: number
     chromTreeOffset: number
@@ -56,8 +57,8 @@ class BWReader {
     rpTreeCache: Map<number, RPTree> = new Map()
     path: string
     format: string
-    genome: any
-    config: Record<string, any>
+    genome: BaseFeatureSourceGenome
+    config: Record<string, unknown>
     bufferSize: number
     loader: Loader
     littleEndian!: boolean
@@ -72,9 +73,9 @@ class BWReader {
     _trix?: Trix
     _searchTrees?: BPTree[]
 
-    constructor(config: Record<string, any>, genome: any) {
-        this.path = config.url
-        this.format = config.format || "bigwig"
+    constructor(config: Record<string, unknown>, genome: BaseFeatureSourceGenome) {
+        this.path = config.url as string
+        this.format = (config.format as string) || "bigwig"
         this.genome = genome
         this.config = config
         this.bufferSize = BUFFER_SIZE
@@ -82,7 +83,7 @@ class BWReader {
             new DataBuffer(BGZip.decodeDataURI(this.path).buffer) :
             igvxhr
 
-        const trixURL: string | undefined = config.trixURL || config.searchTrix
+        const trixURL = (config.trixURL || config.searchTrix) as string | undefined
         if (trixURL) {
             this._trix = new Trix(`${trixURL}x`, trixURL)
         }
@@ -169,7 +170,7 @@ class BWReader {
 
         // Load the R Tree and fine leaf items
         const rpTree: RPTree = await this.loadRPTree(treeOffset)
-        const leafItems: any[] = await rpTree.findLeafItemsOverlapping(chrIdx1, bpStart, chrIdx2, bpEnd)
+        const leafItems: RPTreeItem[] = await rpTree.findLeafItemsOverlapping(chrIdx1, bpStart, chrIdx2, bpEnd)
         if (!leafItems || leafItems.length === 0) {
             return []
         } else {
@@ -178,11 +179,11 @@ class BWReader {
             let start: number = Number.MAX_VALUE
             let end: number = 0
             for (let item of leafItems) {
-                start = Math.min(start, item.dataOffset)
-                end = Math.max(end, item.dataOffset + item.dataSize)
+                start = Math.min(start, item.dataOffset!)
+                end = Math.max(end, item.dataOffset! + item.dataSize!)
             }
             const size: number = end - start
-            const arrayBuffer: ArrayBuffer = await this.loader.loadArrayBuffer(this.config.url, buildOptions(this.config, {
+            const arrayBuffer: ArrayBuffer = await this.loader.loadArrayBuffer(this.config.url as string, buildOptions(this.config, {
                 range: {
                     start: start,
                     size: size
@@ -192,7 +193,7 @@ class BWReader {
             // Parse data and return features
             const features: WigFeature[] = []
             for (let item of leafItems) {
-                const uint8Array: Uint8Array = new Uint8Array(arrayBuffer, item.dataOffset - start, item.dataSize)
+                const uint8Array: Uint8Array = new Uint8Array(arrayBuffer, item.dataOffset! - start, item.dataSize!)
                 let plain: Uint8Array
                 const isCompressed: boolean = this.header.uncompressBuffSize > 0
                 if (isCompressed) {
@@ -230,7 +231,7 @@ class BWReader {
 
         // Try alias
         if (chrIdx === undefined && this.genome) {
-            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord(chr)
+            const aliasRecord: Record<string, string> | undefined = await this.genome.getAliasRecord?.(chr)
             let alias: string | undefined
             if (aliasRecord) {
                 for (let k of Object.keys(aliasRecord)) {
@@ -563,7 +564,7 @@ class BWReader {
      */
     async _loadFeaturesForRange(offset: number, size: number): Promise<WigFeature[]> {
 
-        const arrayBuffer: ArrayBuffer = await this.loader.loadArrayBuffer(this.config.url, buildOptions(this.config, {
+        const arrayBuffer: ArrayBuffer = await this.loader.loadArrayBuffer(this.config.url as string, buildOptions(this.config, {
             range: {
                 start: offset,
                 size: size
@@ -730,7 +731,7 @@ function getBedDataDecoder(this: BWReader): (this: BWReader, data: DataView, chr
                 featureArray.push(feature)
                 const tokens: string[] = rest.split("\t")
                 if (decoder) {
-                    decoder(feature as any, tokens)
+                    decoder(feature as unknown as Parameters<typeof decoder>[0], tokens)
                 }
             }
         }
@@ -790,10 +791,9 @@ class DataBuffer implements Loader {
      * igvxhr interface
      * @param ignore
      * @param options
-     * @returns {any}
      */
-    loadArrayBuffer(ignore: string, options: Record<string, any>): Promise<ArrayBuffer> {
-        const range: { start: number; size: number } | undefined = options.range
+    loadArrayBuffer(ignore: string, options: Record<string, unknown>): Promise<ArrayBuffer> {
+        const range = options.range as { start: number; size: number } | undefined
         const result: ArrayBuffer = range ? this.data.slice(range.start, range.start + range.size) : this.data
         return Promise.resolve(result)
     }

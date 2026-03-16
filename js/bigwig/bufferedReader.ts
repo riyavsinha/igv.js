@@ -1,6 +1,7 @@
 
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils"
+import type {LoadConfig} from "../types/config.js"
 
 interface ByteRange {
     start: number
@@ -10,14 +11,14 @@ interface ByteRange {
 class BufferedReader {
 
     path: string
-    config: any
+    config: LoadConfig
     bufferSize: number
     range: ByteRange
     data: ArrayBuffer | undefined
     contentLength: number | undefined
 
-    constructor(config: any, bufferSize: number = 512000) {
-        this.path = config.url
+    constructor(config: LoadConfig, bufferSize: number = 512000) {
+        this.path = config.url as string
         this.bufferSize = bufferSize
         this.range = {start: -1, size: -1}
         this.config = config
@@ -57,8 +58,8 @@ class BufferedReader {
             return asUint8 ?
                 new Uint8Array(this.data!, bufferStart, len - bufferStart) :
                 new DataView(this.data!, bufferStart, len - bufferStart)
-        } catch (e: any) {
-            if (retries === 0 && e.message && e.message.startsWith("416")) {
+        } catch (e: unknown) {
+            if (retries === 0 && e instanceof Error && e.message && e.message.startsWith("416")) {
                 try {
                     this.contentLength = await igvxhr.getContentLength(this.path, buildOptions(this.config))
                     return this.dataViewForRange(requestedRange, asUint8, ++retries)

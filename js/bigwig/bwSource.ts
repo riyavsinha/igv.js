@@ -1,6 +1,7 @@
 import BWReader from "./bwReader"
 import pack from "../feature/featurePacker"
-import BaseFeatureSource from "../feature/baseFeatureSource"
+import BaseFeatureSource, {type BaseFeatureSourceGenome} from "../feature/baseFeatureSource"
+import type {BBHeader} from "./bwReader"
 
 interface WigFeature {
     chr: string
@@ -31,14 +32,14 @@ class BWSource extends BaseFeatureSource {
     #wgValues: Record<string, CachedWGValues> = {}
     windowFunctions: string[] = ["mean", "min", "max", "none"]
     reader: BWReader
-    genome: any
+    genome: BaseFeatureSourceGenome
     format: string
 
-    constructor(config: Record<string, any>, genome: any) {
+    constructor(config: Record<string, unknown>, genome: BaseFeatureSourceGenome) {
         super(genome)
         this.reader = new BWReader(config, genome)
         this.genome = genome
-        this.format = config.format || "bigwig"
+        this.format = (config.format as string) || "bigwig"
     }
 
     async getFeatures({chr, start, end, bpPerPixel, windowFunction}: GetFeaturesParams): Promise<WigFeature[]> {
@@ -48,8 +49,8 @@ class BWSource extends BaseFeatureSource {
 
         let features: WigFeature[]
         if ("all" === chr.toLowerCase()) {
-            const wgChromosomeNames: string[] = this.genome.wgChromosomeNames
-            features = isBigWig && wgChromosomeNames? await this.getWGValues(wgChromosomeNames, windowFunction ?? "mean", bpPerPixel) : []
+            const wgChromosomeNames = this.genome.wgChromosomeNames
+            features = isBigWig && wgChromosomeNames ? await this.getWGValues(wgChromosomeNames, windowFunction ?? "mean", bpPerPixel) : []
         } else {
             features = await this.reader.readFeatures(chr, start, chr, end, bpPerPixel, windowFunction)
         }
@@ -60,7 +61,7 @@ class BWSource extends BaseFeatureSource {
         return features
     }
 
-    async getHeader(): Promise<any> {
+    async getHeader(): Promise<BBHeader> {
         return this.reader.loadHeader()
     }
 
@@ -84,7 +85,7 @@ class BWSource extends BaseFeatureSource {
             let wgValues: WigFeature[] = []
             for (let f of features) {
                 const chr: string = f.chr
-                const offset: number | undefined = genome.getCumulativeOffset(chr)
+                const offset: number | undefined = genome.getCumulativeOffset?.(chr)
                 if (undefined === offset) continue
                 const wgFeature: WigFeature = Object.assign({}, f) as WigFeature
                 wgFeature.chr = "all"
@@ -111,7 +112,7 @@ class BWSource extends BaseFeatureSource {
         return this.reader.searchable
     }
 
-    async search(term: string): Promise<any> {
+    async search(term: string): Promise<WigFeature | undefined> {
         return this.reader.search(term)
     }
 }

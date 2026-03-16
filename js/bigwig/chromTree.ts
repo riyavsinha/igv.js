@@ -7,7 +7,7 @@ interface RunningTotal {
 }
 
 interface Loader {
-    loadArrayBuffer(path: string, options: object): Promise<ArrayBuffer>
+    loadArrayBuffer(path: string, options?: Record<string, unknown>): Promise<ArrayBuffer>
 }
 
 export default class ChromTree {

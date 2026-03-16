@@ -20,6 +20,7 @@ export interface BaseFeatureSourceGenome {
     wgChromosomeNames?: string[]
     getSequenceInterval?(chr: string, start: number, end: number): unknown
     getAliasRecord?(chr: string): Promise<Record<string, string> | undefined>
+    getCumulativeOffset?(chr: string): number | undefined
 }
 
 // Base class for feature sources.  Subclasses must implement getFeatures().
