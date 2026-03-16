@@ -157,7 +157,7 @@ export interface BrowserConfig {
     nucleotideColors?: Partial<Record<string, string>>
 
     // Search
-    search?: SearchConfigInput
+    search?: SearchConfigInput | false
 
     // Authentication
     apiKey?: string

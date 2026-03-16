@@ -1,6 +1,8 @@
 import {igvxhr, StringUtils} from "../node_modules/igv-utils/src/index.js"
 import {HGVS} from "./genome/hgvs"
 import {searchFeatures, searchWebService} from "./searchFeatures"
+import type Browser from "./browser.js"
+import type Chromosome from "./genome/chromosome.js"
 
 interface LocusObject {
     chr: string
@@ -26,7 +28,7 @@ interface LocusObject {
  * @param string
  * @returns {Promise<*>}
  */
-async function search(browser: any, string: string): Promise<LocusObject[] | undefined> {
+async function search(browser: Browser, string: string): Promise<LocusObject[] | undefined> {
 
     if (undefined === string || '' === string.trim()) {
         return
@@ -48,14 +50,14 @@ async function search(browser: any, string: string): Promise<LocusObject[] | und
         if (locus.trim().toLowerCase() === "all" || locus === "*") {
             if (browser.genome.wholeGenomeView) {
                 const wgChr = browser.genome.getChromosome("all")
-                return {chr: "all", start: 0, end: wgChr.bpLength}
+                return {chr: "all", start: 0, end: wgChr!.bpLength}
             } else {
                 return undefined
             }
         }
 
         let locusObject: LocusObject | undefined
-        let chromosome: any
+        let chromosome: Chromosome | undefined
         if (locus.includes(":")) {
             locusObject = parseLocusString(locus, browser.isSoftclipped())
             if (locusObject) {
@@ -92,10 +94,10 @@ async function search(browser: any, string: string): Promise<LocusObject[] | und
         // Force load chromosome here (a side effect, but neccessary to do this in an async function so it's available)
         if (locusObject) {
             chromosome = chromosome || await browser.genome.loadChromosome(locusObject.chr)
-            locusObject.chr = chromosome.name    // Replace possible alias with canonical name
+            locusObject.chr = chromosome!.name    // Replace possible alias with canonical name
             if (locusObject.start === undefined && locusObject.end === undefined) {
                 locusObject.start = 0
-                locusObject.end = chromosome.bpLength
+                locusObject.end = chromosome!.bpLength
             }
         }
 
@@ -166,7 +168,7 @@ function parseLocusString(locus: string, isSoftclipped: boolean = false): LocusO
 
         let numeric: string
         numeric = b[0].replace(/,/g, '')
-        if (isNaN(numeric as any)) {
+        if (isNaN(Number(numeric))) {
             return undefined
         }
 
@@ -181,7 +183,7 @@ function parseLocusString(locus: string, isSoftclipped: boolean = false): LocusO
 
         if (2 === b.length) {
             numeric = b[1].replace(/,/g, '')
-            if (isNaN(numeric as any)) {
+            if (isNaN(Number(numeric))) {
                 return undefined
             } else {
                 locusObject.end = parseInt(numeric, 10)

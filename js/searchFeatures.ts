@@ -1,5 +1,7 @@
 // Lazy import to avoid circular dependency
 import {igvxhr, StringUtils} from "../node_modules/igv-utils/src/index.js"
+import type Browser from "./browser.js"
+import type {Track} from "./types/ui.js"
 
 const DEFAULT_SEARCH_CONFIG = {
     timeout: 5000,
@@ -8,7 +10,6 @@ const DEFAULT_SEARCH_CONFIG = {
     coords: 0
 }
 
-// TODO: Replace with proper Browser type once browser.ts is migrated
 interface SearchConfig {
     timeout?: number
     type?: string
@@ -29,7 +30,7 @@ interface LocusResult {
     name?: string
 }
 
-async function searchFeatures(browser: any, name: string): Promise<LocusResult | undefined> {
+async function searchFeatures(browser: Browser, name: string): Promise<LocusResult | undefined> {
 
     const searchConfig = browser.searchConfig || DEFAULT_SEARCH_CONFIG
     let feature: LocusResult | undefined
@@ -37,12 +38,12 @@ async function searchFeatures(browser: any, name: string): Promise<LocusResult |
     name = name.toUpperCase()
 
     // Search MANE transcripts first, if available
-    feature = await browser.genome.getManeTranscript(name)
+    feature = await browser.genome.getManeTranscript(name) as LocusResult | undefined
     if (feature) {
         return feature
     }
 
-    const searchableTracks = browser.tracks.filter((t: any) => t.searchable)
+    const searchableTracks = browser.tracks.filter((t: Track) => t.searchable)
     for (let track of searchableTracks) {
         const feature = await track.search(name)
         if (feature) {
@@ -62,7 +63,7 @@ async function searchFeatures(browser: any, name: string): Promise<LocusResult |
 
 }
 
-async function searchWebService(browser: any, locus: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
+async function searchWebService(browser: Browser, locus: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
 
     let path = searchConfig.url.replace("$FEATURE$", locus.toUpperCase())
     if (path.indexOf("$GENOME$") > -1) {
@@ -74,9 +75,9 @@ async function searchWebService(browser: any, locus: string, searchConfig: Searc
     return await processSearchResult(browser, result, searchConfig)
 }
 
-async function processSearchResult(browser: any, result: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
+async function processSearchResult(browser: Browser, result: string, searchConfig: SearchConfig): Promise<LocusResult | undefined> {
 
-    let results: any
+    let results: Record<string, unknown> | Record<string, unknown>[]
 
     if ('plain' === searchConfig.type) {
         results = await parseSearchResults(browser, result)
@@ -85,10 +86,10 @@ async function processSearchResult(browser: any, result: string, searchConfig: S
     }
 
     if (searchConfig.resultsField) {
-        results = results[searchConfig.resultsField]
+        results = (results as Record<string, unknown>)[searchConfig.resultsField] as Record<string, unknown> | Record<string, unknown>[]
     }
 
-    if (!results || 0 === results.length) {
+    if (!results || (Array.isArray(results) && 0 === results.length)) {
         return undefined
 
     } else {
@@ -99,24 +100,24 @@ async function processSearchResult(browser: any, result: string, searchConfig: S
         const coords = searchConfig.coords || 1
 
 
-        let result: any
+        let resultRecord: Record<string, unknown>
         if (Array.isArray(results)) {
             // Ignoring all but first result for now
             // TODO -- present all and let user select if results.length > 1
-            result = results[0]
+            resultRecord = results[0]
         } else {
             // When processing search results from Ensembl REST API
             // Example: https://rest.ensembl.org/lookup/symbol/macaca_fascicularis/BRCA2?content-type=application/json
-            result = results
+            resultRecord = results
         }
 
-        if (!(result.hasOwnProperty(chromosomeField) && (result.hasOwnProperty(startField)))) {
-            console.error("Search service results must include chromosome and start fields: " + result)
+        if (!(resultRecord.hasOwnProperty(chromosomeField) && (resultRecord.hasOwnProperty(startField)))) {
+            console.error("Search service results must include chromosome and start fields: " + resultRecord)
         }
 
-        const chr = result[chromosomeField]
-        let start = result[startField] - coords
-        let end = result[endField]
+        const chr = resultRecord[chromosomeField] as string
+        let start = (resultRecord[startField] as number) - coords
+        let end = resultRecord[endField] as number | undefined
         if (undefined === end) {
             end = start + 1
         }
@@ -125,7 +126,7 @@ async function processSearchResult(browser: any, result: string, searchConfig: S
 
         // Some GTEX hacks
         if (searchConfig.geneField && searchConfig.snpField) {
-            const name = result[searchConfig.geneField] || result[searchConfig.snpField]  // Should never have both
+            const name = (resultRecord[searchConfig.geneField] || resultRecord[searchConfig.snpField]) as string | undefined  // Should never have both
             if (name) locusObject.name = name.toUpperCase()
         }
 
@@ -133,9 +134,9 @@ async function processSearchResult(browser: any, result: string, searchConfig: S
     }
 }
 
-async function parseSearchResults(browser: any, data: string): Promise<LocusResult[]> {
+async function parseSearchResults(browser: Browser, data: string): Promise<Record<string, unknown>[]> {
 
-    const results: LocusResult[] = []
+    const results: Record<string, unknown>[] = []
     const lines = StringUtils.splitLines(data)
 
     for (let line of lines) {
@@ -150,7 +151,7 @@ async function parseSearchResults(browser: any, data: string): Promise<LocusResu
                 start: parseInt(rangeTokens[0].replace(/,/g, '')),
                 end: parseInt(rangeTokens[1].replace(/,/g, '')),
                 name: tokens[0].toUpperCase()
-            } as any)
+            })
         }
     }
 
