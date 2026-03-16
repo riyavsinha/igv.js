@@ -26,14 +26,14 @@ import {IGVColor} from "../../../node_modules/igv-utils/src/index.js"
  * @param header
  * @returns {*}
  */
-function decodeInteract(tokens: string[], header: any): Record<string, any> | undefined {
+function decodeInteract(tokens: string[], header: unknown): Record<string, unknown> | undefined {
 
     if (tokens.length < 6) {
         console.log("Skipping line: " + tokens.join(' '))
         return undefined
     }
 
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         chr: tokens[0],
         start: Number.parseInt(tokens[1]),
         end: Number.parseInt(tokens[2]),
@@ -62,7 +62,7 @@ function decodeInteract(tokens: string[], header: any): Record<string, any> | un
  * @param ignore
  * @returns {*}
  */
-function decodeBedpeDomain(tokens: string[], ignore: any): Record<string, any> | undefined {
+function decodeBedpeDomain(tokens: string[], ignore: unknown): Record<string, unknown> | undefined {
 
     if (tokens.length < 8) return undefined
 

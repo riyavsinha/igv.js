@@ -1,4 +1,4 @@
-function decodeGtexGWAS(tokens: string[], header: any): Record<string, any> | null {
+function decodeGtexGWAS(tokens: string[], header: unknown): Record<string, unknown> | null {
     //chrom	chromStart	chromEnd	Strongest SNP-risk allele	Disease/Phenotype	P-value	Odds ratio or beta	PUBMEDID
     //1	1247493	1247494	rs12103-A	Inflammatory bowel disease	8.00E-13	1.1	23128233
 
@@ -6,7 +6,7 @@ function decodeGtexGWAS(tokens: string[], header: any): Record<string, any> | nu
     if (tokenCount < 7) {
         return null
     }
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         chr: tokens[0],
         start: parseInt(tokens[1]) - 1,
         end: parseInt(tokens[2]),

@@ -24,14 +24,14 @@
  * @param header
  * @returns {*}
  */
-function decodeLongrange(tokens: string[], header: any): Record<string, any> | undefined {
+function decodeLongrange(tokens: string[], header: unknown): Record<string, unknown> | undefined {
 
     if (tokens.length < 6) {
         console.log("Skipping line: " + tokens.join(' '))
         return undefined
     }
 
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         chr1: tokens[0],
         start1: Number.parseInt(tokens[1]),
         end1: Number.parseInt(tokens[2])
@@ -51,8 +51,8 @@ function decodeLongrange(tokens: string[], header: any): Record<string, any> | u
 
     feature.chr = feature.chr1
     if(feature.chr1 === feature.chr2) {
-        feature.start = Math.min(feature.start1, feature.start2)
-        feature.end = Math.max(feature.end1, feature.end2)
+        feature.start = Math.min(feature.start1 as number, feature.start2 as number)
+        feature.end = Math.max(feature.end1 as number, feature.end2 as number)
     } else {
         feature.start = feature.start1
         feature.end = feature.end1

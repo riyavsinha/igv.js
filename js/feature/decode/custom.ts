@@ -17,7 +17,7 @@ interface CustomHeader {
  * @param header
  * @returns decoded feature, or undefined if this is not a valid record
  */
-function decodeCustom(tokens: string[], header: CustomHeader): Record<string, any> | undefined {
+function decodeCustom(tokens: string[], header: CustomHeader): Record<string, unknown> | undefined {
 
     const format = header.customFormat
 
@@ -29,7 +29,7 @@ function decodeCustom(tokens: string[], header: CustomHeader): Record<string, an
     const start = parseInt(tokens[format.start]) - coords
     const end = format.end !== undefined ? parseInt(tokens[format.end]) : start + 1
 
-    const feature: Record<string, any> = {chr: chr, start: start, end: end}
+    const feature: Record<string, unknown> = {chr: chr, start: start, end: end}
 
     if (format.fields) {
         format.fields.forEach(function (field: string, index: number) {

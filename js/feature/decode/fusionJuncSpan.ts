@@ -15,7 +15,7 @@ interface FusionJuncSpanFeature {
     end: number
 }
 
-function decodeFusionJuncSpan(tokens: string[], header: any): FusionJuncSpanFeature | undefined {
+function decodeFusionJuncSpan(tokens: string[], header: unknown): FusionJuncSpanFeature | undefined {
 
     /*
      Format:

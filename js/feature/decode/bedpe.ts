@@ -38,14 +38,14 @@ interface BedpeHeader {
     thicknessColumn?: number
 }
 
-function decodeBedpe(tokens: string[], header: BedpeHeader): Record<string, any> | undefined {
+function decodeBedpe(tokens: string[], header: BedpeHeader): Record<string, unknown> | undefined {
 
     if (tokens.length < 6) {
         console.log("Skipping line: " + tokens.join(' '))
         return undefined
     }
 
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         chr1: tokens[0],
         start1: Number.parseInt(tokens[1]),
         end1: Number.parseInt(tokens[2]),
@@ -54,7 +54,7 @@ function decodeBedpe(tokens: string[], header: BedpeHeader): Record<string, any>
         end2: Number.parseInt(tokens[5])
     }
 
-    if (isNaN(feature.start1) || isNaN(feature.end1) || isNaN(feature.start2) || isNaN(feature.end2)) {
+    if (isNaN(feature.start1 as number) || isNaN(feature.end1 as number) || isNaN(feature.start2 as number) || isNaN(feature.end2 as number)) {
         //throw Error(`Error parsing line: ${tokens.join('\t')}`);
         return undefined
     }
@@ -104,8 +104,8 @@ function decodeBedpe(tokens: string[], header: BedpeHeader): Record<string, any>
     // Set total extent of feature
     if (feature.chr1 === feature.chr2) {
         feature.chr = feature.chr1
-        feature.start = Math.min(feature.start1, feature.start2)
-        feature.end = Math.max(feature.end1, feature.end2)
+        feature.start = Math.min(feature.start1 as number, feature.start2 as number)
+        feature.end = Math.max(feature.end1 as number, feature.end2 as number)
 
     }
     return feature
@@ -115,7 +115,7 @@ function decodeBedpe(tokens: string[], header: BedpeHeader): Record<string, any>
  * Hack for non-standard bedPE formats, where numeric score can be in column 7 (name field from spec)
  * @param features
  */
-function fixBedPE(features: Record<string, any>[]): void {
+function fixBedPE(features: Record<string, unknown>[]): void {
 
     if (features.length == 0) return
 
@@ -156,7 +156,7 @@ function fixBedPE(features: Record<string, any>[]): void {
  * @param header
  * @returns {*}
  */
-function decodeBedpeDomain(tokens: string[], header: any): Record<string, any> | undefined {
+function decodeBedpeDomain(tokens: string[], header: unknown): Record<string, unknown> | undefined {
 
     if (tokens.length < 8) return undefined
 

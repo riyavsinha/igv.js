@@ -187,7 +187,7 @@ function decodeBedmethyl(tokens: string[], header: BedHeader | undefined): UCSCB
             "N-delete", "N-fail", "N-dff", "N-nocall"]
         for (let i = 9; i < tokens.length; i++) {
             const heading = extraColumnHeadings[i - 9]
-            ;(feature as any)[heading] = tokens[i]
+            feature[heading] = tokens[i]
         }
     }
 
@@ -198,11 +198,11 @@ function decodeBedmethyl(tokens: string[], header: BedHeader | undefined): UCSCB
 /**
  * Decode a UCSC repeat masker record.
  */
-function decodeRepeatMasker(tokens: string[], header: BedHeader | undefined): Record<string, any> | undefined {
+function decodeRepeatMasker(tokens: string[], header: BedHeader | undefined): Record<string, unknown> | undefined {
 
     if (tokens.length <= 15) return undefined
 
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         swScore: Number.parseInt(tokens[1]),
         milliDiv: Number.parseInt(tokens[2]),
         milliDel: Number.parseInt(tokens[3]),
@@ -226,7 +226,7 @@ function decodeRepeatMasker(tokens: string[], header: BedHeader | undefined): Re
 /**
  * Decode a UCSC "genePred" record.
  */
-function decodeGenePred(tokens: string[], header: BedHeader): Record<string, any> | undefined {
+function decodeGenePred(tokens: string[], header: BedHeader): Record<string, unknown> | undefined {
 
     const shift = header.shift === undefined ? 0 : 1
 
@@ -234,7 +234,7 @@ function decodeGenePred(tokens: string[], header: BedHeader): Record<string, any
 
     const cdStart = parseInt(tokens[5 + shift])
     const cdEnd = parseInt(tokens[6 + shift])
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         name: tokens[0 + shift],
         chr: tokens[1 + shift],
         strand: tokens[2 + shift],
@@ -256,7 +256,7 @@ function decodeGenePred(tokens: string[], header: BedHeader): Record<string, any
 /**
  * Decode a UCSC "genePredExt" record.  refGene files are in this format.
  */
-function decodeGenePredExt(tokens: string[], header: BedHeader): Record<string, any> | undefined {
+function decodeGenePredExt(tokens: string[], header: BedHeader): Record<string, unknown> | undefined {
 
     const shift = header.shift === undefined ? 0 : 1
 
@@ -264,7 +264,7 @@ function decodeGenePredExt(tokens: string[], header: BedHeader): Record<string, 
 
     const cdStart = parseInt(tokens[5 + shift])
     const cdEnd = parseInt(tokens[6 + shift])
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         name: tokens[11 + shift],
         chr: tokens[1 + shift],
         strand: tokens[2 + shift],
@@ -290,7 +290,7 @@ function decodeGenePredExt(tokens: string[], header: BedHeader): Record<string, 
 /**
  * Decode a UCSC "refFlat" record
  */
-function decodeReflat(tokens: string[], header: BedHeader): Record<string, any> | undefined {
+function decodeReflat(tokens: string[], header: BedHeader): Record<string, unknown> | undefined {
 
     const shift = header.shift === undefined ? 0 : 1
 
@@ -298,7 +298,7 @@ function decodeReflat(tokens: string[], header: BedHeader): Record<string, any> 
 
     const cdStart = parseInt(tokens[6 + shift])
     const cdEnd = parseInt(tokens[7 + shift])
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         name: tokens[0 + shift],
         id: tokens[1 + shift],
         chr: tokens[2 + shift],
@@ -381,7 +381,7 @@ function findUTRs(exons: Exon[], cdStart: number | undefined, cdEnd: number | un
 
 }
 
-function decodePeak(tokens: string[], header: BedHeader | undefined): Record<string, any> | undefined {
+function decodePeak(tokens: string[], header: BedHeader | undefined): Record<string, unknown> | undefined {
 
     const tokenCount = tokens.length
     if (tokenCount < 9) {
@@ -406,7 +406,7 @@ function decodePeak(tokens: string[], header: BedHeader | undefined): Record<str
     }
 }
 
-function decodeNarrowPeak(tokens: string[], header: BedHeader | undefined): Record<string, any> | undefined {
+function decodeNarrowPeak(tokens: string[], header: BedHeader | undefined): Record<string, unknown> | undefined {
 
     const feature = decodePeak(tokens, header)
     if(feature && tokens.length > 9) {
@@ -415,7 +415,7 @@ function decodeNarrowPeak(tokens: string[], header: BedHeader | undefined): Reco
     return feature
 }
 
-function decodeBedGraph(tokens: string[], header?: BedHeader): Record<string, any> | undefined {
+function decodeBedGraph(tokens: string[], header?: BedHeader): Record<string, unknown> | undefined {
 
     if (tokens.length <= 3) return undefined
 
@@ -423,7 +423,7 @@ function decodeBedGraph(tokens: string[], header?: BedHeader): Record<string, an
     const start = parseInt(tokens[1])
     const end = parseInt(tokens[2])
     const value = Number(tokens[3])
-    const feature: Record<string, any> = {chr: chr, start: start, end: end, value: value}
+    const feature: Record<string, unknown> = {chr: chr, start: start, end: end, value: value}
 
     // Optional extra columns
     if (header) {
@@ -436,7 +436,7 @@ function decodeBedGraph(tokens: string[], header?: BedHeader): Record<string, an
     return feature
 }
 
-function decodeWig(tokens: string[], header: BedHeader): Record<string, any> | null | undefined {
+function decodeWig(tokens: string[], header: BedHeader): Record<string, unknown> | null | undefined {
 
     const wig = header.wig
 
@@ -463,7 +463,7 @@ function decodeWig(tokens: string[], header: BedHeader): Record<string, any> | n
  * Decode a UCSC SNP record.
  * Reference: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
  */
-function decodeSNP(tokens: string[], header: BedHeader | undefined): Record<string, any> | undefined {
+function decodeSNP(tokens: string[], header: BedHeader | undefined): Record<string, unknown> | undefined {
 
     if (tokens.length < 6) return undefined
 
@@ -497,7 +497,7 @@ function decodeSNP(tokens: string[], header: BedHeader | undefined): Record<stri
     ]
 
 
-    const feature: Record<string, any> = {
+    const feature: Record<string, unknown> = {
         chr: tokens[1],
         start: Number.parseInt(tokens[2]),
         end: Number.parseInt(tokens[3]),
@@ -519,7 +519,8 @@ interface UCSCBedProperties {
     start: number
     end: number
     score?: number
-    [key: string]: any
+    // Dynamic properties from bed files with varying column counts
+    [key: string]: unknown
 }
 
 class UCSCBedFeature {
@@ -539,15 +540,16 @@ class UCSCBedFeature {
     signal?: number
     pValue?: number
     qValue?: number;
-    [key: string]: any
+    // Dynamic properties assigned via Object.assign from bed columns and extra headers
+    [key: string]: unknown
 
     constructor(properties: UCSCBedProperties) {
         Object.assign(this, properties)
     }
 
-    getAttributeValue(attributeName: string): any {
+    getAttributeValue(attributeName: string): unknown {
         if (this.hasOwnProperty(attributeName)) {
-            return (this as any)[attributeName]
+            return this[attributeName]
         } else if (this.attributes) {
             return this.attributes[attributeName]
         }
