@@ -1,16 +1,19 @@
 import HicFile from '../../node_modules/hic-straw/src/hicFile.js'
 import LRU from "../util/lruCache"
 
+interface NormalizationVector {
+    getValues(start: number, end: number): Promise<number[]>
+}
+
 interface HicConfig {
-    _hicFile?: any
+    _hicFile?: InstanceType<typeof HicFile>
     binThreshold?: number
     percentileThreshold?: number
-    [key: string]: any
+    [key: string]: unknown
 }
 
 interface HicGenome {
     getChromosomeName(chr: string): string
-    [key: string]: any
 }
 
 interface ContactRecord {
@@ -52,12 +55,12 @@ class HicSource {
 
     config: HicConfig
     genome: HicGenome
-    hicFile: any
+    hicFile: InstanceType<typeof HicFile>
     binThreshold: number
     percentileThreshold: number
     recordCache: Map<string, CachedRecords>
-    normVectorCache: any
-    normalizationOptions?: any
+    normVectorCache: LRU<NormalizationVector>
+    normalizationOptions?: string[]
 
     constructor(config: HicConfig, genome: HicGenome) {
         this.config = config
@@ -71,7 +74,7 @@ class HicSource {
         this.normVectorCache = new LRU(10)
     }
 
-    async getHeader(): Promise<any> {
+    async getHeader(): Promise<InstanceType<typeof HicFile>> {
         await this.hicFile.init()
         this.normalizationOptions = await this.hicFile.getNormalizationOptions()
         return this.hicFile
@@ -175,10 +178,10 @@ class HicSource {
 
     }
 
-    async getNormalizationVector(normalization: string, chr: string, binSize: number): Promise<any> {
+    async getNormalizationVector(normalization: string, chr: string, binSize: number): Promise<NormalizationVector> {
         const cacheKey = `${normalization}_${chr}_${binSize}`
         if (this.normVectorCache.has(cacheKey)) {
-            return this.normVectorCache.get(cacheKey)
+            return this.normVectorCache.get(cacheKey)!
         }
         const nv1 = await this.hicFile.getNormalizationVector(normalization, chr, "BP", binSize)
         this.normVectorCache.set(cacheKey, nv1)

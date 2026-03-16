@@ -4,8 +4,8 @@ interface JuiceboxBrowser {
     url: string
     state: string
     name: string
-    colorScale: any
-    tracks?: any[]
+    colorScale: unknown
+    tracks?: Record<string, unknown>[]
 }
 
 interface JuiceboxSession {
@@ -16,7 +16,7 @@ interface IgvSession {
     sampleNameViewportWidth?: number
     genome?: string
     locus?: string
-    tracks?: any[]
+    tracks?: Record<string, unknown>[]
 }
 
 async function translateSession(juiceboxSession: JuiceboxSession): Promise<IgvSession> {
@@ -41,7 +41,7 @@ async function translateSession(juiceboxSession: JuiceboxSession): Promise<IgvSe
     igvSession.locus = `${hicFile.chromosomes[chrIdx].name}:${start}-${end}`
 
 
-    igvSession.tracks = (jbBrowser.tracks || []).filter((t: any) => !(t.format === "refgene" || t.name === "cellType"))
+    igvSession.tracks = (jbBrowser.tracks || []).filter((t) => !(t.format === "refgene" || t.name === "cellType"))
 
     igvSession.tracks.push({
         type: "shoebox",
