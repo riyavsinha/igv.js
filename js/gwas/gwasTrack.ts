@@ -6,6 +6,10 @@ import {doAutoscale} from "../util/igvUtils.js"
 import GWASColors from "./gwasColors.js"
 import {ColorTable} from "../util/colorPalletes.js"
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {DrawConfiguration, ClickState} from "../types/ui.js"
+import type {GenomicFeature, PopupData} from "../types/feature.js"
 
 const DEFAULT_POPOVER_WINDOW = 100000000
 
@@ -16,12 +20,12 @@ class GWASTrack extends TrackBase {
 
     static defaultColor = 'rgb(0,0,150)'
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
 
         super(config, browser)
     }
 
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -41,7 +45,7 @@ class GWASTrack extends TrackBase {
         if (this.useChrColors) {
             this.colorScale = new ColorTable(config.colorTable || GWASColors)
         } else if (config.color) {
-            this.colorScale = new ConstantColorScale(config.color)
+            this.colorScale = new ConstantColorScale(config.color as string)
         } else {
             this.colorScale =
                 new BinnedColorScale(config.colorScale ||
@@ -99,9 +103,9 @@ class GWASTrack extends TrackBase {
         return this.featureSource!.getFeatures({chr, start, end, visibilityWindow})
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const featureList = options.features
+        const featureList = options.features as GenomicFeature[] | undefined
         const ctx = options.context
         const pixelWidth = options.pixelWidth
         const pixelHeight = options.pixelHeight
@@ -148,7 +152,7 @@ class GWASTrack extends TrackBase {
         }
     }
 
-    paintAxis(ctx: any, pixelWidth: number, pixelHeight: number) {
+    paintAxis(ctx: CanvasRenderingContext2D, pixelWidth: number, pixelHeight: number) {
 
         IGVGraphics.fillRect(ctx, 0, 0, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
         var font = {
@@ -182,11 +186,11 @@ class GWASTrack extends TrackBase {
         }
     }
 
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
-        if (features === undefined) features = clickState.viewport.cachedFeatures
+        if (features === undefined) features = clickState.viewport.cachedFeatures as GenomicFeature[] | undefined
 
-        let data: any[] = []
+        let data: PopupData[] = []
         const track = clickState.viewport.trackView.track
 
         if (features) {
@@ -204,7 +208,7 @@ class GWASTrack extends TrackBase {
                     }
                     f = f._f || f     // Extract "real" feature from potential psuedo feature (e.g. whole genome)
                     if (typeof f.popupData === 'function') {
-                        data = data.concat(f.popupData())
+                        data = data.concat(f.popupData(clickState.genomicLocation))
                     } else {
                         const value = f[this.valueProperty]
                         const chr = f.chr
@@ -230,7 +234,7 @@ class GWASTrack extends TrackBase {
         return this.numericDataMenuItems()
     }
 
-    doAutoscale(featureList: any[]) {
+    doAutoscale(featureList: GenomicFeature[]) {
 
         if (featureList.length > 0) {
             // posterior probabilities are treated without modification, but we need to take a negative logarithm of P values

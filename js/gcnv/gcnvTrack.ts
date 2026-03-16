@@ -4,17 +4,21 @@ import IGVGraphics from "../igv-canvas.js"
 import {isSimpleType} from "../util/igvUtils.js"
 import paintAxis from "../util/paintAxis.js"
 import {StringUtils} from "../../node_modules/igv-utils/src/index.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {DrawConfiguration, ClickState} from "../types/ui.js"
+import type {GenomicFeature, PopupData} from "../types/feature.js"
 
 const X_PIXEL_DIFF_THRESHOLD = 1
 
 class GCNVTrack extends TrackBase {
     [key: string]: any
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any): void {
+    init(config: TrackConfig): void {
         super.init(config)
 
         this.autoscale = config.autoscale || config.max === undefined
@@ -112,9 +116,10 @@ class GCNVTrack extends TrackBase {
         return chrFeatures.slice(prevIndex, nextIndex)
     }
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const {features, context, bpPerPixel, bpStart, pixelWidth, pixelHeight} = options
+        const {features: rawFeatures, context, bpPerPixel, bpStart, pixelWidth, pixelHeight} = options
+        const features = rawFeatures as GenomicFeature[] | undefined
 
         ///let baselineColor;
         //if (typeof self.color === "string" && self.color.startsWith("rgb(")) {
@@ -132,7 +137,7 @@ class GCNVTrack extends TrackBase {
             return x
         }
 
-        const drawGuideLines = (options: any) => {
+        const drawGuideLines = (options: DrawConfiguration) => {
             if (this.config.hasOwnProperty('guideLines')) {
                 for (let line of this.config.guideLines) {
                     if (line.hasOwnProperty('color') && line.hasOwnProperty('y') && line.hasOwnProperty('dotted')) {
@@ -244,14 +249,14 @@ class GCNVTrack extends TrackBase {
         drawGuideLines(options)
     }
 
-    doAutoscale(features: any[]) {
+    doAutoscale(features: GenomicFeature[]) {
 
         let min: number, max: number
         if (features.length > 0) {
             min = Number.MAX_VALUE
             max = -Number.MAX_VALUE
 
-            features.forEach(function (feature: any) {
+            features.forEach(function (feature: GenomicFeature) {
                 min = Math.min(min, ...feature.values)
                 max = Math.max(max, ...feature.values)
             })
@@ -267,7 +272,7 @@ class GCNVTrack extends TrackBase {
         return {min: min, max: max}
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
         //console.warn('click', clickState.canvasX, clickState.canvasY, clickState)
 
         const BOUNDING_BOX_PADDING = 10
@@ -332,15 +337,15 @@ class GCNVTrack extends TrackBase {
         return []
     }
 
-    popupData(clickState: any, features: any) {
+    popupData(clickState: ClickState, features?: {name: string, color: string}[]) {
 
         if(features === undefined) features = this.clickedFeatures(clickState)
 
-        const items: { name: string, value: any }[] = []
-        features.forEach(function (f: Record<string, any>) {
+        const items: PopupData[] = []
+        features.forEach(function (f: Record<string, unknown>) {
             for (let property of Object.keys(f)) {
                 if (isSimpleType(f[property])) {
-                    items.push({name: property, value: f[property]})
+                    items.push({name: property, value: f[property] as string | number | undefined})
                 }
             }
         })

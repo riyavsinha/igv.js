@@ -2,6 +2,10 @@ import FeatureSource from "../feature/featureSource.js"
 import TrackBase from "../trackBase.js"
 import IGVGraphics from "../igv-canvas.js"
 import ShoeboxColorScale from "./shoeboxColorScale.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {ClickState} from "../types/ui.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 /**
  * Configurable properties
@@ -25,11 +29,11 @@ class ShoeboxTrack extends TrackBase {
         stepSize: 2        // Stepsize for each row in bp for footprint radius
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
-    init(config: any): void {
+    init(config: TrackConfig): void {
 
         super.init(config)
 
@@ -105,7 +109,7 @@ class ShoeboxTrack extends TrackBase {
 
         const browser = this.browser
 
-        function dialogHandler(this: ShoeboxTrack, e: any) {
+        function dialogHandler(this: ShoeboxTrack, e: MouseEvent) {
 
             const callback = () => {
 
@@ -117,7 +121,7 @@ class ShoeboxTrack extends TrackBase {
 
                     const tracks = []
                     if (this.trackView.track.selected) {
-                        tracks.push(...(this.trackView.browser.getSelectedTrackViews().map(({track}: {track: any}) => track)))
+                        tracks.push(...(this.trackView.browser.getSelectedTrackViews().map(({track}: {track: ShoeboxTrack}) => track)))
                     } else {
                         tracks.push(this)
                     }
@@ -152,7 +156,7 @@ class ShoeboxTrack extends TrackBase {
         element.textContent = 'Set data range';
 
         // Note -- menu item handlers must be functions, not arrow functions
-        function dataRangeHandler(this: ShoeboxTrack, e: any) {
+        function dataRangeHandler(this: ShoeboxTrack, e: MouseEvent) {
             if (this.trackView.track.selected) {
                 this.browser.dataRangeDialog.configure(this.trackView.browser.getSelectedTrackViews())
             } else {
@@ -180,7 +184,7 @@ class ShoeboxTrack extends TrackBase {
         return features
     }
 
-    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: any[], bpPerPixel: number, bpStart: number}) {
+    draw({context, pixelTop, pixelWidth, pixelHeight, features, bpPerPixel, bpStart}: {context: CanvasRenderingContext2D, pixelTop: number, pixelWidth: number, pixelHeight: number, features: GenomicFeature[], bpPerPixel: number, bpStart: number}) {
 
         IGVGraphics.fillRect(context, 0, pixelTop, pixelWidth, pixelHeight, {'fillStyle': "rgb(255, 255, 255)"})
 
@@ -263,13 +267,13 @@ class ShoeboxTrack extends TrackBase {
      * @param features
      * @returns {number}
      */
-    computePixelHeight(features: any[]) {
+    computePixelHeight(features: GenomicFeature[]) {
         if (!features || features.length === 0) return 0
         return features[0].values.length * this.rowHeight
     }
 
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         const allFeatures = super.clickedFeatures(clickState)
         const y = clickState.y
@@ -279,14 +283,14 @@ class ShoeboxTrack extends TrackBase {
         })
     }
 
-    hoverText(clickState: any) {
+    hoverText(clickState: ClickState) {
         const features = this.clickedFeatures(clickState)
         if (features && features.length > 0) {
             return `${features[0].sample}: ${features[0].value}`
         }
     }
 
-    popupData(clickState: any, featureList: any) {
+    popupData(clickState: ClickState, featureList?: GenomicFeature[]) {
 
         if (featureList === undefined) featureList = this.clickedFeatures(clickState)
 

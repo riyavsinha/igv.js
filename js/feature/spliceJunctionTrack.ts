@@ -2,6 +2,10 @@ import FeatureSource from './featureSource.js'
 import TrackBase from "../trackBase.js"
 import IGVGraphics from "../igv-canvas.js"
 import {PaletteColorTable} from "../util/colorPalletes.js"
+import type Browser from "../browser.js"
+import type {TrackConfig} from "../types/config.js"
+import type {DrawConfiguration, ClickState} from "../types/ui.js"
+import type {GenomicFeature} from "../types/feature.js"
 
 let JUNCTION_MOTIF_PALETTE = new PaletteColorTable("Dark2")
 
@@ -21,12 +25,12 @@ class SpliceJunctionTrack extends TrackBase {
         height: 100
     }
 
-    constructor(config: any, browser: any) {
+    constructor(config: TrackConfig, browser: Browser) {
         super(config, browser)
     }
 
 
-    init(config: any) {
+    init(config: TrackConfig) {
 
         super.init(config)
 
@@ -84,13 +88,13 @@ class SpliceJunctionTrack extends TrackBase {
      * @param features
      * @returns {*}
      */
-    computePixelHeight(features: any[]) {
+    computePixelHeight(features: GenomicFeature[]) {
         return this.height
     };
 
-    draw(options: any) {
+    draw(options: DrawConfiguration) {
 
-        const featureList = options.features
+        const featureList = options.features as GenomicFeature[] | undefined
         const ctx = options.context
         const bpPerPixel = options.bpPerPixel
         const bpStart = options.bpStart
@@ -107,16 +111,13 @@ class SpliceJunctionTrack extends TrackBase {
 
 
             // rendering context with values that only need to be computed once per render, rather than for each splice junction
-            const junctionRenderingContext: any = {}
-
-            junctionRenderingContext.referenceFrame = options.viewport.referenceFrame
-            junctionRenderingContext.referenceFrameStart = junctionRenderingContext.referenceFrame.start
-            junctionRenderingContext.referenceFrameEnd = junctionRenderingContext.referenceFrameStart +
-                junctionRenderingContext.referenceFrame.toBP(options.viewport.getWidth())
-
-            // For a given viewport, records where features that are < 2px in width have been rendered already.
-            // This prevents wasteful rendering of multiple such features onto the same pixels.
-            junctionRenderingContext.featureZoomOutTracker = {}
+            const referenceFrame = options.viewport.referenceFrame
+            const junctionRenderingContext = {
+                referenceFrame,
+                referenceFrameStart: referenceFrame.start,
+                referenceFrameEnd: referenceFrame.start + referenceFrame.toBP(options.viewport.getWidth()),
+                featureZoomOutTracker: {} as Record<number, boolean>
+            }
 
             for (let feature of featureList) {
                 if (feature.end < bpStart) continue
@@ -138,7 +139,7 @@ class SpliceJunctionTrack extends TrackBase {
      * @param pixelHeight  pixel height of the current canvas
      * @param ctx  the canvas 2d context
      */
-    renderJunction(feature: any, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D, junctionRenderingContext: any) {
+    renderJunction(feature: GenomicFeature, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D, junctionRenderingContext: {referenceFrameStart: number, referenceFrameEnd: number, featureZoomOutTracker: Record<number, boolean>}) {
         // cache whether this junction is rendered or filtered out. Use later to exclude non-rendered junctions from click detection.
         feature.isVisible = false
 
@@ -277,7 +278,7 @@ class SpliceJunctionTrack extends TrackBase {
             color = '#AAAAAA'
         }
 
-        let label: any = ""
+        let label: string | number = ""
         if (feature.attributes.label) {
             label = feature.attributes.label.replace(/_/g, " ")
         } else if (this.config.labelWith === undefined || this.config.labelWith === 'uniqueReadCount') {
@@ -357,10 +358,11 @@ class SpliceJunctionTrack extends TrackBase {
             }
         }
 
-        ctx.fillText(label, junctionMiddlePx - ctx.measureText(label).width / 2, (7 * topY + cy) / 8)
+        const labelStr = String(label)
+        ctx.fillText(labelStr, junctionMiddlePx - ctx.measureText(labelStr).width / 2, (7 * topY + cy) / 8)
     }
 
-    clickedFeatures(clickState: any) {
+    clickedFeatures(clickState: ClickState) {
 
         const allFeatures = super.clickedFeatures(clickState)
 
@@ -372,7 +374,7 @@ class SpliceJunctionTrack extends TrackBase {
     /**
      * Return "popup data" for feature @ genomic location.  Data is an array of key-value pairs
      */
-    popupData(clickState: any, features?: any[]) {
+    popupData(clickState: ClickState, features?: GenomicFeature[]) {
 
         if (features === undefined) features = this.clickedFeatures(clickState)
         const genomicLocation = clickState.genomicLocation
