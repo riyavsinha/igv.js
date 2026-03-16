@@ -19,7 +19,7 @@ class Checkbox {
     state: boolean
     onchange?: (state: boolean) => void
     elem: HTMLElement
-    svg: any
+    svg: SVGSVGElement
 
     constructor({selected, label, onchange}: CheckboxOptions) {
 
@@ -63,7 +63,7 @@ class Checkbox {
 
     set selected(selected: boolean) {
         this.state = selected;
-        const p = this.svg.querySelector('path');
+        const p = this.svg.querySelector('path')!;
         p.setAttributeNS(null, 'fill', (true === selected ? '#444' : 'transparent'));
     }
 

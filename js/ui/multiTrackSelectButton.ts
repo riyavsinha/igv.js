@@ -1,14 +1,16 @@
 import NavbarButton from "./navbarButton.js"
 import {multiSelectImage, multiSelectImageHover} from "./navbarIcons/multiSelect.js"
 import {buttonLabel} from "./navbarIcons/buttonLabel.js"
+import type Browser from "../browser.js"
+import type ResponsiveNavbar from "../responsiveNavbar.js"
 
 class MultiTrackSelectButton extends NavbarButton {
 
-    navbar: any
+    navbar: ResponsiveNavbar
     enableMultiTrackSelection: boolean
     boundMouseClickHandler: () => void
 
-    constructor(parent: HTMLElement, browser: any, navbar: any, enableMultiTrackSelection: boolean) {
+    constructor(parent: HTMLElement, browser: Browser, navbar: ResponsiveNavbar, enableMultiTrackSelection: boolean) {
 
         super(parent, browser, 'Select Tracks', buttonLabel, multiSelectImage, multiSelectImageHover, false)
 

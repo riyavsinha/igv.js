@@ -9,8 +9,8 @@ class SliderDialog {
     container: HTMLElement
     label: HTMLElement
     input_container: HTMLElement
-    _input: any
-    _output: any
+    _input: HTMLInputElement
+    _output: HTMLOutputElement
     ok: HTMLElement
     cancel: HTMLElement
     callback: ((value: number) => void) | undefined
@@ -40,12 +40,12 @@ class SliderDialog {
 
         // input element
         let html: string = `<input type="range" id="igv-slider-dialog-input" name="igv-slider-dialog-input" />`
-        this._input = document.createRange().createContextualFragment(html).firstChild
+        this._input = document.createRange().createContextualFragment(html).firstChild as HTMLInputElement
         this.input_container.appendChild(this._input)
 
         // output element
         html = `<output id="igv-slider-dialog-output" name="igv-slider-dialog-output" for="igv-slider-dialog-input"></output>`
-        this._output = document.createRange().createContextualFragment(html).firstChild
+        this._output = document.createRange().createContextualFragment(html).firstChild as HTMLOutputElement
         this.input_container.appendChild(this._output)
 
 
@@ -77,12 +77,12 @@ class SliderDialog {
                 this.callback(number)
                 this.callback = undefined
             }
-            this._input.value = undefined
+            this._input.value = ''
             DOMUtils.hide(this.container)
         })
 
         const cancel = (): void => {
-            this._input.value = undefined
+            this._input.value = ''
             DOMUtils.hide(this.container)
         }
 
@@ -97,7 +97,7 @@ class SliderDialog {
         return DOMPurify.sanitize(this._input.value)
     }
 
-    present(options: any, e: MouseEvent): void {
+    present(options: {label: string, scaleFactor: number, precision?: number, min: number, max: number, value: number, callback?: (value: number) => void, click?: (value: number) => void, color?: string}, e: MouseEvent): void {
 
         this.label.textContent = options.label
 

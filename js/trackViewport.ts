@@ -311,7 +311,7 @@ class TrackViewport extends Viewport {
             // Track might have been removed during load
             if (this.trackView && this.trackView.disposed !== true) {
                 this.showMessage(NOT_LOADED_MESSAGE)
-                this.browser.alert.present(error)
+                this.browser.alert.present(error as Error)
                 console.error(error)
             }
         } finally {

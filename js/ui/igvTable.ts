@@ -19,7 +19,7 @@ class IGVTable {
      * @param parent - parent element for the popup's html element
      * @param tableConfig - see components/table.js
      */
-    constructor(parent: HTMLElement, tableConfig: any) {
+    constructor(parent: HTMLElement, tableConfig: {title?: string, maxHeight?: number, headers: string[], rows: string[][], rowClickHandler?: (rowData: string[]) => void}) {
 
         this.parent = parent
 

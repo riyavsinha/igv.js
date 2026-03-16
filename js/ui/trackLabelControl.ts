@@ -1,12 +1,13 @@
 import NavbarButton from "./navbarButton.js"
 import {trackLabelsImage, trackLabelsImageHover} from "./navbarIcons/trackLabels.js"
 import { buttonLabel } from "./navbarIcons/buttonLabel.js"
+import type Browser from "../browser.js"
 
 class TrackLabelControl extends NavbarButton {
 
     boundMouseClickHandler: () => void
 
-    constructor(parent: HTMLElement, browser: any) {
+    constructor(parent: HTMLElement, browser: Browser) {
 
         super(parent, browser, 'Track Labels', buttonLabel, trackLabelsImage, trackLabelsImageHover, browser.config.showTrackLabels)
 
@@ -32,7 +33,7 @@ class TrackLabelControl extends NavbarButton {
 
         this.button.addEventListener('click', this.boundMouseClickHandler)
 
-        this.setVisibility(browser.config.showTrackLabelButton)
+        this.setVisibility(browser.config.showTrackLabelButton as boolean)
 
     }
 

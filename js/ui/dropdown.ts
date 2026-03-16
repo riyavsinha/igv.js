@@ -30,7 +30,7 @@ class Dropdown {
         this.shim = shim
     }
 
-    configure(dropdownItems: any[]): void {
+    configure(dropdownItems: (string | Node | {init?: () => void, click?: (e?: Event) => void, label?: string, type?: string, value?: unknown})[]): void {
 
         if (0 === dropdownItems.length) {
             return

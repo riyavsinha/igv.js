@@ -160,7 +160,7 @@ class SEGFilterDialog {
         return selectedRadio ? selectedRadio.value : "<"  // Default to < if somehow no radio is selected
     }
 
-    present(event: MouseEvent, config: any): void {
+    present(event: MouseEvent, config: {value?: string, callback?: (threshold: string, op: string) => void, click?: (threshold: string, op: string) => void}): void {
         if (config.value) this._input.value = config.value
         this.callback = config.callback || config.click
 

@@ -106,7 +106,7 @@ class GenericColorPicker extends GenericContainer {
 
     createAndPresentMoreColorsPicker(moreColorsContainer: HTMLElement, colorHandler: (color: string) => void): void {
 
-        let picker: any
+        let picker: InstanceType<typeof Picker>
 
         moreColorsContainer.innerHTML = ''
         moreColorsContainer.innerText = 'More Colors ...'
@@ -140,14 +140,14 @@ class GenericColorPicker extends GenericContainer {
 
         picker.setOptions(config)
 
-        picker.setColor(this.moreColorsPresentationColor, true)
+        picker.setColor(this.moreColorsPresentationColor!, true)
 
         picker.onOpen = () => {
             console.log(`picker - onOpen`)
         }
-        picker.onChange = (color: any) => moreColorsContainer.style.backgroundColor = color.rgba
+        picker.onChange = (color: {rgba: string}) => moreColorsContainer.style.backgroundColor = color.rgba
 
-        picker.onDone = (color: any) => {
+        picker.onDone = (color: {hex: string}) => {
 
             // Remove alpha from hex color string
             const hexColorString = color.hex.substring(0, 7)

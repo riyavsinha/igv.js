@@ -1,4 +1,5 @@
 import NavbarButton from "./navbarButton.js"
+import type Browser from "../browser.js"
 import Dropdown from "./dropdown.js"
 // Icon Button SVG
 import { imageSaveImageSVG, imageSaveImageHoverSVG } from './navbarIcons/saveImage.js'
@@ -6,9 +7,9 @@ import { buttonLabel } from "./navbarIcons/buttonLabel.js"
 
 class SaveImageControl extends NavbarButton {
 
-    dropdown: any
+    dropdown: Dropdown
 
-    constructor(parent: HTMLElement, browser: any) {
+    constructor(parent: HTMLElement, browser: Browser) {
 
         super(parent, browser, 'Save Image', buttonLabel, imageSaveImageSVG, imageSaveImageHoverSVG, false)
 
@@ -31,14 +32,14 @@ class SaveImageControl extends NavbarButton {
             [
                 {
                     label: "Save as SVG",
-                    click: (e: Event) => {
+                    click: () => {
                         this.browser.saveSVGtoFile("igvjs.svg")
                         this.dropdown.dismiss()
                     }
                 },
                 {
                     label: "Save as PNG",
-                    click: (e: Event) => {
+                    click: () => {
                         this.browser.savePNGtoFile("igvjs.png")
                         this.dropdown.dismiss()
                     }
@@ -65,7 +66,7 @@ class SaveImageControl extends NavbarButton {
 
         })
 
-        this.setVisibility(browser.config.showSVGButton)
+        this.setVisibility(browser.config.showSVGButton as boolean)
 
     }
 

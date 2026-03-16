@@ -29,17 +29,15 @@ class ROITable extends RegionTableBase {
 
     constructor(browser: Browser) {
 
-        const config: Record<string, unknown> =
-            {
-                browser: browser,
-                parent: browser.columnContainer,
-                headerTitle: 'Regions of Interest',
-                dismissHandler: () => browser.roiTableControl.buttonHandler(false),
-                gotoButtonHandler: ROITable.gotoButtonHandler
-            }
-        config.columnFormat = ROITable.getColumnFormatConfiguration(true)
-
-        super(Object.assign({ 'width':'640px' }, config))
+        super({
+            browser,
+            parent: browser.columnContainer,
+            headerTitle: 'Regions of Interest',
+            dismissHandler: () => browser.roiTableControl.buttonHandler(false),
+            gotoButtonHandler: ROITable.gotoButtonHandler,
+            columnFormat: ROITable.getColumnFormatConfiguration(true),
+            width: '640px'
+        })
     }
 
     tableRowDOM(record: ROIRecord): HTMLElement {
@@ -134,8 +132,8 @@ class ROITable extends RegionTableBase {
                     const locusObj = parseLocusString(loci[0], this.browser.isSoftclipped())
                     if (locusObj) {
                         const { chr, start, end } = locusObj
-                        const seq = await this.browser.genome.getSequence(chr, start, end)
-                        await navigator.clipboard.writeText(seq)
+                        const seq = await this.browser.genome.getSequence(chr, start!, end!)
+                        await navigator.clipboard.writeText(seq as string)
                     }
                 }
             }

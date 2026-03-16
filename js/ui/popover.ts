@@ -5,10 +5,10 @@ import {createIcon} from "./utils/icons.js"
 
 interface MenuItem {
     init?: () => void
-    click?: () => void
+    click?: (e?: Event) => void
     label?: string
     type?: string
-    value?: any
+    value?: unknown
 }
 
 interface MenuElement {
@@ -135,7 +135,7 @@ class Popover {
 
         const keys = Object.keys(this)
         for (let key of keys) {
-            (this as any)[ key ] = undefined
+            (this as unknown as Record<string, unknown>)[ key ] = undefined
         }
     }
 
@@ -173,7 +173,7 @@ function createMenuElements(itemList: (string | Node | MenuItem)[], popover: HTM
             }
 
             if ("checkbox" === item.type) {
-                element = Icon.createCheckbox("Show all bases", item.value);
+                element = Icon.createCheckbox("Show all bases", item.value as boolean | undefined);
             }
 
             else {

@@ -1,8 +1,9 @@
 import * as DOMUtils from "../ui/utils/dom-utils.js"
+import type Browser from "../browser.js"
 
 class NavbarButton {
 
-    browser: any
+    browser: Browser
     button: HTMLDivElement
     textContent: string
     title: string
@@ -12,7 +13,7 @@ class NavbarButton {
     groupElement: Element | undefined
     doHover: boolean | undefined
 
-    constructor(parent: HTMLElement, browser: any, title: string | string[], buttonLabel: string, imageSVG: string, imageHoverSVG: string, initialButtonState: boolean | undefined) {
+    constructor(parent: HTMLElement, browser: Browser, title: string | string[], buttonLabel: string, imageSVG: string, imageHoverSVG: string, initialButtonState: boolean | undefined) {
 
         this.browser = browser
 
@@ -40,8 +41,8 @@ class NavbarButton {
 
         this.setState(initialButtonState)
 
-        browser.on('navbar-resize', (navbarButtonCSSClass: string) => {
-            this.navbarResizeHandler(navbarButtonCSSClass)
+        browser.on('navbar-resize', (navbarButtonCSSClass: unknown) => {
+            this.navbarResizeHandler(navbarButtonCSSClass as string)
         })
 
     }

@@ -5,8 +5,19 @@ import DOMPurify from "../../../node_modules/dompurify/dist/purify.es.mjs"
 import Checkbox from "./checkbox.js"
 import {DivergingGradientScale, GradientColorScale} from "../../util/colorScale.js"
 
+interface ColorScaleLike {
+    type: string
+    min: number
+    max: number
+    mid?: number
+    minColor: string
+    maxColor: string
+    midColor?: string
+    clone(): ColorScaleLike
+    getColor(v: number): string
+}
 
-function paintLegend(legend: HTMLCanvasElement, newColorScale: any): void {
+function paintLegend(legend: HTMLCanvasElement, newColorScale: ColorScaleLike): void {
 
     const ctx = legend.getContext("2d")!
     const w = legend.width
@@ -21,7 +32,7 @@ function paintLegend(legend: HTMLCanvasElement, newColorScale: any): void {
 
 class ColorScaleEditor {
 
-    static open(colorScale: any, parent: HTMLElement, callback?: (colorScale: any) => void): void {
+    static open(colorScale: ColorScaleLike, parent: HTMLElement, callback?: (colorScale: ColorScaleLike) => void): void {
 
         let newColorScale = colorScale.clone()
 
@@ -104,10 +115,10 @@ class ColorScaleEditor {
                     newColorScale.midColor = "rgb(255,255,255)"
                     newColorScale = new DivergingGradientScale(newColorScale)
 
-                    midTextbox.value = newColorScale.mid
+                    midTextbox.value = String(newColorScale.mid)
                     midTextbox.show()
 
-                    midColorElem.value = newColorScale.midColor
+                    midColorElem.value = newColorScale.midColor!
                     midColorElem.show()
 
                     paintLegend(legend, newColorScale)
@@ -205,11 +216,11 @@ class TextBoxRow extends LabeledButtonRow {
         }
     }
 
-    get value(): any {
+    get value(): string {
         return this.input.value
     }
 
-    set value(v: any) {
+    set value(v: string) {
         this.input.value = v
     }
 }
@@ -238,7 +249,7 @@ class ColorPickerRow extends LabeledButtonRow {
             alpha: false, color: value
         })
 
-        picker.onDone =  (color: any) => {
+        picker.onDone =  (color: {rgbString: string}) => {
             colorButton.style.background = color.rgbString
             if (onchange) {
                 onchange(color.rgbString)

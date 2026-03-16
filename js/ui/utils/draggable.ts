@@ -50,7 +50,7 @@ function makeDraggable(target: HTMLElement, handle: HTMLElement, constraint?: un
         document.addEventListener('mousemove', dragFunction)
         document.addEventListener('mouseup', dragEndFunction)
         document.addEventListener('mouseleave', dragEndFunction)
-        document.addEventListener('mouseexit' as any, dragEndFunction)
+        document.addEventListener('mouseexit' as string, dragEndFunction as EventListener)
     }
 }
 
@@ -85,7 +85,7 @@ function dragEnd(this: HTMLElement, event: MouseEvent): void {
     document.removeEventListener('mousemove', dragFunction)
     document.removeEventListener('mouseup', dragEndFunction)
     document.removeEventListener('mouseleave', dragEndFunction)
-    document.removeEventListener('mouseexit' as any, dragEndFunction)
+    document.removeEventListener('mouseexit' as string, dragEndFunction as EventListener)
     dragData = undefined
 }
 

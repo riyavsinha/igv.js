@@ -1,4 +1,6 @@
 import * as DOMUtils from "../ui/utils/dom-utils.js"
+import type Browser from "../browser.js"
+import type Genome from "../genome/genome.js"
 
 const maximumSequenceCountExceeded: string = "Maximum sequence count exceeded"
 
@@ -7,9 +9,9 @@ class ChromosomeSelectWidget {
     container: HTMLElement
     select: HTMLSelectElement
     showAllChromosomes: boolean
-    genome: any
+    genome: Genome
 
-    constructor(browser: any, parent: HTMLElement) {
+    constructor(browser: Browser, parent: HTMLElement) {
 
         this.container = DOMUtils.div({class: 'igv-chromosome-select-widget-container'})
         parent.appendChild(this.container)
@@ -24,12 +26,12 @@ class ChromosomeSelectWidget {
 
                 if (this.select.value.trim().toLowerCase() === "all" || this.select.value === "*") {
                     if (browser.genome.wholeGenomeView) {
-                        const wgChr = browser.genome.getChromosome("all")
+                        const wgChr = browser.genome.getChromosome("all")!
                         browser.updateLoci([{chr: "all", start: 0, end: wgChr.bpLength}])
                     }
                 } else {
-                    const chromosome = await browser.genome.loadChromosome(this.select.value)
-                    const locusObject: any = {chr: chromosome.name}
+                    const chromosome = (await browser.genome.loadChromosome(this.select.value))!
+                    const locusObject: {chr: string, start?: number, end?: number} = {chr: chromosome.name}
                     if (locusObject.start === undefined && locusObject.end === undefined) {
                         locusObject.start = 0
                         locusObject.end = chromosome.bpLength
@@ -55,7 +57,7 @@ class ChromosomeSelectWidget {
         this.select.value = this.genome.getChromosomeDisplayName(chrName)
     }
 
-    update(genome: any): void {
+    update(genome: Genome): void {
 
         this.genome = genome
 
@@ -66,10 +68,10 @@ class ChromosomeSelectWidget {
 
         const alreadyAdded: Set<string> = genome.wgChromosomeNames ? new Set(genome.wgChromosomeNames) : new Set()
 
-        if (this.showAllChromosomes && genome.chromosomeNames.length > 1) {
+        if (this.showAllChromosomes && genome.chromosomeNames!.length > 1) {
             const exclude = new Set(list)
             let count = alreadyAdded.size
-            for (let nm of genome.chromosomeNames) {
+            for (let nm of genome.chromosomeNames!) {
                 if(alreadyAdded.has(nm)) continue
                 if (++count === 1000) {
                     list.push(maximumSequenceCountExceeded)

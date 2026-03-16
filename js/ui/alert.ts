@@ -8,7 +8,7 @@ class Alert {
 
     }
 
-    present(alert: any, callback?: () => void): void {
+    present(alert: Error | string, callback?: () => void): void {
         this.dialog.present(alert, callback)
     }
 }

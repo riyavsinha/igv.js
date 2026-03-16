@@ -1,4 +1,6 @@
 import type Browser from "../browser.js"
+import type TrackView from "../trackView.js"
+import type {Track, MenuItem} from "../types/ui"
 import * as DOMUtils from "./utils/dom-utils.js"
 import Panel from "./components/panel.js"
 import Dialog from "./components/dialog.js"
@@ -39,18 +41,18 @@ class MenuUtils {
         DOMUtils.hide(this.dialog.elem)
     }
 
-    trackMenuItemList(trackView: any): any[] {
+    trackMenuItemList(trackView: TrackView): (string | MenuItem)[] {
 
-        const list: any[] = []
+        const list: (string | MenuItem)[] = []
 
-        if (trackView.track.config.type !== 'sequence') {
+        if (trackView.track.config?.type !== 'sequence') {
             list.push(trackHeightMenuItem())
         }
 
         if (true === didMultiSelect(trackView)) {
             list.push(...this.multiSelectMenuItems(trackView))
         } else {
-            if (trackView.track.config.type !== 'sequence') {
+            if (trackView.track.config?.type !== 'sequence') {
                 list.push(trackRenameMenuItem())
             }
             list.push(...this.defaultMenuItems(trackView))
@@ -64,9 +66,9 @@ class MenuUtils {
         return list
     }
 
-    defaultMenuItems(trackView: any): any[] {
+    defaultMenuItems(trackView: TrackView): (string | MenuItem)[] {
 
-        const list: any[] = []
+        const list: (string | MenuItem)[] = []
 
         if (canShowColorPicker(trackView.track)) {
 
@@ -74,7 +76,7 @@ class MenuUtils {
             list.push(colorPickerMenuItem(trackView, "Set track color", "color"))
             list.push(unsetColorMenuItem(trackView, "Unset track color"))
 
-            if (trackView.track.config.type === 'wig' || trackView.track.config.type === 'annotation') {
+            if (trackView.track.config?.type === 'wig' || trackView.track.config?.type === 'annotation') {
                 list.push(colorPickerMenuItem(trackView, "Set alt color", "altColor"))
                 list.push(unsetAltColorMenuItem(trackView, "Unset alt color"))
             }
@@ -87,18 +89,18 @@ class MenuUtils {
 
         if (isVisibilityWindowType(trackView)) {
             list.push('<hr/>')
-            list.push(visibilityWindowMenuItem(trackView.track.type))
+            list.push(visibilityWindowMenuItem(trackView.track.type!))
         }
 
         return list
     }
 
-    multiSelectMenuItems(trackView: any): any[] {
+    multiSelectMenuItems(trackView: TrackView): (string | MenuItem)[] {
 
-        const list: any[] = []
+        const list: (string | MenuItem)[] = []
 
         const selected = trackView.browser.getSelectedTrackViews()
-        const isSingleTrackType: boolean = didSelectSingleTrackType(selected.map(({track}: {track: any}) => track.type))
+        const isSingleTrackType: boolean = didSelectSingleTrackType(selected.map(({track}: {track: Track}) => track.type as string))
 
         if (true === isSingleTrackType) {
 
@@ -118,7 +120,7 @@ class MenuUtils {
                 list.push(colorPickerMenuItem(trackView, "Set track color", "color"))
                 list.push(unsetColorMenuItem(trackView, "Unset track color"))
 
-                if (trackView.track.config.type === 'wig' || trackView.track.config.type === 'annotation') {
+                if (trackView.track.config?.type === 'wig' || trackView.track.config?.type === 'annotation') {
                     list.push(colorPickerMenuItem(trackView, "Set alt color", "altColor"))
                     list.push(unsetAltColorMenuItem(trackView, "Unset alt color"))
                 }
@@ -133,23 +135,23 @@ class MenuUtils {
 
 }
 
-function didMultiSelect(trackView: any): boolean {
+function didMultiSelect(trackView: TrackView): boolean {
     const selected = trackView.browser.getSelectedTrackViews()
     return selected && selected.length > 1 && new Set(selected).has(trackView)
 }
 
-function isVisibilityWindowType(trackView: any): boolean {
+function isVisibilityWindowType(trackView: TrackView): boolean {
     const track = trackView.track
-    const hasVizWindow: boolean = track && track.config && track.config.visibilityWindow !== undefined
-    return hasVizWindow || (track && vizWindowTypes.has(track.type))
+    const hasVizWindow: boolean = !!(track && track.config && track.config.visibilityWindow !== undefined)
+    return hasVizWindow || !!(track && track.type && vizWindowTypes.has(track.type))
 }
 
-function groupAutoScaleMenuItem(): any {
+function groupAutoScaleMenuItem(): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = 'Group autoscale';
 
-    function click(this: any, e: Event): void {
+    function click(this: Track, e?: Event): void {
 
         const colorPalette = colorPalettes['Dark2'];
         const randomIndex: number = Math.floor(Math.random() * colorPalette.length);
@@ -169,12 +171,12 @@ function groupAutoScaleMenuItem(): any {
 
 }
 
-function visibilityWindowMenuItem(trackType: string): any {
+function visibilityWindowMenuItem(trackType: string): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = 'Set visibility window';
 
-    function click(this: any, e: Event): void {
+    function click(this: Track, e?: Event): void {
 
         const callback = () => {
 
@@ -182,9 +184,9 @@ function visibilityWindowMenuItem(trackType: string): any {
             value = '' === value || undefined === value ? -1 : value.trim();
 
             this.visibilityWindow = Number.parseInt(value);
-            this.config.visibilityWindow = Number.parseInt(value);
+            this.config!.visibilityWindow = Number.parseInt(value);
 
-            this.trackView.updateViews();
+            this.trackView!.updateViews!();
         };
 
         const label: string = 'wig' === trackType ?
@@ -204,34 +206,34 @@ function visibilityWindowMenuItem(trackType: string): any {
 
 }
 
-function trackRemovalMenuItem(trackView: any): any {
+function trackRemovalMenuItem(trackView: TrackView): MenuItem {
 
     const str: string = trackView.track.selected ? 'Remove tracks' : 'Remove track';
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = str;
 
-    function trackRemovalHandler(this: any, e: Event): void {
-        this.trackView.browser._removeTrack(this);
+    function trackRemovalHandler(this: Track, e?: Event): void {
+        (this.trackView as TrackView).browser._removeTrack(this);
     }
 
     return {element, click: trackRemovalHandler, menuItemType: 'removeTrack'};
 
 }
 
-function colorPickerMenuItem(trackView: any, label: string, option: string): any {
+function colorPickerMenuItem(trackView: TrackView, label: string, option: string): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = label;
 
-    const click = (event: Event): void => {
-        trackView.presentColorPicker(option, event);
-    };
+    function click(this: Track, event?: Event): void {
+        trackView.presentColorPicker(option, event!);
+    }
 
     return {element, click};
 }
 
-function unsetColorMenuItem(trackView: any, label: string): any {
+function unsetColorMenuItem(trackView: TrackView, label: string): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = label;
@@ -245,7 +247,7 @@ function unsetColorMenuItem(trackView: any, label: string): any {
     };
 }
 
-function unsetAltColorMenuItem(trackView: any, label: string): any {
+function unsetAltColorMenuItem(trackView: TrackView, label: string): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = label;
@@ -259,12 +261,12 @@ function unsetAltColorMenuItem(trackView: any, label: string): any {
     };
 }
 
-function trackRenameMenuItem(): any {
+function trackRenameMenuItem(): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = 'Set track name';
 
-    function click(this: any, e: Event): void {
+    function click(this: Track, e?: Event): void {
 
         const callback = () => {
             let value = this.browser.inputDialog.value;
@@ -287,12 +289,12 @@ function trackRenameMenuItem(): any {
     return {element, click};
 }
 
-function trackHeightMenuItem(): any {
+function trackHeightMenuItem(): MenuItem {
 
     const element: HTMLElement = document.createElement('div');
     element.textContent = 'Set track height';
 
-    function dialogHandler(this: any, e: Event): void {
+    function dialogHandler(this: Track, e?: Event): void {
 
         const callback = () => {
 
@@ -302,16 +304,18 @@ function trackHeightMenuItem(): any {
 
                 if (number > 0){
 
-                    const tracks: any[] = [];
-                    if (this.trackView.track.selected) {
-                        tracks.push(...(this.trackView.browser.getSelectedTrackViews().map(({track}: {track: any}) => track)));
+                    const tracks: Track[] = [];
+                    const tv = this.trackView as TrackView
+                    if (tv.track.selected) {
+                        tracks.push(...(tv.browser.getSelectedTrackViews().map(({track}: {track: Track}) => track)));
                     } else {
                         tracks.push(this);
                     }
 
                     for (const track of tracks) {
+                        const trackTv = track.trackView as TrackView
                         // Explicitly setting track height turns off autoHeight
-                        track.trackView.autoHeight = false;
+                        trackTv.autoHeight = false;
 
                         // If explicitly setting the height adjust min or max, if necessary
                         if (track.minHeight !== undefined && track.minHeight > number) {
@@ -320,10 +324,10 @@ function trackHeightMenuItem(): any {
                         if (track.maxHeight !== undefined && track.maxHeight < number) {
                             track.minHeight = number;
                         }
-                        track.trackView.setTrackHeight(number, true);
+                        trackTv.setTrackHeight(number, true);
 
-                        track.trackView.checkContentHeight();
-                        track.trackView.repaintViews();
+                        trackTv.checkContentHeight!();
+                        trackTv.repaintViews();
                     } // for (tracks)
 
                 } // if ()
@@ -346,11 +350,11 @@ function trackHeightMenuItem(): any {
 
 }
 
-function getTrackLabelText(track: any): string {
-    return track.name
+function getTrackLabelText(track: Track): string {
+    return track.name || ''
 }
 
-function canShowColorPicker(track: any): boolean {
+function canShowColorPicker(track: Track): boolean {
     return undefined === track.type || (colorPickerTrackTypeSet.has(track.type) && 'heatmap' !== track.graphType)
 }
 

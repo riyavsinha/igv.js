@@ -1,4 +1,5 @@
 import type Browser from "../../browser.js"
+import type TrackView from "../../trackView.js"
 import makeDraggable from "../utils/draggable.js"
 import {attachDialogCloseHandlerWithParent} from "../utils/ui-utils.js"
 import InputDialog from "./inputDialog.js"
@@ -92,26 +93,27 @@ class DataRangeDialog {
         this.container.style.display = 'none'
     }
 
-    configure(trackViewOrTrackViewList: any): void {
-        let dataRange: any
+    configure(trackViewOrTrackViewList: TrackView | TrackView[]): void {
+        let dataRange: {min: number, max: number} | undefined
 
         // Determine the data range
         if (Array.isArray(trackViewOrTrackViewList)) {
             dataRange = {min: Number.MAX_SAFE_INTEGER, max: -Number.MAX_SAFE_INTEGER}
             for (const trackView of trackViewOrTrackViewList) {
-                if (trackView.track.dataRange) {
-                    dataRange.min = Math.min(trackView.track.dataRange.min, dataRange.min)
-                    dataRange.max = Math.max(trackView.track.dataRange.max, dataRange.max)
+                const dr = trackView.track.dataRange as {min: number, max: number} | undefined
+                if (dr) {
+                    dataRange.min = Math.min(dr.min, dataRange.min)
+                    dataRange.max = Math.max(dr.max, dataRange.max)
                 }
             }
         } else {
-            dataRange = trackViewOrTrackViewList.track.dataRange
+            dataRange = trackViewOrTrackViewList.track.dataRange as {min: number, max: number} | undefined
         }
 
         // Populate input fields with data range
         if (dataRange) {
-            this.minimumInput.value = dataRange.min
-            this.maximumInput.value = dataRange.max
+            this.minimumInput.value = String(dataRange.min)
+            this.maximumInput.value = String(dataRange.max)
         }
 
         this.minimumInput.onkeyup = null
@@ -136,7 +138,7 @@ class DataRangeDialog {
         }
     }
 
-    processResults(trackViewOrTrackViewList: any): void {
+    processResults(trackViewOrTrackViewList: TrackView | TrackView[]): void {
         const minValue = this.minimumInput.value.trim()
         const maxValue = this.maximumInput.value.trim()
 

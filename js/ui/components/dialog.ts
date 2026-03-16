@@ -92,7 +92,7 @@ class Dialog {
 
     }
 
-    present(options: any, e: any): void {
+    present(options: {label?: string, html?: string, text?: string, value?: string, callback?: (dialog: Dialog) => void}, e: Event): void {
 
         if (options.label && this.label) {
             this.label.textContent = options.label;
@@ -116,7 +116,8 @@ class Dialog {
             this.callback = options.callback;
         }
 
-        const { top} = e.currentTarget.parentElement.getBoundingClientRect()
+        const target = e.currentTarget as HTMLElement
+        const { top} = target.parentElement!.getBoundingClientRect()
         this.elem.style.top = `${ top }px`;
 
         this.elem.style.display = 'flex'

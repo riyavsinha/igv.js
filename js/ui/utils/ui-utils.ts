@@ -12,6 +12,7 @@ function attachDialogCloseHandlerWithParent(parent: HTMLElement, closeHandler: (
     });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function throttle<T extends (...args: any[]) => any>(fn: T, delay: number): (...args: Parameters<T>) => ReturnType<T> | undefined {
     let last = 0;
     return (...args: Parameters<T>) => {

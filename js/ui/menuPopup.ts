@@ -3,6 +3,7 @@ import {attachDialogCloseHandlerWithParent} from "./utils/ui-utils.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 import {createCheckbox} from "../igv-icons.js"
 import type {MenuItem} from "../types/ui"
+import type TrackView from "../trackView.js"
 
 interface MenuElement {
     el: HTMLElement
@@ -50,7 +51,7 @@ class MenuPopup {
 
     }
 
-    presentMenuList(trackView: any, menuList: (string | MenuItem)[], config: PresentConfig): void {
+    presentMenuList(trackView: TrackView, menuList: (string | MenuItem)[], config: PresentConfig): void {
 
         hideAllMenuPopups(this.parent);
 
@@ -96,7 +97,7 @@ class MenuPopup {
         }
     }
 
-    parseMenuList(trackView: any, menuList: (string | MenuItem)[]): ParsedMenuItem[] {
+    parseMenuList(trackView: TrackView, menuList: (string | MenuItem)[]): ParsedMenuItem[] {
 
         return menuList.map((item: string | MenuItem, i: number): ParsedMenuItem => {
 
@@ -225,7 +226,7 @@ class MenuPopup {
         this.popover.innerHTML = ''
 
         Object.keys(this).forEach((key: string) => {
-            (this as any)[key] = undefined
+            (this as unknown as Record<string, unknown>)[key] = undefined
         })
     }
 }

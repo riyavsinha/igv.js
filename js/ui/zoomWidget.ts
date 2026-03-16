@@ -1,5 +1,7 @@
 import {createIcon} from "./utils/icons.js"
 import * as DOMUtils from "./utils/dom-utils.js"
+import type Browser from "../browser.js"
+import type ReferenceFrame from "../referenceFrame.js"
 
 const sliderMin: number = 0
 let sliderMax: number = 23
@@ -7,13 +9,13 @@ let sliderValueRaw: number = 0
 
 class ZoomWidget {
 
-    browser: any
+    browser: Browser
     zoomContainer: HTMLDivElement
     zoomOutButton: HTMLDivElement
     slider: HTMLInputElement
     zoomInButton: HTMLDivElement
 
-    constructor(config: any, browser: any, parent: HTMLElement) {
+    constructor(config: unknown, browser: Browser, parent: HTMLElement) {
 
         this.browser = browser
 
@@ -46,7 +48,7 @@ class ZoomWidget {
 
             const target = e.target as HTMLInputElement
             const referenceFrame = browser.referenceFrameList[0]
-            const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)
+            const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)!
             const {end, start} = referenceFrame
 
             const extent = end - start
@@ -67,7 +69,9 @@ class ZoomWidget {
             browser.zoomIn()
         })
 
-        browser.on('locuschange', (referenceFrameList: any[]) => {
+        browser.on('locuschange', (...args: unknown[]) => {
+            const referenceFrameList = args as unknown as ReferenceFrame[]
+
 
             if (this.browser.isMultiLocusMode()) {
                 this.disable()
@@ -80,11 +84,11 @@ class ZoomWidget {
 
     }
 
-    update(referenceFrameList: any[]): void {
+    update(referenceFrameList: ReferenceFrame[]): void {
 
         if (this.slider) {
             const referenceFrame = referenceFrameList[0]
-            const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)
+            const {bpLength} = referenceFrame.genome.getChromosome(referenceFrame.chr)!
             const {start, end} = referenceFrame
 
             sliderMax = Math.ceil(Math.log2(bpLength / this.browser.minimumBases()))

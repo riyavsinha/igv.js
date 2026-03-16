@@ -168,90 +168,99 @@ const colorPalettes: Record<string, string[]> = {
         ]
 };
 
-function PaletteColorTable  (this: any, palette: string): void {
-
-    this.colors = colorPalettes[palette];
-
-    if (!Array.isArray(this.colors)) this.colors = [];
-    this.colorTable = {};
-    this.nextIdx = 0;
-    this.colorGenerator = new (RandomColorGenerator as any)();
-
-}
-
-PaletteColorTable.prototype.getColor = function (key: string): string {
-
-    if (!this.colorTable.hasOwnProperty(key)) {
-        if (this.nextIdx < this.colors.length) {
-            this.colorTable[key] = this.colors[this.nextIdx];
-        } else {
-            this.colorTable[key] = this.colorGenerator.get();
-        }
-        this.nextIdx++;
-    }
-    return this.colorTable[key];
-};
-
 // Random color generator from https://github.com/sterlingwes/RandomColor/blob/master/rcolor.js
 // Free to use & distribute under the MIT license
 // Wes Johnson (@SterlingWes)
 //
 // inspired by http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
-function RandomColorGenerator(this: any): void {
-    this.hue = Math.random();
-    this.goldenRatio = 0.618033988749895;
-    this.hexwidth = 2;
+class RandomColorGenerator {
+    hue: number;
+    goldenRatio: number;
+    hexwidth: number;
+
+    constructor() {
+        this.hue = Math.random();
+        this.goldenRatio = 0.618033988749895;
+        this.hexwidth = 2;
+    }
+
+    hsvToRgb(h: number, s: number, v: number): number[] {
+        var h_i = Math.floor(h * 6),
+            f = h * 6 - h_i,
+            p = v * (1 - s),
+            q = v * (1 - f * s),
+            t = v * (1 - (1 - f) * s),
+            r = 255,
+            g = 255,
+            b = 255;
+        switch (h_i) {
+            case 0:
+                r = v, g = t, b = p;
+                break;
+            case 1:
+                r = q, g = v, b = p;
+                break;
+            case 2:
+                r = p, g = v, b = t;
+                break;
+            case 3:
+                r = p, g = q, b = v;
+                break;
+            case 4:
+                r = t, g = p, b = v;
+                break;
+            case 5:
+                r = v, g = p, b = q;
+                break;
+        }
+        return [Math.floor(r * 256), Math.floor(g * 256), Math.floor(b * 256)];
+    }
+
+    padHex(str: string): string {
+        if (str.length > this.hexwidth) return str;
+        return new Array(this.hexwidth - str.length + 1).join('0') + str;
+    }
+
+    get(saturation?: number, value?: number): string {
+        this.hue += this.goldenRatio;
+        this.hue %= 1;
+        if (typeof saturation !== "number") saturation = 0.5;
+        if (typeof value !== "number") value = 0.95;
+        var rgb = this.hsvToRgb(this.hue, saturation, value);
+
+        return "#" + this.padHex(rgb[0].toString(16))
+            + this.padHex(rgb[1].toString(16))
+            + this.padHex(rgb[2].toString(16));
+    }
 }
 
-RandomColorGenerator.prototype.hsvToRgb = function (h: number, s: number, v: number): number[] {
-    var h_i = Math.floor(h * 6),
-        f = h * 6 - h_i,
-        p = v * (1 - s),
-        q = v * (1 - f * s),
-        t = v * (1 - (1 - f) * s),
-        r = 255,
-        g = 255,
-        b = 255;
-    switch (h_i) {
-        case 0:
-            r = v, g = t, b = p;
-            break;
-        case 1:
-            r = q, g = v, b = p;
-            break;
-        case 2:
-            r = p, g = v, b = t;
-            break;
-        case 3:
-            r = p, g = q, b = v;
-            break;
-        case 4:
-            r = t, g = p, b = v;
-            break;
-        case 5:
-            r = v, g = p, b = q;
-            break;
+class PaletteColorTable {
+    colors: string[];
+    colorTable: Record<string, string>;
+    nextIdx: number;
+    colorGenerator: RandomColorGenerator;
+
+    constructor(palette: string) {
+        this.colors = colorPalettes[palette];
+
+        if (!Array.isArray(this.colors)) this.colors = [];
+        this.colorTable = {};
+        this.nextIdx = 0;
+        this.colorGenerator = new RandomColorGenerator();
     }
-    return [Math.floor(r * 256), Math.floor(g * 256), Math.floor(b * 256)];
-};
 
-RandomColorGenerator.prototype.padHex = function (str: string): string {
-    if (str.length > this.hexwidth) return str;
-    return new Array(this.hexwidth - str.length + 1).join('0') + str;
-};
-
-RandomColorGenerator.prototype.get = function (saturation?: number, value?: number): string {
-    this.hue += this.goldenRatio;
-    this.hue %= 1;
-    if (typeof saturation !== "number") saturation = 0.5;
-    if (typeof value !== "number") value = 0.95;
-    var rgb = this.hsvToRgb(this.hue, saturation, value);
-
-    return "#" + this.padHex(rgb[0].toString(16))
-        + this.padHex(rgb[1].toString(16))
-        + this.padHex(rgb[2].toString(16));
-
-};
+    getColor(key: string): string {
+        if (!this.colorTable.hasOwnProperty(key)) {
+            if (this.nextIdx < this.colors.length) {
+                this.colorTable[key] = this.colors[this.nextIdx];
+            } else {
+                this.colorTable[key] = this.colorGenerator.get();
+            }
+            this.nextIdx++;
+        }
+        return this.colorTable[key];
+    }
+}
 
 // Returns a random number between min (inclusive) and max (exclusive)
 function random(min: number, max: number): number {

@@ -1,6 +1,7 @@
 import * as DOMUtils from "../ui/utils/dom-utils.js"
+import type Browser from "../browser.js"
 
-const CustomButton = function (parent: HTMLElement, browser: any, b: { label: string; callback: (browser: any) => void }): void {
+const CustomButton = function (parent: HTMLElement, browser: Browser, b: { label: string; callback: (browser: Browser) => void }): void {
 
     const button = DOMUtils.div({class: 'igv-navbar-button'})
     parent.appendChild(button)

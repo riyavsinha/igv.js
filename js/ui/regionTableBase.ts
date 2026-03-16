@@ -1,23 +1,34 @@
+import type Browser from "../browser.js"
 import * as DOMUtils from "./utils/dom-utils.js"
 import {createIcon} from "./utils/icons.js"
 import makeDraggable from "./utils/draggable.js"
 
+interface RegionTableConfig {
+    browser: Browser
+    parent: HTMLElement
+    headerTitle: string
+    dismissHandler: () => void
+    columnFormat: {label: string, width: string}[]
+    width?: string
+    gotoButtonHandler: (event: Event) => void
+}
+
 class RegionTableBase {
 
-    config: any
-    browser: any
-    columnFormat: any[]
+    config: RegionTableConfig
+    browser: Browser
+    columnFormat: {label: string, width: string}[]
     tableRowSelectionList: number[]
     tableDOM: HTMLElement
     gotoButton!: HTMLElement
     boundDismissHandler!: (event: MouseEvent) => void
-    boundGotoButtonHandler!: () => void
+    boundGotoButtonHandler!: (event: Event) => void
     _headerDOM!: HTMLElement
     _tableColumnTitlesDOM!: HTMLElement
     _tableRowContainerDOM!: HTMLElement
     _footerDOM!: HTMLElement
 
-    constructor(config: any) {
+    constructor(config: RegionTableConfig) {
 
         this.config = config
 
@@ -30,8 +41,8 @@ class RegionTableBase {
         this.tableDOM = DOMUtils.div({ class: 'igv-roi-table' })
 
         if(config.width) {
-            let [ w ] = config.width.split('px')
-            w = parseInt(w, 10)
+            const [ wStr ] = config.width.split('px')
+            const w = parseInt(wStr, 10)
             this.tableDOM.style.width = `${Math.min(w, 1600)}px`
         }
 
@@ -47,7 +58,7 @@ class RegionTableBase {
 
     }
 
-    set headerDOM({ browser, parent, headerTitle, dismissHandler }: { browser: any; parent: HTMLElement; headerTitle: string; dismissHandler: () => void }) {
+    set headerDOM({ browser, parent, headerTitle, dismissHandler }: { browser: Browser; parent: HTMLElement; headerTitle: string; dismissHandler: () => void }) {
 
         // header
         const dom = DOMUtils.div()
@@ -116,7 +127,7 @@ class RegionTableBase {
         return this._tableRowContainerDOM
     }
 
-    set footerDOM(gotoButtonHandler: (...args: any[]) => void) {
+    set footerDOM(gotoButtonHandler: (event: Event) => void) {
 
         const dom = DOMUtils.div()
         this.tableDOM.appendChild(dom)
@@ -196,7 +207,7 @@ class RegionTableBase {
         this.tableDOM.remove()
 
         for (const key of Object.keys(this)) {
-            (this as any)[key] = undefined
+            (this as unknown as Record<string, unknown>)[key] = undefined
         }
 
         document.removeEventListener('click', this.boundDismissHandler)

@@ -34,13 +34,13 @@ function create(tag: string, options?: CreateElementOptions): HTMLElement {
 function hide(elem: HTMLElement): void {
     const cssStyle = getComputedStyle(elem);
     if(cssStyle.display !== "none") {
-        (elem as any)._initialDisplay = cssStyle.display;
+        (elem as HTMLElement & {_initialDisplay?: string})._initialDisplay = cssStyle.display;
     }
     elem.style.display = "none";
 }
 
 function show(elem: HTMLElement): void {
-    const d = (elem as any)._initialDisplay || "block";
+    const d = (elem as HTMLElement & {_initialDisplay?: string})._initialDisplay || "block";
     elem.style.display = d;
 }
 
@@ -82,7 +82,7 @@ const relativeDOMBBox = (parentElement: HTMLElement, childElement: HTMLElement):
 
 function applyStyle(elem: HTMLElement, style: Record<string, string>): void {
     for (let key of Object.keys(style)) {
-        (elem.style as any)[key] = style[key];
+        (elem.style as unknown as Record<string, string>)[key] = style[key];
     }
 }
 

@@ -2,12 +2,13 @@ import NavbarButton from "./navbarButton.js"
 import GenomeUtils from "../genome/genomeUtils"
 import {cursorImage, cursorImageHover} from "./navbarIcons/cursor.js"
 import { buttonLabel } from "./navbarIcons/buttonLabel.js"
+import type Browser from "../browser.js"
 
 class CursorGuideButton extends NavbarButton {
 
     boundMouseClickHandler: () => void
 
-    constructor(parent: HTMLElement, browser: any) {
+    constructor(parent: HTMLElement, browser: Browser) {
 
         super(parent, browser, 'Crosshairs', buttonLabel, cursorImage, cursorImageHover, browser.doShowCursorGuide)
 
@@ -39,7 +40,7 @@ class CursorGuideButton extends NavbarButton {
 
         this.button.addEventListener('click', this.boundMouseClickHandler)
 
-        this.setVisibility(browser.config.showCursorTrackingGuideButton)
+        this.setVisibility(browser.config.showCursorTrackingGuideButton as boolean)
 
     }
 

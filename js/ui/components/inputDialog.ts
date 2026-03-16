@@ -13,7 +13,7 @@ class InputDialog {
     _input: HTMLInputElement
     ok: HTMLElement
     cancel: HTMLElement
-    callback: ((value: any) => void) | undefined
+    callback: ((value: string) => void) | undefined
 
     constructor(parent: HTMLElement) {
 
@@ -69,7 +69,7 @@ class InputDialog {
                     this.callback(this._input.value)
                     this.callback = undefined
                 }
-                (this._input as any).value = undefined
+                this._input.value = ''
                 DOMUtils.hide(this.container)
             }
             e.stopImmediatePropagation()   // Prevent key event to cause track keyboard navigation ("next feature")
@@ -80,7 +80,7 @@ class InputDialog {
                 this.callback(this._input.value)
                 this.callback = undefined
             }
-            (this._input as any).value = undefined
+            this._input.value = ''
             DOMUtils.hide(this.container)
         })
 
@@ -101,9 +101,9 @@ class InputDialog {
     }
 
 
-    present(options: any, e: MouseEvent): void {
+    present(options: {label: string, value: string | number, callback?: (value: string) => void, click?: (value: string) => void}, e: MouseEvent): void {
         this.label.textContent = options.label
-        this._input.value = options.value
+        this._input.value = String(options.value)
         this.callback = options.callback || options.click
 
         this.container.style.display = ''

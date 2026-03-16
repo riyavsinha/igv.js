@@ -88,10 +88,11 @@ class AlertDialog {
         this.container.style.display = 'none'
     }
 
-    present(alert: any, callback?: (value: string) => void): void {
+    present(alert: Error | string, callback?: (value: string) => void): void {
 
-        this.errorHeadline.textContent = alert.message ? 'ERROR' : ''
-        let string: string = alert.message || alert
+        const message = alert instanceof Error ? alert.message : undefined
+        this.errorHeadline.textContent = message ? 'ERROR' : ''
+        let string: string = message || (alert as string)
 
         if (httpMessages.hasOwnProperty(string)) {
             string = httpMessages[string];
