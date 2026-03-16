@@ -69,9 +69,8 @@ class ZoomWidget {
             browser.zoomIn()
         })
 
-        browser.on('locuschange', (...args: unknown[]) => {
-            const referenceFrameList = args as unknown as ReferenceFrame[]
-
+        browser.on('locuschange', ((...args: unknown[]) => {
+            const referenceFrameList = args[0] as ReferenceFrame[]
 
             if (this.browser.isMultiLocusMode()) {
                 this.disable()
@@ -80,7 +79,7 @@ class ZoomWidget {
                 this.update(referenceFrameList)
             }
 
-        })
+        }) as (...args: unknown[]) => unknown)
 
     }
 
