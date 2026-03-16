@@ -1,22 +1,25 @@
+import type Browser from "../browser.js"
+import type {Track} from "../types/ui.js"
+
 interface IncomingMessage {
     uniqueID: string
     type: string
-    args: any
+    args: Record<string, string>
 }
 
 interface ReturnMessage {
     uniqueID: string
     status: string
     message?: string
-    data?: any
+    data?: unknown
 }
 
-export default async function handleMessage(json: IncomingMessage, browser: any): Promise<ReturnMessage> {
+export default async function handleMessage(json: IncomingMessage, browser: Browser): Promise<ReturnMessage> {
 
     const returnMsg: ReturnMessage = {uniqueID: json.uniqueID, status: 'ok'}
 
     try {
-        let tracks: any[]
+        let tracks: Track[]
         const {type, args} = json
         switch (type.toLowerCase()) {
 
@@ -38,7 +41,8 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
                 break
 
             case "visibilityChange":
-                returnMsg.message = await browser.visibilityChange()
+                await browser.visibilityChange()
+                returnMsg.message = `Visibility change processed successfully`
                 break
 
             case "tojson":
@@ -59,9 +63,9 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
             case "removetrackbyname": {
                 let {trackName} = args
                 if(trackName) {
-                    tracks = browser.findTracks((t: any) => trackName ? t.name === trackName : true)
+                    tracks = browser.findTracks((t: Track) => trackName ? t.name === trackName : true)
                     if (tracks) {
-                        tracks.forEach((t: any) => browser.removeTrack(t))
+                        tracks.forEach((t: Track) => browser.removeTrack(t))
                         returnMsg.message = `Removed track(s) ${trackName} for ${tracks.length} track(s)`
                     } else {
                         returnMsg.message = `No tracks found matching name ${trackName}`
@@ -96,7 +100,7 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
                 break
 
             case "getuserdefinedrois":
-                const rois: any[] = await browser.getUserDefinedROIs()
+                const rois: unknown[] = await browser.getUserDefinedROIs()
                 returnMsg.data = rois
                 returnMsg.message = `Retrieved ${rois.length} user-defined ROIs successfully`
                 break
@@ -139,9 +143,9 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
                     color = `rgb(${color})`
                 }
 
-                tracks = browser.findTracks((t: any) => trackName ? t.name === trackName : true)
+                tracks = browser.findTracks((t: Track) => trackName ? t.name === trackName : true)
                 if (tracks) {
-                    tracks.forEach((t: any) => t.color = color)
+                    tracks.forEach((t: Track) => t.color = color)
                     browser.repaintViews()
                     returnMsg.message = `Set color to ${color} for ${tracks.length} track(s)`
                 } else {
@@ -154,9 +158,9 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
 
                 const {currentName, newName} = args
 
-                tracks = browser.findTracks((t: any) => currentName === t.name)
+                tracks = browser.findTracks((t: Track) => currentName === t.name)
                 if (tracks && tracks.length > 0) {
-                    tracks.forEach((t: any) => {
+                    tracks.forEach((t: Track) => {
                         t.name = newName
                         browser.fireEvent('tracknamechange', [t])
                     })
@@ -171,8 +175,8 @@ export default async function handleMessage(json: IncomingMessage, browser: any)
                 returnMsg.message = `Unrecognized message type: ${type}`
                 returnMsg.status = 'error'
         }
-    } catch (err: any) {
-        returnMsg.message = err?.message || String(err)
+    } catch (err: unknown) {
+        returnMsg.message = (err instanceof Error ? err.message : String(err))
         returnMsg.status = 'error'
     }
 

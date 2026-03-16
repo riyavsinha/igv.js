@@ -1,6 +1,7 @@
 import handleMessage from "./messageHandler.js"
+import type Browser from "../browser.js"
 
-export function createWebSocketClient(host: string, port: number, browser: any): void {
+export function createWebSocketClient(host: string, port: number, browser: Browser): void {
 
     let socket: WebSocket
     let retryInterval: number = 1000    // Initial retry interval in ms
@@ -15,7 +16,7 @@ export function createWebSocketClient(host: string, port: number, browser: any):
         socket = new WebSocket(`${protocol}//${host}:${port}`)
 
         //  helper to safely send
-        const sendJSON = (obj: any): void => {
+        const sendJSON = (obj: object): void => {
             if (socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify(obj))
             }
@@ -43,14 +44,14 @@ export function createWebSocketClient(host: string, port: number, browser: any):
                 const returnMsg = await handleMessage(json, browser)
                 sendJSON(returnMsg)
 
-            } catch (e: any) {
+            } catch (e: unknown) {
                 if (e instanceof SyntaxError) {
                     console.warn('Received non-JSON message from server:', event.data)
                 } else {
                     console.error('Error handling message:', e)
                     sendJSON({
                         status: 'error',
-                        message: `Error handling message: ${e.message || e.toString()}`
+                        message: `Error handling message: ${e instanceof Error ? e.message : String(e)}`
                     })
                 }
             }
