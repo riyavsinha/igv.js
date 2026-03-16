@@ -1,0 +1,77 @@
+---
+sidebar_position: 1
+slug: /
+---
+
+import IgvBrowser, { IgvComparison } from '@site/src/components/IgvBrowser';
+
+# Introduction to igv.ts
+
+**igv.ts** is a TypeScript fork of [igv.js](https://github.com/igvteam/igv.js), the embeddable interactive genome visualization component built by the [IGV team](https://igv.org). This fork migrates the entire codebase to TypeScript and serves as a foundation for modernization — better type safety, improved architecture, and eventually headless rendering and framework-native components.
+
+Huge thanks to the IGV team for building and maintaining the original igv.js. Their work makes all of this possible.
+
+## What is igv.ts?
+
+Like igv.js, igv.ts lets you embed a fully interactive genome browser in any web page. It supports 40+ genomic data formats, multiple reference genomes, and provides a rich set of visualization options for sequence alignments, variants, gene annotations, quantitative data, and more. It's fully compatible with the igv.js API — if you've used igv.js, igv.ts works the same way.
+
+## What this documentation covers
+
+This documentation will aim to go beyond the [official API docs](https://igv.org/doc/igvjs) to provide genomic data format guides.
+
+## Quick example
+
+```html
+<div id="igv-div"></div>
+<script type="module">
+  import igv from "https://cdn.jsdelivr.net/npm/igv@3.8.0/dist/igv.esm.min.js"
+
+  const options = {
+    genome: "hg38",
+    locus: "chr8:127,736,588-127,739,371",
+    tracks: [
+      {
+        type: "alignment",
+        format: "bam",
+        url: "https://1000genomes.s3.amazonaws.com/phase3/data/HG00096/alignment/HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam",
+        indexURL: "https://1000genomes.s3.amazonaws.com/phase3/data/HG00096/alignment/HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam.bai",
+        name: "HG00096"
+      }
+    ]
+  }
+
+  igv.createBrowser(document.getElementById('igv-div'), options)
+</script>
+```
+
+### Try it live
+
+<IgvComparison options={{
+  genome: "hg38",
+  locus: "chr8:127,736,588-127,739,371",
+  tracks: [
+    {
+      type: "alignment",
+      format: "bam",
+      url: "https://1000genomes.s3.amazonaws.com/phase3/data/HG00096/alignment/HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam",
+      indexURL: "https://1000genomes.s3.amazonaws.com/phase3/data/HG00096/alignment/HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam.bai",
+      name: "HG00096"
+    }
+  ]
+}} />
+
+## Supported track types
+
+| Track Type | Formats | Description |
+|-----------|---------|-------------|
+| Alignment | BAM, CRAM | Sequence read alignments |
+| Variant | VCF | SNPs, indels, structural variants |
+| Feature | BED, GFF3, GTF, GenBank | Gene annotations, regulatory elements |
+| Quantitative | BigWig, WIG, bedGraph, TDF | Signal tracks, coverage |
+| Segmentation | SEG, MAF, MUT | Copy number, mutations |
+| Interaction | BEDPE, interact | Chromatin interactions, loops |
+| GWAS | GWAS | Manhattan plots |
+| QTL | QTL, eQTL | Expression associations |
+| Splice Junction | BED | RNA splice junctions |
+| RNA Structure | .bp | Secondary structure arcs |
+

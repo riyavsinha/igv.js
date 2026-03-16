@@ -48,7 +48,8 @@
       "Bash(npx mocha)",
       "Bash(npx tsc --noEmit)",
       "Bash(npx eslint *)",
-      "Bash(/tmp/check_properties.txt:*)"
+      "Bash(/tmp/check_properties.txt:*)",
+      "Read(//**/igv.js/js/**)"
     ],
     "additionalDirectories": [
       "/**/igv.js",

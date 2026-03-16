@@ -1,12 +1,12 @@
 {
-  "name": "igv",
-  "version": "3.8.0",
+  "name": "@riyavsinha/igv",
+  "version": "0.1.2",
   "main": "dist/igv.esm.js",
   "browser": "dist/igv.js",
   "module": "dist/igv.esm.js",
   "types": "dist/igv.d.ts",
   "type": "module",
-  "description": "Embeddable genomic visualization component based on the Integrative Genomics Viewer",
+  "description": "TypeScript fork of igv.js — embeddable genomic visualization component based on the Integrative Genomics Viewer",
   "files": [
     "dist/**"
   ],
@@ -22,28 +22,33 @@
     "build:dev-dashboard": "node scripts/buildDevDashboard.cjs"
   },
   "author": {
-    "name": "Jim Robinson"
+    "name": "Riya Sinha",
+    "url": "https://github.com/riyavsinha"
   },
   "contributors": [
+    {
+      "name": "Jim Robinson",
+      "url": "https://github.com/jrobinso"
+    },
     {
       "name": "Douglass Turner"
     }
   ],
   "bugs": {
-    "url": "https://github.com/igvteam/igv.js/issues"
+    "url": "https://github.com/riyavsinha/igv.ts/issues"
   },
-  "deprecated": false,
-  "homepage": "https://igv.org",
+  "homepage": "https://github.com/riyavsinha/igv.ts",
   "keywords": [
     "IGV",
     "genomics",
     "visualization",
-    "bioinformatics"
+    "bioinformatics",
+    "typescript"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/igvteam/igv.js.git"
+    "url": "git+https://github.com/riyavsinha/igv.ts.git"
   },
   "browserslist": "> 1%, not dead",
   "devDependencies": {

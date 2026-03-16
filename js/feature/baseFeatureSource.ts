@@ -18,6 +18,7 @@ export interface BaseFeatureSourceGenome {
     getChromosomeName?(chr: string): string
     getGenomeCoordinate?(chr: string, pos: number): number | undefined
     wgChromosomeNames?: string[]
+    getSequence?(chr: string, start: number, end: number): Promise<string | null | undefined>
     getSequenceInterval?(chr: string, start: number, end: number): unknown
     getAliasRecord?(chr: string): Promise<Record<string, string> | undefined>
     getCumulativeOffset?(chr: string): number | undefined
