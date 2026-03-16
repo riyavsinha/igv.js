@@ -80,7 +80,7 @@ class FeatureCache {
             const all = this.allFeatures[chr];
             if (all) {
                 for (let interval of intervals) {
-                    const indexRange: IndexRange = interval.value;
+                    const indexRange: IndexRange = interval.value as IndexRange;
                     for (let i = indexRange.start; i < indexRange.end; i++) {
                         let feature = all[i];
                         if (feature.start > end) break;

@@ -2,17 +2,19 @@
  * A data/feature source helper class for managing chromosome aliasing.  Maps reference sequence names to aliases
  * used by the feature source (e.g. chr20 -> 20).
  */
+import type {BaseFeatureSourceGenome} from "./baseFeatureSource.js"
+
 class ChromAliasManager {
 
     chrAliasTable: Map<string, string> = new Map()
     sequenceNames: Set<string>
-    genome: any
+    genome: BaseFeatureSourceGenome | undefined
 
     /**
      * @param sequenceNames - Sequence names defined by the data source (e.g. bam or feature file)
      * @param genome        - Reference genome object.
      */
-    constructor(sequenceNames: string[], genome: any) {
+    constructor(sequenceNames: string[], genome: BaseFeatureSourceGenome | undefined) {
         this.sequenceNames = new Set(sequenceNames)
         this.genome = genome
     }
@@ -23,7 +25,7 @@ class ChromAliasManager {
         }
 
         if (!this.chrAliasTable.has(chr)) {
-            const aliasRecord = await this.genome.getAliasRecord(chr)
+            const aliasRecord = this.genome.getAliasRecord ? await this.genome.getAliasRecord(chr) : undefined
             if (!aliasRecord) {
                 this.chrAliasTable.set(chr, chr)  // No know alias, record to prevent searching again
             } else {

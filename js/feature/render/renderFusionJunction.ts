@@ -20,7 +20,14 @@ interface FusionJunctionFeature {
  * @param pixelHeight  pixel height of the current canvas
  * @param ctx  the canvas 2d context
  */
-export function renderFusionJuncSpan(this: any, feature: FusionJunctionFeature, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D): void {
+interface FusionRenderer {
+    displayMode: string
+    expandedRowHeight: number
+    squishedRowHeight: number
+    margin: number
+}
+
+export function renderFusionJuncSpan(this: FusionRenderer, feature: FusionJunctionFeature, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D): void {
 
     const rowHeight: number = (this.displayMode === "EXPANDED") ? this.expandedRowHeight : this.squishedRowHeight
     let py: number = this.margin

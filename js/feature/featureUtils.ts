@@ -237,8 +237,8 @@ function findOverlapping(featureList: Feature[], start: number, end: number): Fe
 
             const overlaps: Feature[] = []
 
-            intervals.forEach(function (interval: { value: Feature[] }) {
-                const intervalFeatures: Feature[] = interval.value
+            intervals.forEach(function (interval) {
+                const intervalFeatures: Feature[] = interval.value as Feature[]
                 const len: number = intervalFeatures.length
                 for (let i = 0; i < len; i++) {
                     const feature: Feature = intervalFeatures[i]

@@ -27,10 +27,10 @@ interface UCSCSample {
 
 class UCSCServiceReader {
     config: UCSCServiceConfig
-    genome: any
+    genome: { getChromosome(chr: string): { bpLength: number } | undefined } | undefined
     expandQueryInterval: boolean
 
-    constructor(config: UCSCServiceConfig, genome?: any) {
+    constructor(config: UCSCServiceConfig, genome?: { getChromosome(chr: string): { bpLength: number } | undefined }) {
         this.config = config
         this.genome = genome
         this.expandQueryInterval = false

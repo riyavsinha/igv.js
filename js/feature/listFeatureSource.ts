@@ -1,23 +1,35 @@
-import BaseFeatureSource from "./baseFeatureSource"
+import BaseFeatureSource, {type BaseFeatureSourceGenome} from "./baseFeatureSource"
 import {igvxhr} from "../../node_modules/igv-utils/src/index.js"
 import {buildOptions} from "../util/igvUtils.js"
 import getDataWrapper from "./dataWrapper"
 
-type FeatureSourceFactory = (config: any, genome: any) => any
+interface FeatureSourceFeature {
+    start: number
+    end: number
+    [key: string]: unknown
+}
+
+interface FeatureSourceLike {
+    getFeatures(params: {chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number}): Promise<FeatureSourceFeature[]>
+    getHeader?(): Promise<unknown>
+}
+
+type FeatureSourceFactory = (config: Record<string, unknown>, genome: BaseFeatureSourceGenome) => FeatureSourceLike
 
 interface ListFeatureSourceConfig {
     url: string
-    [key: string]: any
+    // Preserved: config properties are dynamically merged
+    [key: string]: unknown
 }
 
 class ListFeatureSource extends BaseFeatureSource {
 
     config: ListFeatureSourceConfig
     featureSourceFactory: FeatureSourceFactory
-    featureSourceMap: Map<string, any> | null
-    header: any
+    featureSourceMap: Map<string, FeatureSourceLike> | null
+    header: Promise<unknown> | null
 
-    constructor(config: ListFeatureSourceConfig, genome: any, featureSourceFactory: FeatureSourceFactory) {
+    constructor(config: ListFeatureSourceConfig, genome: BaseFeatureSourceGenome, featureSourceFactory: FeatureSourceFactory) {
         super(genome)
         this.config = config
         this.featureSourceFactory = featureSourceFactory
@@ -25,7 +37,7 @@ class ListFeatureSource extends BaseFeatureSource {
         this.header = null
     }
 
-    async getHeader(): Promise<any> {
+    async getHeader(): Promise<unknown> {
 
         if (!this.header) {
 
@@ -45,7 +57,7 @@ class ListFeatureSource extends BaseFeatureSource {
 
     }
 
-    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: {chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number}): Promise<any[]> {
+    async getFeatures({chr, start, end, bpPerPixel, visibilityWindow}: {chr: string, start: number, end: number, bpPerPixel?: number, visibilityWindow?: number}) {
 
         if (!this.featureSourceMap) {
             await this.init()
@@ -73,7 +85,7 @@ class ListFeatureSource extends BaseFeatureSource {
                 if (tokens.length > 1) {
                     const chr: string = tokens[0]
                     const path: string = tokens[1]
-                    const sourceConfig: any = Object.assign({}, this.config)
+                    const sourceConfig: Record<string, unknown> = Object.assign({}, this.config)
                     sourceConfig.url = path
                     if (path.endsWith(".vcf.gz")) {
                         sourceConfig.format = "vcf"

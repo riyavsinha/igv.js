@@ -62,7 +62,7 @@ class FeatureFileReader {
     filename: string | undefined
     dataURI: string | undefined
     parser: FeatureFileReaderParser
-    header: Record<string, any> | undefined
+    header: Record<string, unknown> | undefined
     features: GenomicFeature[] | undefined
     index: FeatureIndex | undefined
     format: string | undefined
@@ -144,7 +144,7 @@ class FeatureFileReader {
         return allFeatures
     }
 
-    async readHeader(): Promise<Record<string, any> | undefined> {
+    async readHeader(): Promise<Record<string, unknown> | undefined> {
 
         if (this.dataURI) {
             await this.loadFeaturesFromDataURI()
@@ -174,7 +174,7 @@ class FeatureFileReader {
                 dataWrapper = getDataWrapper(data)
             }
 
-            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, any> | undefined
+            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, unknown> | undefined
 
             return this.header
 
@@ -191,7 +191,7 @@ class FeatureFileReader {
                 const options = buildOptions(this.config, {})
                 const data: string = await igvxhr.loadString(this.config.headerURL, options)
                 const dataWrapper = getDataWrapper(data)
-                this.header = await this.parser.parseHeader(dataWrapper) as Record<string, any> | undefined  // Cache header, might be needed to parse features
+                this.header = await this.parser.parseHeader(dataWrapper) as Record<string, unknown> | undefined  // Cache header, might be needed to parse features
                 return this.header
             }
 
@@ -221,7 +221,7 @@ class FeatureFileReader {
 
 
             let dataWrapper = getDataWrapper(data)
-            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, any> | undefined
+            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, unknown> | undefined
 
             // Reset data wrapper and parse features
             dataWrapper = getDataWrapper(data)
@@ -241,7 +241,7 @@ class FeatureFileReader {
         switch (config.format) {
             case "vcf":
             case "vcftabix":
-                return new (VcfParser as any)(config)
+                return new VcfParser() as unknown as FeatureFileReaderParser
             case "seg" :
                 return new SegParser("seg")
             case "mut":
@@ -253,7 +253,7 @@ class FeatureFileReader {
             case "qtl":
                 return new QTLParser(config)
             case "aed" :
-                return new AEDParser(config as any)
+                return new AEDParser(config as ConstructorParameters<typeof AEDParser>[0])
             default:
                 return new FeatureParser(config)
         }
@@ -271,7 +271,7 @@ class FeatureFileReader {
             const data = await igvxhr.loadByteArray(this.config.url as string, options)
             if (!this.header) {
                 const dataWrapper = getDataWrapper(data)
-                this.header = await this.parser.parseHeader(dataWrapper) as Record<string, any> | undefined
+                this.header = await this.parser.parseHeader(dataWrapper) as Record<string, unknown> | undefined
             }
             const dataWrapper = getDataWrapper(data)
             const features: GenomicFeature[] = []
@@ -405,7 +405,7 @@ class FeatureFileReader {
         } else {
             const plain: string = BGZip.decodeDataURI(this.dataURI)
             let dataWrapper = getDataWrapper(plain)
-            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, any> | undefined
+            this.header = await this.parser.parseHeader(dataWrapper) as Record<string, unknown> | undefined
             if (this.header instanceof String && this.header.startsWith("##gff-version 3")) {
                 this.format = 'gff3'
             }

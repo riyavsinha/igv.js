@@ -35,10 +35,10 @@ class IntervalTree {
         this.root = NIL;
     }
 
-    insert(start: number, end: number, value: any): void {
+    insert(start: number, end: number, value: unknown): void {
 
         var interval = new Interval(start, end, value);
-        var x = new (Node as any)(interval);
+        var x = new Node(interval);
         this.treeInsert(x);
         x.color = RED;
         while (x !== this.root && (x.parent as NodeLike).color === RED) {
@@ -110,11 +110,11 @@ class IntervalTree {
 
         logNode(this.root, 0);
 
-        function logNode(node: any, indent: number): void {
+        function logNode(node: NodeLike | NILNode, indent: number): void {
 
             var space = "";
             for (var i = 0; i < indent; i++) space += " ";
-            console.log(space + node.interval.low + " " + node.interval.high); // + " " + (node.interval.value ? node.interval.value : " null"));
+            console.log(space + (node as NodeLike).interval.low + " " + (node as NodeLike).interval.high);
 
             indent += 5;
 
@@ -128,9 +128,9 @@ class IntervalTree {
 
         applyInterval(this.root);
 
-        function applyInterval(node: any): void {
+        function applyInterval(node: NodeLike | NILNode): void {
 
-            func(node.interval);
+            func((node as NodeLike).interval);
 
             if (node.left !== NIL) applyInterval(node.left);
             if (node.right !== NIL) applyInterval(node.right);
@@ -171,10 +171,10 @@ class IntervalTree {
     }
 }
 
-function searchAll(this: IntervalTree, interval: Interval, node: any, results: Interval[]): Interval[] {
+function searchAll(this: IntervalTree, interval: Interval, node: NodeLike | NILNode, results: Interval[]): Interval[] {
 
-    if (node.interval.overlaps(interval)) {
-        results.push(node.interval);
+    if ((node as NodeLike).interval.overlaps(interval)) {
+        results.push((node as NodeLike).interval);
     }
 
     if (node.left !== NIL && node.left.max >= interval.low) {
@@ -188,20 +188,20 @@ function searchAll(this: IntervalTree, interval: Interval, node: any, results: I
     return results;
 }
 
-function leftRotate(this: IntervalTree, x: any): void {
-    var y = x.right;
+function leftRotate(this: IntervalTree, x: NodeLike): void {
+    var y = x.right as NodeLike;
     x.right = y.left;
     if (y.left !== NIL) {
-        y.left.parent = x;
+        (y.left as NodeLike).parent = x;
     }
     y.parent = x.parent;
     if (x.parent === NIL) {
         this.root = y;
     } else {
-        if (x.parent.left === x) {
-            x.parent.left = y;
+        if ((x.parent as NodeLike).left === x) {
+            (x.parent as NodeLike).left = y;
         } else {
-            x.parent.right = y;
+            (x.parent as NodeLike).right = y;
         }
     }
     y.left = x;
@@ -213,20 +213,20 @@ function leftRotate(this: IntervalTree, x: any): void {
 }
 
 
-function rightRotate(this: IntervalTree, x: any): void {
-    var y = x.left;
+function rightRotate(this: IntervalTree, x: NodeLike): void {
+    var y = x.left as NodeLike;
     x.left = y.right;
     if (y.right !== NIL) {
-        y.right.parent = x;
+        (y.right as NodeLike).parent = x;
     }
     y.parent = x.parent;
     if (x.parent === NIL) {
         this.root = y;
     } else {
-        if (x.parent.right === x) {
-            x.parent.right = y;
+        if ((x.parent as NodeLike).right === x) {
+            (x.parent as NodeLike).right = y;
         } else {
-            x.parent.left = y;
+            (x.parent as NodeLike).left = y;
         }
     }
     y.right = x;
@@ -240,17 +240,18 @@ function rightRotate(this: IntervalTree, x: any): void {
 
 
 // Applies the statistic update on the node and its ancestors.
-function applyUpdate(this: IntervalTree, node: any): void {
+function applyUpdate(this: IntervalTree, node: NodeLike | NILNode): void {
     while (node !== NIL) {
-        var nodeMax: number = node.left.max > node.right.max ? node.left.max : node.right.max;
-        var intervalHigh: number = node.interval.high;
-        node.max = nodeMax > intervalHigh ? nodeMax : intervalHigh;
+        const n = node as NodeLike;
+        var nodeMax: number = n.left.max > n.right.max ? n.left.max : n.right.max;
+        var intervalHigh: number = n.interval.high;
+        n.max = nodeMax > intervalHigh ? nodeMax : intervalHigh;
 
-        var nodeMin: number = node.left.min < node.right.min ? node.left.min : node.right.min;
-        var intervalLow: number = node.interval.low;
-        node.min = nodeMin < intervalLow ? nodeMin : intervalLow;
+        var nodeMin: number = n.left.min < n.right.min ? n.left.min : n.right.min;
+        var intervalLow: number = n.interval.low;
+        n.min = nodeMin < intervalLow ? nodeMin : intervalLow;
 
-        node = node.parent;
+        node = n.parent;
     }
 }
 
@@ -258,9 +259,9 @@ function applyUpdate(this: IntervalTree, node: any): void {
 class Interval {
     low: number;
     high: number;
-    value: any;
+    value: unknown;
 
-    constructor(low: number, high: number, value: any) {
+    constructor(low: number, high: number, value: unknown) {
         this.low = low;
         this.high = high;
         this.value = value;
@@ -310,159 +311,20 @@ interface NodeLike {
     min: number;
 }
 
-function Node(this: NodeLike, interval: Interval): void {
-    this.parent = NIL;
-    this.left = NIL;
-    this.right = NIL;
-    this.interval = interval;
-    this.color = RED;
+class Node implements NodeLike {
+    parent: NodeLike | NILNode = NIL;
+    left: NodeLike | NILNode = NIL;
+    right: NodeLike | NILNode = NIL;
+    interval: Interval;
+    color: number = RED;
+    max: number;
+    min: number;
+
+    constructor(interval: Interval) {
+        this.interval = interval;
+        this.max = interval.high;
+        this.min = interval.low;
+    }
 }
-
-
-//
-//
-//    function minimum(node) {
-//        while (node.left != NIL) {
-//            node = node.left;
-//        }
-//        return node;
-//    }
-//
-//
-//    function maximum(node) {
-//
-//        while (node.right != NIL) {
-//            node = node.right;
-//        }
-//        return node;
-//    }
-//
-//
-//    function successor(x) {
-//
-//        if (x.right != NIL) {
-//            return minimum(x.right);
-//        }
-//        var y = x.parent;
-//        while (y != NIL && x == y.right) {
-//            x = y;
-//            y = y.parent;
-//        }
-//        return y;
-//    }
-//
-//
-//    function predecessor(x) {
-//        if (x.left != NIL) {
-//            return maximum(x.left);
-//        }
-//        var y = x.parent;
-//        while (y != NIL && x == y.left) {
-//            x = y;
-//            y = y.parent;
-//        }
-//        return y;
-//    }
-//
-//
-//
-//    allRedNodesFollowConstraints = function (node) {
-//        if (node == NIL)
-//            return true;
-//
-//        if (node.color == BLACK) {
-//            return (this.allRedNodesFollowConstraints(node.left) &&
-//                this.allRedNodesFollowConstraints(node.right));
-//        }
-//
-//        // At this point, we know we're on a RED node.
-//        return (node.left.color == BLACK &&
-//            node.right.color == BLACK &&
-//            this.allRedNodesFollowConstraints(node.left) &&
-//            this.allRedNodesFollowConstraints(node.right));
-//    }
-//
-//
-//    // Check that both ends are equally balanced in terms of black height.
-//    isBalancedBlackHeight = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (blackHeight(node.left) == blackHeight(node.right) &&
-//            this.isBalancedBlackHeight(node.left) &&
-//            this.isBalancedBlackHeight(node.right));
-//    }
-//
-//
-//    // The black height of a node should be left/right equal.
-//    blackHeight = function (node) {
-//        if (node == NIL)
-//            return 0;
-//        var leftBlackHeight = blackHeight(node.left);
-//        if (node.color == BLACK) {
-//            return leftBlackHeight + 1;
-//        } else {
-//            return leftBlackHeight;
-//        }
-//    }
-
-
-/**
- * Test code: make sure that the tree has all the properties
- * defined by Red Black trees and interval trees
- * <p/>
- * o.  Root is black.
- * <p/>
- * o.  NIL is black.
- * <p/>
- * o.  Red nodes have black children.
- * <p/>
- * o.  Every path from root to leaves contains the same number of
- * black nodes.
- * <p/>
- * o.  getMax(node) is the maximum of any interval rooted at that node..
- * <p/>
- * This code is expensive, and only meant to be used for
- * assertions and testing.
- */
-//
-//    isValid = function () {
-//        if (this.root.color != BLACK) {
-//            logger.warn("root color is wrong");
-//            return false;
-//        }
-//        if (NIL.color != BLACK) {
-//            logger.warn("NIL color is wrong");
-//            return false;
-//        }
-//        if (allRedNodesFollowConstraints(this.root) == false) {
-//            logger.warn("red node doesn't follow constraints");
-//            return false;
-//        }
-//        if (isBalancedBlackHeight(this.root) == false) {
-//            logger.warn("black height unbalanced");
-//            return false;
-//        }
-//
-//        return hasCorrectMaxFields(this.root) &&
-//            hasCorrectMinFields(this.root);
-//    }
-//
-//
-//    hasCorrectMaxFields = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (getRealMax(node) == (node.max) &&
-//            this.hasCorrectMaxFields(node.left) &&
-//            this.hasCorrectMaxFields(node.right));
-//    }
-//
-//
-//    hasCorrectMinFields = function (node) {
-//        if (node == NIL)
-//            return true;
-//        return (getRealMin(node) == (node.min) &&
-//            this.hasCorrectMinFields(node.left) &&
-//            this.hasCorrectMinFields(node.right));
-//    }
 
 export default IntervalTree;

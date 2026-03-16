@@ -432,7 +432,7 @@ class FeatureTrack extends TrackBase {
         const f = features[0]   // The shortest clicked feature
 
         if ((f.end - f.start) <= 1000000) {
-            const list = [{
+            const list: ({label: string, click: () => Promise<void>} | string)[] = [{
                 label: 'View feature sequence',
                 click: async () => {
                     let seq = await this.browser.genome.getSequence(f.chr, f.start, f.end)
@@ -467,7 +467,7 @@ class FeatureTrack extends TrackBase {
                     }
                 )
             }
-            list.push('<hr/>' as any)
+            list.push('<hr/>')
             return list
         } else {
             return undefined

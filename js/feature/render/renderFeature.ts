@@ -43,7 +43,7 @@ interface RenderOptions {
     bpPerPixel: number
     sequenceInterval?: SequenceInterval
     drawLabel?: boolean
-    referenceFrame?: any
+    referenceFrame?: unknown
     pixelXOffset?: number
     viewportWidth?: number
     labelAllFeatures?: boolean
@@ -62,6 +62,21 @@ interface AminoAcidResult {
 interface AminoAcidLetters {
     left: AminoAcidResult | undefined
     rite: AminoAcidResult | undefined
+}
+
+/** Minimal shape of a FeatureTrack for render functions called via .call(this, ...) */
+interface FeatureRenderer {
+    color: string
+    displayMode: string
+    featureHeight: number
+    margin: number
+    squishedRowHeight: number
+    expandedRowHeight: number
+    arrowSpacing: number
+    labelDisplayMode?: string
+    config: { labelField?: string; [key: string]: unknown }
+    browser: { qtlSelections: { hasPhenotype(name: string | undefined): boolean } }
+    getColorForFeature(feature: Feature): string
 }
 
 interface Remainder {
@@ -103,7 +118,7 @@ function calculateFeatureCoordinates(feature: Feature, bpStart: number, xScale: 
  * @param ctx  the canvas 2d context
  * @param options  genomic state
  */
-function renderFeature(this: any, feature: Feature, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D, options: RenderOptions): void {
+function renderFeature(this: FeatureRenderer, feature: Feature, bpStart: number, xScale: number, pixelHeight: number, ctx: CanvasRenderingContext2D, options: RenderOptions): void {
 
     try {
         ctx.save()
@@ -248,7 +263,7 @@ function renderFeature(this: any, feature: Feature, bpStart: number, xScale: num
     }
 }
 
-function renderAminoAcidSequence(this: any, ctx: CanvasRenderingContext2D, strand: string | undefined, leftExon: Exon | undefined, exon: Exon, riteExon: Exon | undefined, bpStart: number, bpPerPixel: number, y: number, height: number, sequenceInterval: SequenceInterval): void {
+function renderAminoAcidSequence(this: FeatureRenderer, ctx: CanvasRenderingContext2D, strand: string | undefined, leftExon: Exon | undefined, exon: Exon, riteExon: Exon | undefined, bpStart: number, bpPerPixel: number, y: number, height: number, sequenceInterval: SequenceInterval): void {
 
     const aaColors: string[] =
         [
@@ -410,7 +425,7 @@ function renderAminoAcidSequence(this: any, ctx: CanvasRenderingContext2D, stran
  * @param referenceFrame  genomic state
  * @param options  options
  */
-function renderFeatureLabel(this: any, ctx: CanvasRenderingContext2D, feature: Feature, featureX: number, featureX1: number, featureY: number, referenceFrame: any, options: RenderOptions): void {
+function renderFeatureLabel(this: FeatureRenderer, ctx: CanvasRenderingContext2D, feature: Feature, featureX: number, featureX1: number, featureY: number, referenceFrame: unknown, options: RenderOptions): void {
 
     try {
         ctx.save()
@@ -467,7 +482,7 @@ function getFeatureLabelY(featureY: number, transform: LabelTransform | undefine
     return transform ? featureY + 20 : featureY + 25
 }
 
-function getAminoAcidLetterWithExonGap(this: any, strand: string | undefined, phase: number | undefined, phaseExtentStart: number | undefined, phaseExtentEnd: number | undefined, remainder: Remainder | undefined, leftExon: Exon | undefined, exon: Exon, riteExon: Exon | undefined, sequenceInterval: SequenceInterval): AminoAcidLetters | undefined {
+function getAminoAcidLetterWithExonGap(this: FeatureRenderer, strand: string | undefined, phase: number | undefined, phaseExtentStart: number | undefined, phaseExtentEnd: number | undefined, remainder: Remainder | undefined, leftExon: Exon | undefined, exon: Exon, riteExon: Exon | undefined, sequenceInterval: SequenceInterval): AminoAcidLetters | undefined {
 
     let ss: number
     let ee: number
