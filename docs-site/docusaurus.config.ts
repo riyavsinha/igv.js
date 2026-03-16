@@ -12,10 +12,10 @@ const config: Config = {
   },
 
   url: 'https://riyavsinha.github.io',
-  baseUrl: '/igv.js/',
+  baseUrl: '/igv.ts/',
 
   organizationName: 'riyavsinha',
-  projectName: 'igv.js',
+  projectName: 'igv.ts',
 
   onBrokenLinks: 'warn',
   trailingSlash: false,
