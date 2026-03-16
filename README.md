@@ -1,12 +1,14 @@
-# igv.js
-![build](https://github.com/igvteam/igv.js/actions/workflows/ci_build.yml/badge.svg)
-[![](https://img.shields.io/npm/dw/igv.svg)](https://www.npmjs.com/package/igv)
-[![](https://img.shields.io/github/last-commit/igvteam/igv.js.svg)](https://github.com/igvteam/igv.js)
-[![](https://img.shields.io/npm/l/igv.svg)](LICENSE)
-[![](https://data.jsdelivr.com/v1/package/npm/igv/badge)](https://www.jsdelivr.com/package/npm/igv)
+# @riyavsinha/igv
 
-igv.js is an embeddable interactive genome visualization component developed by the 
- [Integrative Genomics Viewer (IGV)](https://igv.org) team. 
+> **This is a TypeScript fork of [igv.js](https://github.com/igvteam/igv.js).** The codebase has been migrated from JavaScript to TypeScript with full type definitions. The API is compatible with the original igv.js.
+
+[![](https://img.shields.io/npm/v/@riyavsinha/igv.svg)](https://www.npmjs.com/package/@riyavsinha/igv)
+[![](https://img.shields.io/npm/l/igv.svg)](LICENSE)
+
+igv.js is an embeddable interactive genome visualization component developed by the
+ [Integrative Genomics Viewer (IGV)](https://igv.org) team.
+
+Testing is extremely appreciated to ensure that this works the same as IGV.js, but please use at your own risk for now.
 
 ## Citing igv.js
 
@@ -44,18 +46,18 @@ can be downloaded from [https://cdn.jsdelivr.net/npm/igv@3.8.0/dist/](https://cd
 To import igv as an ES6 module
 
 ```javascript
-import igv from "https://cdn.jsdelivr.net/npm/igv@3.8.0/dist/igv.esm.min.js"
+import igv from "https://cdn.jsdelivr.net/npm/@riyavsinha/igv@0.1.2/dist/igv.esm.min.js"
 ``` 
 
 Or as a script include (defines the "igv" global)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/igv@3.8.0/dist/igv.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@riyavsinha/igv@0.1.2/dist/igv.min.js"></script>
 ```   
  
 Alternatively you can install with npm  
  
- ```npm install igv```
+ ```npm install @riyavsinha/igv```
 
 and source the appropriate file for your module system (igv.min.js or igv.esm.min.js)  in node_modules/igv/dist.
 

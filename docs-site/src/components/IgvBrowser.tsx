@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 
 const UPSTREAM_CDN = 'https://cdn.jsdelivr.net/npm/igv@3.8.0/dist/igv.esm.min.js';
-const FORK_CDN = 'https://cdn.jsdelivr.net/npm/@riyavsinha/igv@0.1.1/dist/igv.esm.min.js';
+const FORK_CDN = 'https://cdn.jsdelivr.net/npm/@riyavsinha/igv@0.1.2/dist/igv.esm.min.js';
 
 interface IgvBrowserProps {
   options: Record<string, unknown>;
