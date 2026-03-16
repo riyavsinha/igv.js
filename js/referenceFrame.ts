@@ -4,6 +4,7 @@ import {prettyBasePairNumber, validateGenomicExtent} from "./util/igvUtils"
 import GenomeUtils from "./genome/genomeUtils"
 import type Genome from "./genome/genome.js"
 import type Browser from "./browser.js"
+import type TrackViewport from "./trackViewport.js"
 
 // Reference frame classes.  Converts domain coordinates (usually genomic) to pixel coordinates
 
@@ -42,6 +43,7 @@ class ReferenceFrame {
     bpPerPixel: number
     id: string
     initialEnd?: number
+    viewport?: TrackViewport
 
     constructor(genome: Genome, chr: string, start: number, end: number, bpPerPixel: number) {
         this.genome = genome

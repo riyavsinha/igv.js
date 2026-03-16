@@ -1,5 +1,6 @@
 import {buildOptions} from "../util/igvUtils.js"
 import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
+import type {LoadConfig} from "../types/config.js"
 
 /**
  * Class to iterate line-by-line over a BGZipped text file.  This class is useful for iterating from the start of
@@ -7,13 +8,13 @@ import {BGZip, igvxhr} from "../../node_modules/igv-utils/src/index.js"
  */
 
 class BGZLineReader {
-    config: Record<string, any>
+    config: LoadConfig
     filePtr: number
     bufferPtr: number
     buffer: Uint8Array | undefined
     eof: boolean
 
-    constructor(config: Record<string, any>) {
+    constructor(config: LoadConfig) {
         this.config = config
         this.filePtr = 0
         this.bufferPtr = 0
@@ -57,7 +58,7 @@ class BGZLineReader {
                 size: 26
             }
         })
-        const abuffer = await igvxhr.loadArrayBuffer(this.config.url, bsizeOptions)
+        const abuffer = await igvxhr.loadArrayBuffer(this.config.url as string, bsizeOptions)
         const bufferSize = BGZip.bgzBlockSize(abuffer)
 
         if (bufferSize === 0) {
@@ -66,7 +67,7 @@ class BGZLineReader {
         } else {
 
             const options = buildOptions(this.config, {range: {start: this.filePtr, size: bufferSize}})
-            const data = await igvxhr.loadArrayBuffer(this.config.url, options)
+            const data = await igvxhr.loadArrayBuffer(this.config.url as string, options)
             if (data.byteLength < bufferSize) {
                 this.eof = true // Assumption
             }

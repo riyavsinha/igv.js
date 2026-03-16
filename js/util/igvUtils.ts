@@ -1,5 +1,6 @@
 import {FileUtils, StringUtils} from "../../node_modules/igv-utils/src/index.js"
 import * as DOMUtils from "../ui/utils/dom-utils.js"
+import type {LoadConfig} from "../types/config.js"
 
 /**
  * Test if the given value is a string or number.  Not using typeof as it fails on boxed primitives.
@@ -11,9 +12,9 @@ function isSimpleType(value: unknown): boolean {
     return (value !== undefined && (SIMPLE_TYPES.has(valueType) || value instanceof String || value instanceof Number))
 }
 
-function buildOptions(config: Record<string, any>, options?: Record<string, any>): Record<string, any> {
+function buildOptions(config: LoadConfig, options?: Record<string, unknown>): Record<string, unknown> {
 
-    var defaultOptions: Record<string, any> = {
+    var defaultOptions: Record<string, unknown> = {
         oauthToken: config.oauthToken,
         headers: config.headers,
         withCredentials: config.withCredentials,
@@ -23,7 +24,7 @@ function buildOptions(config: Record<string, any>, options?: Record<string, any>
     return Object.assign(defaultOptions, options)
 }
 
-const doAutoscale = function (features: any[]): {min: number, max: number} {
+const doAutoscale = function (features: unknown[]): {min: number, max: number} {
     var min: number, max: number
 
     if (features && features.length > 0) {
@@ -31,9 +32,10 @@ const doAutoscale = function (features: any[]): {min: number, max: number} {
         max = -Number.MAX_VALUE
 
         for (let f of features) {
-            if (!Number.isNaN(f.value)) {
-                min = Math.min(min, f.value)
-                max = Math.max(max, f.value)
+            const value = (f as { value: number }).value
+            if (!Number.isNaN(value)) {
+                min = Math.min(min, value)
+                max = Math.max(max, value)
             }
         }
 

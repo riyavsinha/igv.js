@@ -1,12 +1,19 @@
 import IGVGraphics from "../igv-canvas.js"
 
+interface PaintAxisContext {
+    axisMin?: number
+    axisMax?: number
+    dataRange?: { min: number; max: number }
+    flipAxis?: boolean
+}
+
 const shim = .01
 const colorStripWidth = 4
 const axesXOffset = colorStripWidth + 1
 
-function paintAxis(this: any, ctx: CanvasRenderingContext2D, width: number, height: number, colorOrUndefined?: string): void {
+function paintAxis(this: PaintAxisContext, ctx: CanvasRenderingContext2D, width: number, height: number, colorOrUndefined?: string): void {
 
-    let axisMin = this.axisMin
+    let axisMin: number = this.axisMin ?? 0
     let axisMax = this.axisMax
     if (undefined === axisMax && this.dataRange) {
         axisMin = this.dataRange.min || 0

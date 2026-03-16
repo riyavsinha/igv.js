@@ -61,17 +61,17 @@ export default class BPTree {
     type: BPTreeType = 'BPTree'          // Either BPTree or BPChromTree
     nodeCache: Map<number, BPTreeNode> = new Map()
     path: string
-    config: object
+    config: Record<string, unknown>
     startOffset: number
     loader: Loader
     header!: BPTreeHeader
 
-    static async loadBpTree(path: string, config: object, startOffset: number, type: BPTreeType | undefined, loader?: Loader): Promise<BPTree> {
+    static async loadBpTree(path: string, config: Record<string, unknown>, startOffset: number, type: BPTreeType | undefined, loader?: Loader): Promise<BPTree> {
         const bpTree = new BPTree(path, config, startOffset, type, loader)
         return bpTree.init()
     }
 
-    constructor(path: string, config: object, startOffset: number, type?: BPTreeType, loader?: Loader) {
+    constructor(path: string, config: Record<string, unknown>, startOffset: number, type?: BPTreeType, loader?: Loader) {
         this.path = path
         this.config = config
         this.startOffset = startOffset

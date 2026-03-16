@@ -298,7 +298,7 @@ class PaletteColorTable {
     colors: string[]
     colorTable: Map<string, string>
     nextIdx: number
-    colorGenerator: any
+    colorGenerator: RandomColorGenerator
 
     constructor(palette: string) {
         this.colors = (colorPalettes as Record<string, string[]>)[palette]
@@ -324,7 +324,7 @@ class PaletteColorTable {
 class ColorTable {
     colorTable: Record<string, string>
     nextIdx: number
-    colorGenerator: any
+    colorGenerator: RandomColorGenerator
 
     constructor(colors?: Record<string, string>) {
         this.colorTable = colors || {}

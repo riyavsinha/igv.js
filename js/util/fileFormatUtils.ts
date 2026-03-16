@@ -76,12 +76,12 @@ function compareArrays(a: Uint8Array | number[], b: Uint8Array | number[]): bool
 
 }
 
-async function inferFileFormat(config: any): Promise<string | undefined | null> {
+async function inferFileFormat(config: Record<string, unknown>): Promise<string | undefined | null> {
 
     let format: string | undefined | null
 
     // First try determining format from file extension
-    const filename = config.filename || FileUtils.getFilename(config.url)
+    const filename = (config.filename || FileUtils.getFilename(config.url as string)) as string | undefined
     if(filename) {
         format = await inferFileFormatFromName(filename)
     }
@@ -161,9 +161,9 @@ function inferIndexPath(url: string, extension: string): string | undefined {
 }
 
 
-async function inferFileFormatFromContents(config: any): Promise<string | null> {
+async function inferFileFormatFromContents(config: Record<string, unknown>): Promise<string | null> {
 
-    const url = config.url
+    const url = config.url as string
     let options = buildOptions(config, {range: {start: 0, size: 1000}})
     let data = await igvxhr.loadArrayBuffer(url, options)
 

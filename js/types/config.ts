@@ -4,6 +4,16 @@
 
 import type {GenomicFeature} from "./feature"
 
+/** Common properties for data-loading configuration passed to buildOptions/igvxhr */
+export interface LoadConfig {
+    oauthToken?: string | (() => string | Promise<string>)
+    headers?: Record<string, string>
+    withCredentials?: boolean
+    filename?: string
+    /** Allow additional properties for format-specific options */
+    [key: string]: unknown
+}
+
 /** Base configuration shared by all track types */
 export interface TrackConfig {
     type?: string

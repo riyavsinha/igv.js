@@ -46,12 +46,12 @@ export default class RPTree {
     littleEndian: boolean = true
     nodeCache: Map<number, RPTreeNode> = new Map()
     path: string
-    config: object
+    config: Record<string, unknown>
     startOffset: number
     loader: Loader
     header!: RPTreeHeader
 
-    constructor(path: string, config: object, startOffset: number, loader?: Loader) {
+    constructor(path: string, config: Record<string, unknown>, startOffset: number, loader?: Loader) {
 
         this.path = path
         this.config = config

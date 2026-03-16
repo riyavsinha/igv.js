@@ -15,11 +15,11 @@ export default class ChromTree {
     nameToId: Map<string, number> = new Map()
     idToName: Map<number, string> = new Map()
     path: string
-    config: object
+    config: Record<string, unknown>
     startOffset: number
     bpTree: BPTree
 
-    constructor(path: string, config: object, startOffset: number, loader?: Loader) {
+    constructor(path: string, config: Record<string, unknown>, startOffset: number, loader?: Loader) {
         this.path = path
         this.config = config
         this.startOffset = startOffset

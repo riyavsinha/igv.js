@@ -2409,7 +2409,7 @@ keyUpHandler(this: Browser, event: KeyboardEvent): Promise<void> {
             if (typeof track.nextFeatureAfter === 'function') {
 
                 const referenceFrame = this.referenceFrameList[0]
-                const viewportWidth = (referenceFrame as any).viewport ? (referenceFrame as any).viewport.getWidth() : this.calculateViewportWidth(this.referenceFrameList.length)
+                const viewportWidth = referenceFrame.viewport ? referenceFrame.viewport.getWidth() : this.calculateViewportWidth(this.referenceFrameList.length)
 
 
                 // Check visibility window

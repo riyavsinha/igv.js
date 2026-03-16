@@ -13,7 +13,7 @@ function createViewport(trackView: TrackView, column: HTMLElement, referenceFram
         return new IdeogramViewport(trackView, column, referenceFrame, width)
     } else {
         const viewportObject = new TrackViewport(trackView, column, referenceFrame, width)
-        ;(referenceFrame as any).viewport = viewportObject
+        referenceFrame.viewport = viewportObject
         return viewportObject
     }
 }
