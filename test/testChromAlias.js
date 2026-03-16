@@ -1,9 +1,9 @@
 import "./utils/mockObjects.js"
-import ChromAliasFile from "../js/genome/chromAliasFile.js"
-import BWReader from "../js/bigwig/bwReader.js"
+import ChromAliasFile from "../js/genome/chromAliasFile"
+import BWReader from "../js/bigwig/bwReader"
 import {assert} from "chai"
-import ChromAliasDefaults from "../js/genome/chromAliasDefaults.js"
-import ChromAliasBB from "../js/genome/chromAliasBB.js"
+import ChromAliasDefaults from "../js/genome/chromAliasDefaults"
+import ChromAliasBB from "../js/genome/chromAliasBB"
 
 
 suite("chromAlias", function () {

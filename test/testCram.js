@@ -1,6 +1,6 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
-import Genome from "../js/genome/genome.js"
+import Genome from "../js/genome/genome"
 import CramReader from "../js/cram/cramReader.js"
 import LocalFile from "./utils/JBrowseFileHandler.js"
 

@@ -1,7 +1,7 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
 import {complementSequence} from "../js/util/sequenceUtils.js"
-import {isChEBI, getBaseModificationSets, byteToUnsignedInt} from "../js/bam/mods/baseModificationUtils.js"
+import {isChEBI, getBaseModificationSets, byteToUnsignedInt} from "../js/bam/mods/baseModificationUtils"
 
 
 suite("test base mods", function () {

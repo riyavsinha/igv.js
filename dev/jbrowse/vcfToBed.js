@@ -1,7 +1,7 @@
 import fs from 'fs'
 import "../../test/utils/mockObjects.js"
 import VcfParser from "../../js/variant/vcfParser.js"
-import getDataWrapper from "../../js/feature/dataWrapper.js"
+import getDataWrapper from "../../js/feature/dataWrapper"
 // Converts a VCF file with structural variants to a BEDPE format.
 
 vcfToBed("../../test/data/vcf/SKBR3_Sniffles_variants_tra.vcf")

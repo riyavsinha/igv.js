@@ -1,6 +1,6 @@
 import "./utils/mockObjects.js"
-import TDFReader from "../js/tdf/tdfReader.js"
-import TDFSource from "../js/tdf/tdfSource.js"
+import TDFReader from "../js/tdf/tdfReader"
+import TDFSource from "../js/tdf/tdfSource"
 import FeatureSource from "../js/feature/featureSource.js"
 import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"

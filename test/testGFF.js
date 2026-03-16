@@ -5,8 +5,8 @@ import {assert} from 'chai'
 import {createGenome} from "./utils/MockGenome.js"
 
 const genome = createGenome()
-import GFFHelper from "../js/feature/gff/gffHelper.js"
-import {decodeGFFAttribute, parseAttributeString} from "../js/feature/gff/parseAttributeString.js"
+import GFFHelper from "../js/feature/gff/gffHelper"
+import {decodeGFFAttribute, parseAttributeString} from "../js/feature/gff/parseAttributeString"
 
 suite("testGFF", function () {
 

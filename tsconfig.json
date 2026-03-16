@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    // Output target matching browserslist ("> 1%, not dead")
+    "target": "ES2018",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    // Mixed JS/TS coexistence for incremental migration
+    "allowJs": true,
+    "checkJs": false,
+
+    // TypeScript is for type-checking only; Rollup handles bundling
+    "noEmit": true,
+
+    "strict": true,
+
+    // Module interop
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // TS 6.0: types defaults to [] — opt in to node types for build scripts
+    "types": [],
+
+    // TS 6.0: rootDir defaults to "." — set explicitly
+    "rootDir": "js"
+  },
+  "include": ["js/**/*"],
+  "exclude": ["node_modules", "dist", "test", "js/vendor"]
+}

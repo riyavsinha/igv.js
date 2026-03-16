@@ -1,0 +1,75 @@
+import IGVGraphics from "../igv-canvas.js"
+
+interface PaintAxisContext {
+    axisMin?: number
+    axisMax?: number
+    dataRange?: { min: number; max: number }
+    flipAxis?: boolean
+}
+
+const shim = .01
+const colorStripWidth = 4
+const axesXOffset = colorStripWidth + 1
+
+function paintAxis(this: PaintAxisContext, ctx: CanvasRenderingContext2D, width: number, height: number, colorOrUndefined?: string): void {
+
+    let axisMin: number = this.axisMin ?? 0
+    let axisMax = this.axisMax
+    if (undefined === axisMax && this.dataRange) {
+        axisMin = this.dataRange.min || 0
+        axisMax = this.dataRange.max
+    }
+    if (undefined === axisMax) {
+        return
+    }
+
+    IGVGraphics.fillRect(ctx, 0, 0, width, height, {fillStyle: 'white'})
+    if (colorOrUndefined) {
+        IGVGraphics.fillRect(ctx, width - colorStripWidth - 2, 0, colorStripWidth, height, {fillStyle: colorOrUndefined})
+    }
+
+    const flipAxis = (undefined === this.flipAxis) ? false : this.flipAxis
+
+    const xTickStart = 0.95 * width - 8 - axesXOffset
+    const xTickEnd = 0.95 * width - axesXOffset
+
+    const properties =
+        {
+            font: 'normal 10px Arial',
+            textAlign: 'right',
+            fillStyle: 'black',
+            strokeStyle: 'black',
+        }
+
+    // tick
+    IGVGraphics.strokeLine(ctx, xTickStart, shim * height, xTickEnd, shim * height, properties)
+    IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? axisMin : axisMax), xTickStart + 4, shim * height + 12, properties)
+
+    const y = (1.0 - shim) * height
+
+    // tick
+    IGVGraphics.strokeLine(ctx, xTickStart, y, xTickEnd, y, properties)
+    IGVGraphics.fillText(ctx, prettyPrint(flipAxis ? axisMax : axisMin), xTickStart + 4, y - 4, properties)
+
+    // vertical axis
+    IGVGraphics.strokeLine(ctx, xTickEnd, shim * height, xTickEnd, y, properties)
+
+    function prettyPrint(number: number): string {
+
+        if (Number.isInteger(number)) {
+            return number.toString()
+        } else if (number % 1 === 0) {
+            return number.toString()
+        } else if (Math.abs(number) >= 10) {
+            return number.toFixed()
+        } else if (Math.abs(number) >= 1) {
+            return number.toFixed(1)
+        } else if (Math.abs(number) >= 0.1) {
+            return number.toFixed(2)
+        } else {
+            return number.toExponential(1)
+        }
+    }
+}
+
+export default paintAxis

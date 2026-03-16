@@ -1,0 +1,115 @@
+/**
+ * Represenets a UCSC tab-delimited Alias file
+ *
+ * example  - header line is optional but reccomended, required to support altName setting for genome
+ * # refseq	assembly	genbank	ncbi	ucsc
+ * NC_048407.1	chr01	CM023106.1	1	chr1
+ *
+ * @param aliasURL
+ * @param config
+ * @returns {Promise<*[]>}
+ */
+import {buildOptions} from "../util/igvUtils"
+import {igvxhr, StringUtils} from "../../node_modules/igv-utils/src/index"
+import ChromAliasDefaults from "./chromAliasDefaults"
+import type Genome from "./genome.js"
+import type {GenomeConfig} from "../types/genome.js"
+
+class ChromAliasFile {
+
+    aliasRecordCache: Map<string, Record<string, string>> = new Map()
+    aliasURL: string
+    config: GenomeConfig
+    genome: Genome
+    headings: string[] | undefined
+    altNameSets: string[] | undefined
+
+    constructor(aliasURL: string, config: GenomeConfig, genome: Genome) {
+        this.aliasURL = aliasURL
+        this.config = config
+        this.genome = genome
+    }
+
+    async preload(chrNames: string[]): Promise<void> {
+        // A no-op, this is a text file, no need to preload
+    }
+    /**
+     * Return the canonical chromosome name for the alias.  If none found return the alias
+     *
+     * @param alias
+     * @returns {*}
+     */
+    getChromosomeName(alias: string): string {
+        return this.aliasRecordCache.has(alias) ? this.aliasRecordCache.get(alias)!.chr : alias
+    }
+
+    /**
+     * Return an alternate chromosome name (alias).  If not exists, return chr
+     * @param chr
+     * @param nameSet -- The name set, e.g. "ucsc"
+     * @returns {*|undefined}
+     */
+    getChromosomeAlias(chr: string, nameSet: string): string
+    {
+        const aliasRecord =  this.aliasRecordCache.get(chr)
+        return aliasRecord ? aliasRecord[nameSet] || chr : chr
+    }
+
+
+    async loadAliases(): Promise<void> {
+
+        const data = await igvxhr.loadString(this.aliasURL, buildOptions(this.config))
+        const lines: string[] = StringUtils.splitLines(data)
+        const firstLine = lines[0]
+        if (firstLine.startsWith("#")) {
+            this.headings = firstLine.substring(1).split("\t").map((h: string) => h.trim())
+            this.altNameSets = this.headings.slice(1)
+        }
+
+        const chromosomeNameSet: Set<string> = this.genome.chromosomeNames ?
+            new Set(this.genome.chromosomeNames) : new Set()
+
+        for (let line of lines) {
+            if (!line.startsWith("#") && line.length > 0) {
+                const tokens = line.split("\t")
+
+                // Find the canonical chromosome
+                let chr = tokens.find((t: string) => chromosomeNameSet.has(t))
+                if(!chr) {
+                    chr = tokens[0]
+                }
+
+                const aliasRecord: Record<string, string> = {chr}
+                ChromAliasDefaults.addCaseAliases(aliasRecord)
+                for (let i = 0; i < tokens.length; i++) {
+                    const key = this.headings ? this.headings[i] : String(i)
+                    aliasRecord[key] = tokens[i]
+                }
+
+                for (let a of Object.values(aliasRecord)) {
+                    this.aliasRecordCache.set(a, aliasRecord)
+                }
+
+            }
+        }
+    }
+
+    /**
+     * Search for chromosome alias record.  If found, cache results in the alias -> chr map
+     *
+     * An alias record is an object with keys corresponding to the chromosome name set (e.g. "ucsc", "refseq", etc) and
+     * value the corresponding chromosome alias for that name set.
+     *
+     * @param alias - the sequence name or alias
+     * @returns {Promise<any>} promise to resolve to the alias record.
+     */
+    async search(alias: string): Promise<Record<string, string> | undefined> {
+        if(this.aliasRecordCache.size === 0) {
+            await this.loadAliases()
+        }
+        return this.aliasRecordCache.get(alias)
+
+    }
+}
+
+export default ChromAliasFile

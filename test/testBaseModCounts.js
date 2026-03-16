@@ -2,7 +2,7 @@ import "./utils/mockObjects.js"
 import BamReader from "../js/bam/bamReader.js"
 import {assert} from 'chai'
 import BaseModificationCounts from "../js/bam/mods/baseModificationCounts.js"
-import BaseModificationKey from "../js/bam/mods/baseModificationKey.js"
+import BaseModificationKey from "../js/bam/mods/baseModificationKey"
 
 suite("test base-mod counts", function () {
 

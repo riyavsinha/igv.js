@@ -1,6 +1,6 @@
 import "./utils/mockObjects.js"
 import {assert} from 'chai'
-import {computeLengthOnReference} from "../js/bam/supplementaryAlignment.js"
+import {computeLengthOnReference} from "../js/bam/supplementaryAlignment"
 
 suite("testBAMUtils", function () {
 

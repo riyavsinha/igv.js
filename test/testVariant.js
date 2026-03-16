@@ -3,9 +3,9 @@ import VcfParser from "../js/variant/vcfParser.js"
 import FeatureFileReader from "../js/feature/featureFileReader.js"
 import {igvxhr} from "../node_modules/igv-utils/src/index.js"
 import {assert} from 'chai'
-import getDataWrapper from "../js/feature/dataWrapper.js"
+import getDataWrapper from "../js/feature/dataWrapper"
 import {createGenome} from "./utils/MockGenome.js"
-import pack from "../js/feature/featurePacker.js"
+import pack from "../js/feature/featurePacker"
 import Browser from "../js/browser.js"
 import VariantTrack from "../js/variant/variantTrack.js"
 
